@@ -2149,21 +2149,42 @@ function renderHTML(results, categories, opts) {
         var PPTX_LAYOUT_RELS = PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>';
         var PPTX_THEME = PPTX_HEAD + '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:srgbClr val="000000"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F497D"/></a:dk2><a:lt2><a:srgbClr val="EEECE1"/></a:lt2><a:accent1><a:srgbClr val="4F81BD"/></a:accent1><a:accent2><a:srgbClr val="C0504D"/></a:accent2><a:accent3><a:srgbClr val="9BBB59"/></a:accent3><a:accent4><a:srgbClr val="8064A2"/></a:accent4><a:accent5><a:srgbClr val="4BACC6"/></a:accent5><a:accent6><a:srgbClr val="F79646"/></a:accent6><a:hlink><a:srgbClr val="0000FF"/></a:hlink><a:folHlink><a:srgbClr val="800080"/></a:folHlink></a:clrScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>';
         var PPTX_ROOT_RELS = PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>';
-        function pptxPara(text, sz, bold) {
-            return '<a:p><a:r><a:rPr lang="zh-CN" sz="' + sz + '"' + (bold ? ' b="1"' : '') + ' dirty="0"/><a:t xml:space="preserve">' + xmlEsc(text) + '</a:t></a:r></a:p>';
+        function pptxPara(text, sz, bold, color) {
+            var rpr = '<a:rPr lang="zh-CN" sz="' + sz + '"' + (bold ? ' b="1"' : '') + ' dirty="0"';
+            if (color) rpr += '><a:solidFill><a:srgbClr val="' + color + '"/></a:solidFill></a:rPr>';
+            else rpr += '/>';
+            return '<a:p><a:r>' + rpr + '<a:t xml:space="preserve">' + xmlEsc(text) + '</a:t></a:r></a:p>';
+        }
+        function pptxAnswerParas(q) {
+            var t = q.type || 'fill';
+            var ans = expAnswer(q);
+            if (!ans) return null;
+            var GREEN = '047857', label = '答案', text = ans;
+            if (t === 'single' || t === 'multiple') { label = '正确答案'; text = '✓ ' + ans; }
+            else if (t === 'judge') { label = '判断结果'; }
+            else if (t === 'fill') { label = '填空答案'; }
+            else if (t === 'essay') { label = '参考答案'; }
+            else if (t === 'verse') { label = '经文答案'; }
+            return [pptxPara('【' + label + '】', 1800, true, GREEN), pptxPara(text, 2000, false, GREEN)];
         }
         function pptxShape(id, name, ph, x, y, cx, cy, paras) {
             return '<p:sp><p:nvSpPr><p:cNvPr id="' + id + '" name="' + name + '"/><p:cNvSpPr/><p:nvPr>' + ph + '</p:nvPr></p:nvSpPr>'
                 + '<p:spPr><a:xfrm><a:off x="' + x + '" y="' + y + '"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>'
                 + '<p:txBody><a:bodyPr wrap="square"/><a:lstStyle/>' + paras.join('') + '</p:txBody></p:sp>';
         }
-        function pptxSlideXml(titleParas, bodyParas) {
+        var PPTX_ANIM_APPEAR = '<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="clickPar"><p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst><p:par><p:cTn id="3" fill="hold"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="4" presetID="1" presetClass="entr" presetSubtype="0" fill="hold" nodeType="clickEffect"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst><p:childTnLst><p:set><p:cBhvr><p:cTn id="5" dur="0.001" fill="hold"/><p:tgtEl><p:spTgt spid="4"/></p:tgtEl><p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="visible"/></p:to></p:set></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>';
+        function pptxSlideXml(titleParas, bodyParas, answerParas) {
             var shapes = pptxShape(2, '标题', '<p:ph type="title"/>', 685800, 342900, 10820400, 1143000, titleParas)
-                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 10820400, 4521200, bodyParas);
+                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 10820400, 3000000, bodyParas);
+            var timing = '';
+            if (answerParas && answerParas.length) {
+                shapes += pptxShape(4, '答案', '', 685800, 4800200, 10820400, 1700000, answerParas);
+                timing = PPTX_ANIM_APPEAR;
+            }
             return PPTX_HEAD + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
                 + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
                 + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
-                + shapes + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+                + shapes + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>' + timing + '</p:sld>';
         }
         function buildPptx(c) {
             var qs = [];
@@ -2176,28 +2197,17 @@ function renderHTML(results, categories, opts) {
                 slides.push({ t: [pptxPara('课程导读', 3200, true)], b: [pptxPara(plain.slice(0, 1500), 1800, false)] });
             }
             qs.forEach(function(q, i) {
-                var lines = ['【' + (EXP_TYPE_PLAIN[q.type || 'fill'] || '') + '】' + (q.q || '')];
-                if ((q.type === 'single' || q.type === 'multiple') && q.o) {
+                var t = q.type || 'fill';
+                var lines = ['【' + (EXP_TYPE_PLAIN[t] || '') + '】' + (q.q || '')];
+                if ((t === 'single' || t === 'multiple') && q.o) {
                     String(q.o).split(',').forEach(function(o) { lines.push(String(o).trim()); });
                 }
-                slides.push({ t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)], b: lines.map(function(ln) { return pptxPara(ln, 1800, false); }) });
-            });
-            var pOrder = ['fill', 'single', 'multiple', 'judge', 'essay', 'verse'];
-            var pGroups = {};
-            qs.forEach(function(q) { var t = q.type || 'fill'; (pGroups[t] = pGroups[t] || []).push(q); });
-            var pHas = pOrder.some(function(t) { return (pGroups[t] || []).length > 0; });
-            if (pHas) {
-                slides.push({ t: [pptxPara('参考答案', 4000, true)], b: [pptxPara('以下为各题参考答案', 1800, false)] });
-                pOrder.forEach(function(t) {
-                    var list = pGroups[t] || [];
-                    if (!list.length) return;
-                    var lines = list.map(function(q, i) {
-                        var a = expAnswer(q);
-                        return (i + 1) + '. ' + (a || '（开放作答）');
-                    });
-                    slides.push({ t: [pptxPara('参考答案 · ' + (EXP_TYPE_PLAIN[t] || t), 3200, true)], b: lines.map(function(ln) { return pptxPara(ln, 1800, false); }) });
+                slides.push({
+                    t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)],
+                    b: lines.map(function(ln) { return pptxPara(ln, 1800, false); }),
+                    a: pptxAnswerParas(q)
                 });
-            }
+            });
             var files = [];
             var addXml = function(name, xml) { files.push({ name: name, data: te.encode(xml) }); };
             var slideOverrides = slides.map(function(s, i) {
@@ -2215,7 +2225,7 @@ function renderHTML(results, categories, opts) {
             addXml('ppt/slideLayouts/_rels/slideLayout1.xml.rels', PPTX_LAYOUT_RELS);
             addXml('ppt/theme/theme1.xml', PPTX_THEME);
             slides.forEach(function(s, i) {
-                addXml('ppt/slides/slide' + (i + 1) + '.xml', pptxSlideXml(s.t, s.b));
+                addXml('ppt/slides/slide' + (i + 1) + '.xml', pptxSlideXml(s.t, s.b, s.a));
                 addXml('ppt/slides/_rels/slide' + (i + 1) + '.xml.rels', PPTX_SLIDE_RELS);
             });
             return zipStored(files);
