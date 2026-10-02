@@ -2184,19 +2184,13 @@ function renderHTML(results, categories, opts) {
                 + '<p:spPr><a:xfrm><a:off x="' + x + '" y="' + y + '"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>'
                 + '<p:txBody><a:bodyPr wrap="square"/><a:lstStyle/>' + paras.join('') + '</p:txBody></p:sp>';
         }
-        var PPTX_ANIM_APPEAR = '<p:timing><p:tnLst><p:par><p:cTn id="1" dur="indefinite" restart="never" nodeType="clickPar"><p:childTnLst><p:seq concurrent="1" nextAc="seek"><p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst><p:par><p:cTn id="3" fill="hold"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst><p:childTnLst><p:par><p:cTn id="4" presetID="1" presetClass="entr" presetSubtype="0" fill="hold" nodeType="clickEffect"><p:stCondLst><p:cond delay="indefinite"/></p:stCondLst><p:childTnLst><p:set><p:cBhvr><p:cTn id="5" dur="0.001" fill="hold"/><p:tgtEl><p:spTgt spid="4"/></p:tgtEl><p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst></p:cBhvr><p:to><p:strVal val="visible"/></p:to></p:set></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:par></p:childTnLst></p:cTn></p:seq></p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>';
-        function pptxSlideXml(titleParas, bodyParas, answerParas) {
+        function pptxSlideXml(titleParas, bodyParas) {
             var shapes = pptxShape(2, '标题', '<p:ph type="title"/>', 685800, 342900, 10820400, 1143000, titleParas)
-                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 10820400, 3000000, bodyParas);
-            var timing = '';
-            if (answerParas && answerParas.length) {
-                shapes += pptxShape(4, '答案', '', 685800, 4800200, 10820400, 1700000, answerParas);
-                timing = PPTX_ANIM_APPEAR;
-            }
+                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 10820400, 4521200, bodyParas);
             return PPTX_HEAD + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
                 + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
                 + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
-                + shapes + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>' + timing + '</p:sld>';
+                + shapes + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
         }
         function buildPptx(c) {
             var qs = [];
@@ -2227,9 +2221,15 @@ function renderHTML(results, categories, opts) {
                 }
                 slides.push({
                     t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)],
-                    b: lines.map(function(ln) { return pptxPara(ln, 1800, false); }),
-                    a: pptxAnswerParas(q)
+                    b: lines.map(function(ln) { return pptxPara(ln, 1800, false); })
                 });
+                var ansParas = pptxAnswerParas(q);
+                if (ansParas) {
+                    slides.push({
+                        t: [pptxPara('第 ' + (i + 1) + ' 题 · 参考答案', 3200, true)],
+                        b: ansParas
+                    });
+                }
             });
             var files = [];
             var addXml = function(name, xml) { files.push({ name: name, data: te.encode(xml) }); };
@@ -2248,7 +2248,7 @@ function renderHTML(results, categories, opts) {
             addXml('ppt/slideLayouts/_rels/slideLayout1.xml.rels', PPTX_LAYOUT_RELS);
             addXml('ppt/theme/theme1.xml', PPTX_THEME);
             slides.forEach(function(s, i) {
-                addXml('ppt/slides/slide' + (i + 1) + '.xml', pptxSlideXml(s.t, s.b, s.a));
+                addXml('ppt/slides/slide' + (i + 1) + '.xml', pptxSlideXml(s.t, s.b));
                 addXml('ppt/slides/_rels/slide' + (i + 1) + '.xml.rels', PPTX_SLIDE_RELS);
             });
             return zipStored(files);
