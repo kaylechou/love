@@ -2158,8 +2158,8 @@ function renderHTML(results, categories, opts) {
                 + '<p:txBody><a:bodyPr wrap="square"/><a:lstStyle/>' + paras.join('') + '</p:txBody></p:sp>';
         }
         function pptxSlideXml(titleParas, bodyParas) {
-            var shapes = pptxShape(2, '标题', '<p:ph type="title"/>', 685800, 342900, 7772400, 1143000, titleParas)
-                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 7772400, 4521200, bodyParas);
+            var shapes = pptxShape(2, '标题', '<p:ph type="title"/>', 685800, 342900, 10820400, 1143000, titleParas)
+                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 10820400, 4521200, bodyParas);
             return PPTX_HEAD + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
                 + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
                 + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
@@ -2180,10 +2180,24 @@ function renderHTML(results, categories, opts) {
                 if ((q.type === 'single' || q.type === 'multiple') && q.o) {
                     String(q.o).split(',').forEach(function(o) { lines.push(String(o).trim()); });
                 }
-                var ans = expAnswer(q);
-                if (ans) lines.push('答案：' + ans);
                 slides.push({ t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)], b: lines.map(function(ln) { return pptxPara(ln, 1800, false); }) });
             });
+            var pOrder = ['fill', 'single', 'multiple', 'judge', 'essay', 'verse'];
+            var pGroups = {};
+            qs.forEach(function(q) { var t = q.type || 'fill'; (pGroups[t] = pGroups[t] || []).push(q); });
+            var pHas = pOrder.some(function(t) { return (pGroups[t] || []).length > 0; });
+            if (pHas) {
+                slides.push({ t: [pptxPara('参考答案', 4000, true)], b: [pptxPara('以下为各题参考答案', 1800, false)] });
+                pOrder.forEach(function(t) {
+                    var list = pGroups[t] || [];
+                    if (!list.length) return;
+                    var lines = list.map(function(q, i) {
+                        var a = expAnswer(q);
+                        return (i + 1) + '. ' + (a || '（开放作答）');
+                    });
+                    slides.push({ t: [pptxPara('参考答案 · ' + (EXP_TYPE_PLAIN[t] || t), 3200, true)], b: lines.map(function(ln) { return pptxPara(ln, 1800, false); }) });
+                });
+            }
             var files = [];
             var addXml = function(name, xml) { files.push({ name: name, data: te.encode(xml) }); };
             var slideOverrides = slides.map(function(s, i) {
@@ -2192,7 +2206,7 @@ function renderHTML(results, categories, opts) {
             addXml('[Content_Types].xml', PPTX_HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' + slideOverrides + '</Types>');
             addXml('_rels/.rels', PPTX_ROOT_RELS);
             var sldIds = slides.map(function(s, i) { return '<p:sldId id="' + (256 + i) + '" r:id="rId' + (i + 2) + '"/>'; }).join('');
-            addXml('ppt/presentation.xml', PPTX_HEAD + '<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst><p:sldMasterId r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>' + sldIds + '</p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>');
+            addXml('ppt/presentation.xml', PPTX_HEAD + '<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst><p:sldMasterId r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>' + sldIds + '</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>');
             var presRels = slides.map(function(s, i) { return '<Relationship Id="rId' + (i + 2) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide' + (i + 1) + '.xml"/>'; }).join('');
             addXml('ppt/_rels/presentation.xml.rels', PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>' + presRels + '</Relationships>');
             addXml('ppt/slideMasters/slideMaster1.xml', PPTX_MASTER);
