@@ -38,25 +38,39 @@ return true;
 }
 if (q.type === 'fill' || q.type === 'verse' || (q.type === 'essay' && isFillLike(q))) {
 var rawU = String(u == null ? "" : u);
-var alts = String(q.a || "").split(/[、；;，,\/|｜]/).map(normStr).filter(function (x) { return x!== "";});
-if (q.type === 'verse' && alts.length === 0) return null; /* 经文框未设答案：开放性 */
-if (alts.length === 0) return false;
-/* 多空格题：各空答案用 MBSEP 连接提交；答案中 | 分隔各空标准答案，第 i 空必须命中第 i 个答案（顺序不可换，不可重复用同一答案） */
-if (rawU.indexOf(MBSEP) >= 0) {
-var parts = rawU.split(MBSEP);
-if (parts.length !== alts.length) return false;
-for (var pi = 0; pi < parts.length; pi++) {
-var up = normStr(parts[pi]);
-if (up === "") return false;
-var exp = alts[pi];
-if (!(up === exp || (exp.length >= 2 && up.indexOf(exp) >= 0))) return false;
-}
-return true;
-}
+/* 填空答案两级分隔：先用 | ｜ ； 分各空（按题干空格顺序对应）；每空内部用 / ／ 或 、 ， ; \\ 分多个可接受答案，答中任意一个即正确 */
+var groups = String(q.a || "").split(/[|｜；]/).map(function (g) {
+return String(g).split(/[\/／、，,;\\或]/).map(normStr).filter(function (x) { return x!== "";});
+}).filter(function (g) { return g.length > 0;});
+if (q.type === 'verse' && groups.length === 0) return null; /* 经文框未设答案：开放性 */
+if (groups.length === 0) return false;
+function hitAlt(uu, alts) {
 if (uu === "") return false;
 for (var k = 0; k < alts.length; k++) {
 if (uu === alts[k]) return true;
 if (alts[k].length >= 2 && uu.indexOf(alts[k]) >= 0) return true;
+}
+return false;
+}
+/* 多空格题：各空答案用 MBSEP 连接提交；第 i 空命中第 i 组的任意一个备选即正确 */
+if (rawU.indexOf(MBSEP) >= 0) {
+var parts = rawU.split(MBSEP);
+var glist = groups;
+/* 兼容旧数据：答案中没写分空符、但备选个数恰好等于空格数时，按旧逻辑逐空顺序对应（如 上帝/创造主） */
+if (glist.length === 1 && parts.length > 1 && glist[0].length === parts.length) {
+glist = glist[0].map(function (x) { return [x];});
+}
+if (parts.length !== glist.length) return false;
+for (var pi = 0; pi < parts.length; pi++) {
+if (!hitAlt(normStr(parts[pi]), glist[pi])) return false;
+}
+return true;
+}
+/* 单空格题：命中任意一组的任意一个备选即正确 */
+var uu = normStr(rawU);
+if (uu === "") return false;
+for (var gi = 0; gi < groups.length; gi++) {
+if (hitAlt(uu, groups[gi])) return true;
 }
 return false;
 }
@@ -758,7 +772,7 @@ function renderHTML(results, categories, opts) {
         <div class="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
             <div class="p-6 border-b">
                 <h2 class="font-black text-lg">📥 批量导入课程</h2>
-                <p class="text-xs text-slate-400 mt-1">粘贴 JSON（可一次导入多门课程）。type 可选 single / multiple / fill / judge / essay / verse（经文框，o 填框标题）；s 为章节名（有章节时自动分组显示）；填空用 ____ 占位（下划线越多空格越宽），多空格答案用 | 分隔按顺序对应；category 为系列名，subcategory 为子栏目名（可空）</p>
+                <p class="text-xs text-slate-400 mt-1">粘贴 JSON（可一次导入多门课程）。type 可选 single / multiple / fill / judge / essay / verse（经文框，o 填框标题）；s 为章节名（有章节时自动分组显示）；填空用 ____ 占位（下划线越多空格越宽）；填空多空格答案用 | 或 ； 分空按顺序对应，每空内多个可接受答案用 / 或"或"分隔（如 失败/软弱；互动关系，答"失败"或"软弱"都对）；category 为系列名，subcategory 为子栏目名（可空）</p>
             </div>
             <div class="p-6 flex-1 overflow-y-auto">
                 <textarea id="importJson" class="w-full h-64 border p-3 rounded-xl text-xs font-mono" placeholder='{"courses":[{"category":"基要真理","subcategory":"第一部分","title":"第一课","content":"导读…","video_url":"","guide":[{"title":"1. 章节名","points":["要点一","要点二"]}],"instructions":"自定义答题说明（可空）","quizzes":[{"type":"fill","s":"第一章 信仰的本质","q":"人是按____所造的","a":"神的形象"}]}]}'></textarea>
@@ -1303,7 +1317,11 @@ function renderHTML(results, categories, opts) {
             var wrongs = [];
             res.details.forEach(function(d) {
                 var q = activeQuizzes[d.i] || {};
-                var parts = String(d.expected || '').split(/[、；;，,\\/|｜]/).map(function(x) { return x.trim(); }).filter(function(x) { return x !== ''; });
+                var groups = String(d.expected || '').split(/[|｜；]/).map(function(g) {
+                    return String(g).split(/[\\/／、，,;\\\\或]/).map(function(x) { return x.trim(); }).filter(function(x) { return x !== ''; });
+                }).filter(function(g) { return g.length > 0; });
+                var parts = [];
+                groups.forEach(function(g) { parts = parts.concat(g); });
                 var card = document.getElementById('qcard-' + d.i);
                 if (card) card.classList.add('show-answers');
                 var blanks = document.querySelectorAll('input[data-sq="' + d.i + '"]');
@@ -1311,7 +1329,7 @@ function renderHTML(results, categories, opts) {
                 blanks.forEach(function(el, bi) {
                     uv.push(el.value.trim());
                     var ansEl = document.getElementById('ans-' + d.i + '-' + bi);
-                    if (ansEl) ansEl.textContent = parts[bi] || parts[0] || '';
+                    if (ansEl) ansEl.textContent = (groups[bi] ? groups[bi].join(' / ') : (groups[0] ? groups[0].join(' / ') : ''));
                 });
                 if ((q.type === 'single' || q.type === 'judge' || q.type === 'multiple') && d.expected) {
                     var sels2 = document.querySelectorAll('input[name="u-' + d.i + '"]:checked');
@@ -1346,7 +1364,7 @@ function renderHTML(results, categories, opts) {
                     var taEl = document.getElementById('u-' + d.i);
                     userAnsText = taEl ? taEl.value.trim() : '';
                 } else if (blanks.length) {
-                    correctText = parts.join(' / ');
+                    correctText = groups.map(function(g) { return g.join(' / '); }).join('；');
                 }
                 if (q.type === 'essay' && d.expected && vEl) {
                     vEl.insertAdjacentHTML('afterend',
@@ -1765,7 +1783,7 @@ function renderHTML(results, categories, opts) {
                 + '<input class="q-s w-full border-b bg-transparent text-[10px] p-1 mb-2" value="' + esc(d.s) + '" placeholder="章节名（有章节自动分组，可空）">'
                 + '<input class="q-q w-full border-b bg-transparent text-xs p-1 mb-2" value="' + esc(d.q) + '" placeholder="题目内容（填空用 ____ 占位，下划线越多空格越宽）">'
                 + '<input class="q-o w-full border-b bg-transparent text-[10px] p-1 mb-2' + (d.type === 'single' || d.type === 'multiple' || d.type === 'verse' ? '' : ' hidden') + '" value="' + esc(d.o) + '" placeholder="选项 A.xxx, B.xxx（经文框时填框标题，如 📖 罗马书 1:20）">'
-                + '<input class="q-a w-full bg-indigo-100/50 border-none rounded p-1 text-xs font-bold text-indigo-700" value="' + esc(d.a) + '" placeholder="正确答案（多空/多选用 | 分隔，如 A|C）">';
+                + '<input class="q-a w-full bg-indigo-100/50 border-none rounded p-1 text-xs font-bold text-indigo-700" value="' + esc(d.a) + '" placeholder="正确答案（填空：|/；分空，/或“或”分同空多答案，如 失败/软弱；互动关系；多选如 A|C）">';
             document.getElementById('quizList').appendChild(div);
         }
         /* 章节导读（思维导图式）结构化编辑器 */
