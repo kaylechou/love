@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-10-03
+
+### PWA 支持：可安装为手机应用（`7a9b766d`）
+- 新增 `/manifest.json`、`/sw.js`、`/icon-192.png`、`/icon-512.png`、`/icon-180.png` 路由
+- 首页 head 新增 PWA 标签：manifest、theme-color、iOS standalone（apple-touch-icon / apple-mobile-web-app-capable）
+- Service Worker 仅满足可安装性、不缓存页面，内容永远最新
+- Android：Chrome 打开后提示"安装应用"，生成 WebAPK（独立图标、启动页、无地址栏）
+- iOS：Safari「分享 → 添加到主屏幕」即全屏运行
+- 回归：served 脚本语法通过、路由与图标逐项验证、线上 /api/data 26 课
+
 ## 2026-10-02
 
 ### PPT 两种版本下载（`8c6733de`）
