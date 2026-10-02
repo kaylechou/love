@@ -2075,6 +2075,17 @@ function renderHTML(results, categories, opts) {
         function buildExcelHTML(c) {
             var qs = [];
             try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
+            var guide = [];
+            try { guide = JSON.parse(c.guide_json || '[]'); } catch (e) {}
+            var guideHtml = '';
+            var realGuide = guide.filter(function(g) { return g && (g.title || (g.points || []).length); });
+            if (realGuide.length) {
+                var grows = realGuide.map(function(g, gi) {
+                    var pts = (g.points || []).filter(function(x) { return String(x).trim(); });
+                    return '<tr><td>' + (gi + 1) + '</td><td>' + esc(g.title || '') + '</td><td>' + esc(pts.join('；')) + '</td></tr>';
+                }).join('');
+                guideHtml = '<h3>章节导读</h3><table border="1" cellpadding="6" cellspacing="0"><tr><th>序号</th><th>章节</th><th>要点</th></tr>' + grows + '</table><br><br>';
+            }
             var trs = qs.map(function(q, i) {
                 var t = q.type || 'fill';
                 var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
@@ -2084,7 +2095,8 @@ function renderHTML(results, categories, opts) {
                 + '<head><meta charset="utf-8">'
                 + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>题库</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
                 + '</head><body>'
-                + '<table border="1" cellpadding="6" cellspacing="0"><tr><th>序号</th><th>题型</th><th>题目</th><th>选项</th><th>答案</th></tr>'
+                + guideHtml
+                + '<h3>题库</h3><table border="1" cellpadding="6" cellspacing="0"><tr><th>序号</th><th>题型</th><th>题目</th><th>选项</th><th>答案</th></tr>'
                 + trs + '</table></body></html>';
         }
         function printCourse(c) {
@@ -2196,6 +2208,17 @@ function renderHTML(results, categories, opts) {
                 var plain = stripMd(c.content);
                 slides.push({ t: [pptxPara('课程导读', 3200, true)], b: [pptxPara(plain.slice(0, 1500), 1800, false)] });
             }
+            var pGuide = [];
+            try { pGuide = JSON.parse(c.guide_json || '[]'); } catch (e) {}
+            pGuide.forEach(function(g, gi) {
+                if (!g) return;
+                var pts = (g.points || []).filter(function(x) { return String(x).trim(); });
+                if (!g.title && !pts.length) return;
+                slides.push({
+                    t: [pptxPara('章节导读 · ' + (g.title || ('第' + (gi + 1) + '章')), 3200, true)],
+                    b: pts.map(function(x) { return pptxPara('• ' + String(x).trim(), 1800, false); })
+                });
+            });
             qs.forEach(function(q, i) {
                 var t = q.type || 'fill';
                 var lines = ['【' + (EXP_TYPE_PLAIN[t] || '') + '】' + (q.q || '')];
