@@ -1807,12 +1807,13 @@ function renderHTML(results, categories, opts) {
             + 'details.ans div{margin-top:6px;color:#334155;}'
             + 'footer{text-align:center;color:#94a3b8;font-size:12px;margin-top:24px;}'
             + '.empty{color:#94a3b8;text-align:center;padding:20px;}'
+            + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:1.8em;}'
             + '@media print{body{background:#fff;}.wrap{max-width:none;padding:0;}.card{box-shadow:none;border:1px solid #e2e8f0;break-inside:avoid;}details.ans{break-inside:avoid;}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}';
         function expInline(t) {
             return String(t).replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
                 .replace(/\\*([^\\*]+?)\\*/g, '<em>$1</em>')
                 .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2">$1</a>')
-                .replace(/_{2,}/g, '<span class="blank"></span>');
+                .replace(/_{2,}/g, '<span class="blank">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>');
         }
         function expMd(src) {
             var lines = esc(String(src || '')).split('\\n'), html = '', inList = false, i, ln, m;
@@ -1889,6 +1890,7 @@ function renderHTML(results, categories, opts) {
                 body += '<section class="card"><h2>' + (EXP_TYPE_LABEL[t] || t) + '（共' + list.length + '题）</h2>';
                 list.forEach(function(q, qi) {
                     var qtext = expInline(esc(q.q || ''));
+                    var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
                     var opts = '';
                     if ((t === 'single' || t === 'multiple') && q.o) {
                         opts = '<div class="opts">' + String(q.o).split(',').map(function(p) {
@@ -1896,8 +1898,14 @@ function renderHTML(results, categories, opts) {
                         }).join('') + '</div>';
                     }
                     var ans = expAnswer(q);
-                    body += '<div class="q"><div class="q-text">' + (qi + 1) + '. ' + qtext + '</div>' + opts
-                        + (ans ? '<details class="ans"><summary>查看答案</summary><div>' + esc(ans) + '</div></details>' : '<div class="empty">（开放作答）</div>') + '</div>';
+                    var ws = '';
+                    if (t === 'essay') {
+                        ws = '<div class="ws">';
+                        for (var wi = 0; wi < 5; wi++) ws += '<div class="ws-line"></div>';
+                        ws += '</div>';
+                    }
+                    body += '<div class="q"><div class="q-text">' + (qi + 1) + '. ' + bracket + qtext + '</div>' + opts + ws
+                        + (ans ? '<details class="ans"><summary>查看答案</summary><div>' + esc(ans) + '</div></details>' : '') + '</div>';
                 });
                 body += '</section>';
             });
@@ -2023,22 +2031,54 @@ function renderHTML(results, categories, opts) {
             + '.blank{display:inline-block;min-width:70px;border-bottom:2px solid #94a3b8;}'
             + '.ans{background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 12px;margin-top:6px;}'
             + '.chapter{margin-bottom:10px;}.ch-title{font-weight:bold;}'
-            + '.md p{margin:0 0 8px;}.md ul{margin:0 0 8px;padding-left:20px;}';
+            + '.md p{margin:0 0 8px;}.md ul{margin:0 0 8px;padding-left:20px;}'
+            + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:28px;}'
+            + '.answer-key{page-break-before:always;}.answer-key ol{margin:6px 0 12px;padding-left:24px;}.answer-key li{margin-bottom:6px;}';
+        function buildAnswerKey(c) {
+            var qs = [];
+            try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
+            if (!qs.length) return '';
+            var order = ['fill', 'single', 'multiple', 'judge', 'essay', 'verse'];
+            var groups = {};
+            qs.forEach(function(q) { var t = q.type || 'fill'; (groups[t] = groups[t] || []).push(q); });
+            var html = '<div class="card answer-key"><h2>📋 参考答案</h2>';
+            order.forEach(function(t) {
+                var list = groups[t] || [];
+                if (!list.length) return;
+                html += '<p><b>' + (EXP_TYPE_LABEL[t] || t) + '</b></p><ol>';
+                list.forEach(function(q) {
+                    var ans = expAnswer(q);
+                    html += '<li>' + esc(ans || '（开放作答）') + '</li>';
+                });
+                html += '</ol>';
+            });
+            html += '<p style="color:#94a3b8;font-size:12px;">提示：打印试卷时可删除本节，或不打印最后几页。</p></div>';
+            return html;
+        }
         function buildWordHTML(c) {
             var h = buildExportHTML(c);
             h = h.split('<html lang="zh-CN">').join('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">');
             var p1 = h.split('<style>');
             var p2 = p1[1].split('</style>');
             h = p1[0] + '<style>' + WORD_CSS + '</style>' + p2[1];
-            h = h.split('<details class="ans"><summary>查看答案</summary><div>').join('<div class="ans"><div><b>【答案】</b>');
-            h = h.split('</div></details>').join('</div></div>');
+            var dd1 = '<details class="ans">', dd2 = '</details>', di, dj;
+            while ((di = h.indexOf(dd1)) >= 0) {
+                dj = h.indexOf(dd2, di);
+                if (dj < 0) break;
+                h = h.slice(0, di) + h.slice(dj + dd2.length);
+            }
+            h = h.split('<span class="blank">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>').join('<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>');
+            var key = buildAnswerKey(c);
+            if (key) h = h.split('<footer>').join(key + '<footer>');
             return h;
         }
         function buildExcelHTML(c) {
             var qs = [];
             try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
             var trs = qs.map(function(q, i) {
-                return '<tr><td>' + (i + 1) + '</td><td>' + esc(EXP_TYPE_PLAIN[q.type || 'fill'] || q.type || '') + '</td><td>' + esc(q.q || '') + '</td><td>' + esc(q.o || '') + '</td><td>' + esc(expAnswer(q)) + '</td></tr>';
+                var t = q.type || 'fill';
+                var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
+                return '<tr><td>' + (i + 1) + '</td><td>' + esc(EXP_TYPE_PLAIN[t] || t) + '</td><td>' + esc(bracket + (q.q || '')) + '</td><td>' + esc(q.o || '') + '</td><td>' + esc(expAnswer(q)) + '</td></tr>';
             }).join('');
             return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
                 + '<head><meta charset="utf-8">'
