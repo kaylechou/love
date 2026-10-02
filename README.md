@@ -1,6 +1,6 @@
 # love · 团契智学
 
-基要真理学习平台——团契的在线互动课件与答题系统。单文件 Cloudflare Worker + D1 实现，开箱即用。
+真理探索学习平台——教会团契的在线互动课件与答题系统。单文件 Cloudflare Worker + D1 实现，开箱即用。
 
 - 线上地址：https://love.kaylechou.dpdns.org/
 - 课程短链：`https://love.kaylechou.dpdns.org/ID-...`（老式 `?id=` 链接仍兼容）
