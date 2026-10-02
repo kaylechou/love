@@ -390,7 +390,7 @@ const username = (searchParams.get("username") || "").trim();
 let scores = [];
 if (username) {
 const r = await env.DB.prepare(
-"SELECT course_id, course_title, score, submitted_at FROM progress WHERE username =? ORDER BY submitted_at DESC LIMIT 100"
+"SELECT rowid, course_id, course_title, score, submitted_at FROM progress WHERE username =? ORDER BY submitted_at DESC LIMIT 100"
 ).bind(username).all();
 scores = (r && r.results) || [];
 }
@@ -404,6 +404,31 @@ const r = await env.DB.prepare(
 "SELECT username, course_id, course_title, score, submitted_at FROM progress ORDER BY submitted_at DESC LIMIT 2000"
 ).all();
 return json({ scores: (r && r.results) || []});
+}
+
+// API: 学员名单（管理员）：全部学员姓名、成绩条数、最近提交时间
+if (pathname === "/api/students" && request.method === "GET") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
+const r = await env.DB.prepare(
+"SELECT username, COUNT(*) AS n, MAX(submitted_at) AS last FROM progress GROUP BY username ORDER BY last DESC LIMIT 500"
+).all();
+return json({ students: (r && r.results) || []});
+}
+
+// API: 删除成绩（管理员）：传 rowid 只删单条，不传 rowid 删除该学员全部成绩
+if (pathname === "/api/score/delete" && request.method === "POST") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
+const b = await request.json().catch(() => ({}));
+const username = String(b.username || "").trim();
+if (!username) return json({ error: "缺少学员姓名"}, 400);
+let res;
+if (b.rowid != null && b.rowid !== "") {
+res = await env.DB.prepare("DELETE FROM progress WHERE rowid =? AND username =?").bind(b.rowid, username).run();
+} else {
+res = await env.DB.prepare("DELETE FROM progress WHERE username =?").bind(username).run();
+}
+const del = (res && res.meta && res.meta.changes) || 0;
+return json({ success: true, deleted: del});
 }
 
 // API: 取某课完整题目（含答案，管理员，教师版用）
@@ -558,6 +583,7 @@ function renderHTML(results, categories, opts) {
             <div class="flex gap-2">
                 ${isAdmin
                     ? '<a href="/" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">学员端</a>'
+                      + '<button onclick="exportSelected()" class="text-xs bg-emerald-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-emerald-200 hover:opacity-95 transition">📥 批量导出</button>'
                       + '<button onclick="openEditModal()" class="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-violet-200 hover:opacity-95 transition">+ 创建新课件</button>'
                     : '<button onclick="openWrongBook()" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">📝 错题本</button>'
                       + '<button onclick="login()" id="nameBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">设置姓名</button>'}
@@ -621,9 +647,16 @@ function renderHTML(results, categories, opts) {
                 <input id="scoreQueryName" placeholder="输入学员姓名" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
                 <button onclick="queryScores()" class="bg-indigo-900 text-white px-6 rounded-2xl text-sm font-bold">查询</button>
             </div>
+            <div class="flex gap-2 mt-2">
+                <select id="studentSelect" onchange="pickStudent(this.value)" class="flex-1 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 bg-white text-slate-600">
+                    <option value="">📋 学员名单加载中…</option>
+                </select>
+                <button onclick="loadStudents()" class="border border-slate-200 px-4 rounded-2xl text-sm text-slate-500 shrink-0">刷新</button>
+            </div>
             <div id="scoreSummary" class="hidden text-xs text-slate-400 mt-3"></div>
             <ul id="scoreList" class="space-y-3 mt-3"></ul>
             <div id="scoreEmpty" class="hidden text-slate-400 text-sm mt-3">暂无该学员的成绩记录</div>
+            <button id="delAllScoresBtn" onclick="deleteAllScores()" class="hidden mt-3 text-xs font-bold text-red-500 border border-red-200 rounded-2xl px-4 py-2">🗑 删除该学员全部成绩</button>
         </div>
 
         <!-- 数据管理 -->
@@ -951,6 +984,7 @@ function renderHTML(results, categories, opts) {
                 adminBtns = '<button data-id="' + c.id + '" onclick="editCourse(this.dataset.id)" title="编辑" class="text-slate-300 hover:text-violet-600 transition">🖊️</button>'
                     + '<button data-id="' + c.id + '" data-dir="up" onclick="moveCourse(this.dataset.id,this.dataset.dir)" title="上移" class="text-slate-300 hover:text-violet-600 transition">⬆️</button>'
                     + '<button data-id="' + c.id + '" data-dir="down" onclick="moveCourse(this.dataset.id,this.dataset.dir)" title="下移" class="text-slate-300 hover:text-violet-600 transition">⬇️</button>'
+                    + '<button data-id="' + c.id + '" onclick="exportCourse(this.dataset.id)" title="导出HTML（手机电脑可打开）" class="text-slate-300 hover:text-emerald-600 transition">📥</button>'
                     + '<button data-id="' + c.id + '" onclick="deleteCourse(this.dataset.id)" title="删除" class="text-slate-300 hover:text-red-500 transition">🗑️</button>';
             }
             var cardBtns = '<div class="flex items-center gap-3 text-[15px]">' + shareBtn + adminBtns + '</div>';
@@ -959,7 +993,7 @@ function renderHTML(results, categories, opts) {
             return '<div class="course-card bg-white rounded-[1.75rem] border border-slate-100 shadow-sm p-6 flex flex-col gap-4 hover:shadow-lg hover:-translate-y-0.5 transition"'
                 + ' data-search="' + esc(c.title + " " + c.content + " " + (c.subcategory || "")).toLowerCase() + '"'
                 + ' style="animation-delay:' + Math.min(idx * 40, 600) + 'ms">'
-                + '<div class="flex items-center justify-between">' + statusBadge(c.id) + cardBtns + '</div>'
+                + '<div class="flex items-center justify-between"><div class="flex items-center gap-2">' + (BOOT.isAdmin ? '<input type="checkbox" class="exp-check w-4 h-4 accent-violet-600" data-id="' + c.id + '" title="勾选后可批量导出">' : '') + statusBadge(c.id) + '</div>' + cardBtns + '</div>'
                 + '<div><h3 class="font-bold text-[1.05rem] text-slate-900 leading-snug">' + esc(c.title) + videoBadge + '</h3>'
                 + '<p class="text-sm text-slate-400 mt-2 leading-relaxed line-clamp-2">' + esc(desc) + '</p></div>'
                 + '<button data-id="' + c.id + '" onclick="startLesson(this.dataset.id)" class="mt-auto w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-violet-200 hover:shadow-xl hover:opacity-95 active:scale-[.99] transition flex items-center justify-center gap-2">' + goText + ' <span aria-hidden="true">→</span></button>'
@@ -1653,19 +1687,23 @@ function renderHTML(results, categories, opts) {
                 var r = await fetch('/api/scores?username=' + encodeURIComponent(name));
                 var j = await r.json();
                 var rows = j.scores || [];
+                var delAllBtn = document.getElementById('delAllScoresBtn');
                 if (!rows.length) {
                     list.innerHTML = '';
                     empty.classList.remove('hidden');
+                    if (delAllBtn) delAllBtn.classList.add('hidden');
                     return;
                 }
+                if (delAllBtn) delAllBtn.classList.remove('hidden');
                 var pctSum = 0, pctCnt = 0;
                 list.innerHTML = rows.map(function(s) {
                     var mm = String(s.score || "").match(/(\\\d+)\\\s*\\\/\\\s*(\\\d+)/);
                     if (mm && +mm[2] > 0) { pctSum += (+mm[1]) / (+mm[2]); pctCnt++; }
                     return '<li class="flex items-center justify-between gap-2">'
-                        + '<span class="text-slate-600 text-sm">' + esc(s.course_title || s.course_id) + '</span>'
+                        + '<span class="text-slate-600 text-sm flex-1">' + esc(s.course_title || s.course_id) + '</span>'
                         + '<span class="text-slate-400 text-xs">' + esc(fmtTime(s.submitted_at)) + '</span>'
-                        + '<span class="text-indigo-600 font-bold text-sm">' + esc(s.score) + '</span></li>';
+                        + '<span class="text-indigo-600 font-bold text-sm">' + esc(s.score) + '</span>'
+                        + '<button onclick="deleteOneScore(' + (s.rowid || 0) + ')" class="text-xs text-red-400 border border-red-100 rounded-lg px-2 py-1 shrink-0">删除</button></li>';
                 }).join('');
                 if (pctCnt > 0) {
                     summary.innerText = '共 ' + rows.length + ' 条记录，平均 ' + Math.round(pctSum / pctCnt * 100) + ' 分';
@@ -1673,7 +1711,56 @@ function renderHTML(results, categories, opts) {
                 }
             } catch (e) {
                 list.innerHTML = '<li class="text-red-400 text-sm">查询失败，请稍后重试</li>';
+                var dab = document.getElementById('delAllScoresBtn');
+                if (dab) dab.classList.add('hidden');
             }
+        }
+
+        /* 学员名单 / 删除成绩（管理端） */
+        async function loadStudents() {
+            var sel = document.getElementById('studentSelect');
+            if (!sel) return;
+            try {
+                var r = await fetch('/api/students');
+                if (r.status === 403) { sel.innerHTML = '<option value="">请先登录管理端</option>'; return; }
+                var j = await r.json();
+                var st = j.students || [];
+                sel.innerHTML = '<option value="">📋 全部学员（' + st.length + '）…</option>' + st.map(function(x) {
+                    return '<option value="' + esc(x.username) + '">' + esc(x.username) + '（' + x.n + ' 条）</option>';
+                }).join('');
+            } catch (e) {
+                sel.innerHTML = '<option value="">名单加载失败，点刷新重试</option>';
+            }
+        }
+        function pickStudent(v) {
+            if (!v) return;
+            document.getElementById('scoreQueryName').value = v;
+            queryScores();
+        }
+        async function deleteOneScore(rowid) {
+            var name = (document.getElementById('scoreQueryName').value || "").trim();
+            if (!name) { alert("请先查询一位学员"); return; }
+            if (!rowid) { alert("记录标识缺失，无法删除"); return; }
+            if (!confirm("确定删除这条成绩记录吗？")) return;
+            try {
+                var r = await fetch('/api/score/delete', { method: 'POST', body: JSON.stringify({ username: name, rowid: rowid }) });
+                if (r.status === 403) { alert("请先登录管理端"); return; }
+                var j = await r.json();
+                if (j.success) { queryScores(); loadStudents(); }
+                else alert("删除失败：" + (j.error || "未知错误"));
+            } catch (e) { alert("删除失败，请稍后重试"); }
+        }
+        async function deleteAllScores() {
+            var name = (document.getElementById('scoreQueryName').value || "").trim();
+            if (!name) { alert("请先查询一位学员"); return; }
+            if (!confirm("确定删除「" + name + "」的全部成绩记录吗？此操作不可恢复！")) return;
+            try {
+                var r = await fetch('/api/score/delete', { method: 'POST', body: JSON.stringify({ username: name }) });
+                if (r.status === 403) { alert("请先登录管理端"); return; }
+                var j = await r.json();
+                if (j.success) { alert("已删除 " + (j.deleted || 0) + " 条记录"); queryScores(); loadStudents(); }
+                else alert("删除失败：" + (j.error || "未知错误"));
+            } catch (e) { alert("删除失败，请稍后重试"); }
         }
 
         /* 导出成绩 CSV（管理端） */
@@ -1693,6 +1780,391 @@ function renderHTML(results, categories, opts) {
                 a.download = "团契智学成绩_" + new Date().toISOString().slice(0, 10) + ".csv";
                 a.click();
             } catch (e) { alert("导出失败，请稍后重试"); }
+        }
+
+        /* ===== 课件导出：生成独立 HTML（手机/电脑浏览器直接打开，答案默认折叠） ===== */
+        var EXP_TYPE_LABEL = { fill: '✏️ 填空题', single: '🔘 单项选择题', multiple: '☑️ 多项选择题', judge: '⚖️ 判断题', essay: '💬 问答与思辨', verse: '📖 经文诵读' };
+        var EXP_CSS = 'body{margin:0;background:#f6f7fb;color:#1e293b;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75;font-size:16px;}'
+            + '.wrap{max-width:800px;margin:0 auto;padding:20px 16px 60px;}'
+            + '.hero{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border-radius:20px;padding:28px 24px;margin-bottom:18px;}'
+            + '.hero .meta{font-size:12px;opacity:.85;margin-bottom:6px;}'
+            + '.hero h1{margin:0 0 8px;font-size:24px;line-height:1.4;}'
+            + '.hero .date{font-size:12px;opacity:.75;}'
+            + '.card{background:#fff;border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}'
+            + '.card h2{margin:0 0 14px;font-size:18px;}'
+            + '.md p{margin:0 0 10px;} .md h2{font-size:17px;} .md h3{font-size:16px;} .md h4{font-size:15px;}'
+            + '.md ul{margin:0 0 10px;padding-left:22px;} .md li{margin-bottom:4px;}'
+            + '.md a{color:#4f46e5;}'
+            + '.chapter{border-left:3px solid #a78bfa;padding:4px 0 4px 14px;margin-bottom:14px;}'
+            + '.ch-title{font-weight:700;margin-bottom:6px;}'
+            + '.chapter ul{margin:6px 0 0;padding-left:20px;color:#475569;} .chapter li{margin-bottom:4px;}'
+            + '.q{border-top:1px solid #f1f5f9;padding:14px 0;} .q:first-of-type{border-top:none;}'
+            + '.q-text{font-weight:600;margin-bottom:8px;}'
+            + '.blank{display:inline-block;min-width:70px;border-bottom:2px solid #94a3b8;margin:0 2px;}'
+            + '.opts{margin:8px 0;} .opt{padding:6px 0;color:#475569;}'
+            + 'details.ans{margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px 14px;}'
+            + 'details.ans summary{cursor:pointer;font-weight:700;color:#047857;font-size:14px;}'
+            + 'details.ans div{margin-top:6px;color:#334155;}'
+            + 'footer{text-align:center;color:#94a3b8;font-size:12px;margin-top:24px;}'
+            + '.empty{color:#94a3b8;text-align:center;padding:20px;}'
+            + '@media print{body{background:#fff;}.wrap{max-width:none;padding:0;}.card{box-shadow:none;border:1px solid #e2e8f0;break-inside:avoid;}details.ans{break-inside:avoid;}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}';
+        function expInline(t) {
+            return String(t).replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
+                .replace(/\\*([^\\*]+?)\\*/g, '<em>$1</em>')
+                .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2">$1</a>')
+                .replace(/_{2,}/g, '<span class="blank"></span>');
+        }
+        function expMd(src) {
+            var lines = esc(String(src || '')).split('\\n'), html = '', inList = false, i, ln, m;
+            for (i = 0; i < lines.length; i++) {
+                ln = lines[i];
+                m = ln.match(/^(#{1,4})\\s+(.*)$/);
+                if (m) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    var lv = m[1].length + 1;
+                    html += '<h' + lv + '>' + expInline(m[2]) + '</h' + lv + '>';
+                } else if (/^(-|\\*)\\s+/.test(ln)) {
+                    if (!inList) { html += '<ul>'; inList = true; }
+                    html += '<li>' + expInline(ln.replace(/^(-|\\*)\\s+/, '')) + '</li>';
+                } else if (/^\\s*$/.test(ln)) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                } else {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += '<p>' + expInline(ln) + '</p>';
+                }
+            }
+            if (inList) html += '</ul>';
+            return html;
+        }
+        function expAnswer(q) {
+            var a = String(q.a == null ? '' : q.a).trim();
+            if (!a) return '';
+            var t = q.type || 'fill', i;
+            if (t === 'single' || t === 'multiple') {
+                var opts = {};
+                String(q.o || '').split(',').forEach(function(p) {
+                    var mm = String(p).trim().match(/^([A-Z])[.、．\\s]+(.*)$/);
+                    if (mm) opts[mm[1]] = mm[2];
+                });
+                return a.split(/[|｜]/).map(function(x) {
+                    var ch = String(x).trim().charAt(0);
+                    return opts[ch] ? ch + '. ' + opts[ch] : ch;
+                }).join('；');
+            }
+            if (t === 'fill') {
+                var gs = a.split(/[|｜；]/).map(function(g) {
+                    return String(g).split(/[/／或、，,;]/).map(function(x) { return String(x).trim(); }).filter(function(x) { return x; });
+                }).filter(function(g) { return g.length; });
+                if (!gs.length) return a;
+                return gs.map(function(g) { return g.join(' / '); }).join('；');
+            }
+            return a;
+        }
+        function buildExportHTML(c) {
+            var qs = [], guide = [];
+            try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
+            try { guide = JSON.parse(c.guide_json || '[]'); } catch (e) {}
+            var title = c.title || '未命名课件';
+            var meta = [c.category, c.subcategory].filter(function(x) { return x; }).join(' · ');
+            var now = new Date(), ds = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
+            var body = '', i;
+            if (c.content) body += '<section class="card"><h2>📖 课程导读</h2><div class="md">' + expMd(c.content) + '</div></section>';
+            if (c.video_url) body += '<section class="card"><h2>🎬 课程视频</h2><p class="md"><a href="' + esc(c.video_url) + '">观看课程视频</a></p></section>';
+            var realGuide = guide.filter(function(g) { return g && (g.title || (g.points || []).length); });
+            if (realGuide.length) {
+                body += '<section class="card"><h2>🗺️ 章节导读</h2>' + realGuide.map(function(g, gi) {
+                    var pts = (g.points || []).filter(function(x) { return String(x).trim(); });
+                    return '<div class="chapter"><div class="ch-title">' + esc(g.title || ('第' + (gi + 1) + '章')) + '</div>'
+                        + (pts.length ? '<ul>' + pts.map(function(x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') + '</div>';
+                }).join('') + '</section>';
+            }
+            if (c.instructions) body += '<section class="card"><h2>📝 答题说明</h2><div class="md">' + expMd(c.instructions) + '</div></section>';
+            var order = ['fill', 'single', 'multiple', 'judge', 'essay', 'verse'], groups = {};
+            qs.forEach(function(q) { var t = q.type || 'fill'; (groups[t] = groups[t] || []).push(q); });
+            var hasQ = false;
+            order.forEach(function(t) {
+                var list = groups[t] || [];
+                if (!list.length) return;
+                hasQ = true;
+                body += '<section class="card"><h2>' + (EXP_TYPE_LABEL[t] || t) + '（共' + list.length + '题）</h2>';
+                list.forEach(function(q, qi) {
+                    var qtext = expInline(esc(q.q || ''));
+                    var opts = '';
+                    if ((t === 'single' || t === 'multiple') && q.o) {
+                        opts = '<div class="opts">' + String(q.o).split(',').map(function(p) {
+                            return '<div class="opt">' + esc(String(p).trim()) + '</div>';
+                        }).join('') + '</div>';
+                    }
+                    var ans = expAnswer(q);
+                    body += '<div class="q"><div class="q-text">' + (qi + 1) + '. ' + qtext + '</div>' + opts
+                        + (ans ? '<details class="ans"><summary>查看答案</summary><div>' + esc(ans) + '</div></details>' : '<div class="empty">（开放作答）</div>') + '</div>';
+                });
+                body += '</section>';
+            });
+            if (!hasQ && !c.content && !realGuide.length) body += '<section class="card"><p class="empty">本课件暂无内容</p></section>';
+            return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+                + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                + '<title>' + esc(title) + ' - 团契智学</title><style>' + EXP_CSS + '</style></head>'
+                + '<body><div class="wrap"><header class="hero"><div class="meta">' + esc(meta) + '</div>'
+                + '<h1>' + esc(title) + '</h1><div class="date">导出日期：' + ds + ' · 团契智学</div></header>'
+                + body + '<footer>由团契智学学习平台导出</footer></div></body></html>';
+        }
+        function safeFileName(s) {
+            var t = String(s || '课件'), bad = ['\\\\', '/', ':', '*', '?', '"', '<', '>', '|'], i;
+            for (i = 0; i < bad.length; i++) t = t.split(bad[i]).join('_');
+            t = t.slice(0, 60).trim();
+            return t || '课件';
+        }
+        function downloadHTML(filename, html) {
+            var blob = new Blob(['\\ufeff' + html], { type: 'text/html;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() { try { URL.revokeObjectURL(a.href); a.remove(); } catch (e) {} }, 1500);
+        }
+        function findCourse(id) {
+            var list = allData || [], i;
+            for (i = 0; i < list.length; i++) { if (list[i].id === id) return list[i]; }
+            return null;
+        }
+        function exportCourse(id) {
+            openExportMenu([id]);
+        }
+        function exportSelected() {
+            var nodes = document.querySelectorAll('.exp-check:checked'), ids = [], i;
+            for (i = 0; i < nodes.length; i++) ids.push(nodes[i].getAttribute('data-id'));
+            if (!ids.length) { alert('请先勾选要导出的课件（卡片左上角复选框）'); return; }
+            openExportMenu(ids);
+        }
+        /* ===== Office 导出：Word / Excel / PPTX / 打印存PDF ===== */
+        var EXP_TYPE_PLAIN = { fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨', verse: '经文诵读' };
+        var exportIds = [];
+        function openExportMenu(ids) {
+            exportIds = ids || [];
+            var m = document.getElementById('exportModal');
+            if (!m) {
+                m = document.createElement('div');
+                m.id = 'exportModal';
+                m.style.cssText = 'position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;';
+                m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.5)" onclick="closeExportMenu()"></div>'
+                    + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:340px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
+                    + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 4px">📥 导出课件</h3>'
+                    + '<p id="exportMenuSub" style="font-size:12px;color:#94a3b8;margin:0 0 16px"></p>'
+                    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+                    + '<button data-fmt="html" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📄<br>网页 HTML</button>'
+                    + '<button data-fmt="word" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📝<br>Word 文档</button>'
+                    + '<button data-fmt="excel" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📊<br>Excel 表格</button>'
+                    + '<button data-fmt="pptx" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📽️<br>PPT 演示</button>'
+                    + '</div>'
+                    + '<button data-fmt="print" onclick="doExport(this.dataset.fmt)" style="margin-top:8px;width:100%;border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">🖨️ 打印 / 存为 PDF</button>'
+                    + '<button onclick="closeExportMenu()" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">取消</button>'
+                    + '</div>';
+                document.body.appendChild(m);
+            }
+            var sub = document.getElementById('exportMenuSub');
+            if (exportIds.length === 1) {
+                var c0 = findCourse(exportIds[0]);
+                sub.innerText = '单个课件：' + (c0 ? c0.title : '');
+            } else {
+                sub.innerText = '批量导出 ' + exportIds.length + ' 个课件（逐个下载）';
+            }
+            m.style.display = 'flex';
+        }
+        function closeExportMenu() {
+            var m = document.getElementById('exportModal');
+            if (m) m.style.display = 'none';
+        }
+        function doExport(fmt) {
+            var ids = exportIds.slice();
+            closeExportMenu();
+            if (!ids.length) return;
+            if (fmt === 'print') {
+                var c = findCourse(ids[0]);
+                if (c) printCourse(c);
+                if (ids.length > 1) alert('打印每次仅支持 1 个课件，已打开第 1 个');
+                return;
+            }
+            ids.forEach(function(id, i) { setTimeout(function() { exportOne(id, fmt); }, i * 900); });
+        }
+        function exportOne(id, fmt) {
+            var c = findCourse(id);
+            if (!c) return;
+            var fn = safeFileName(c.title);
+            if (fmt === 'html') downloadHTML(fn + '.html', buildExportHTML(c));
+            else if (fmt === 'word') downloadText(fn + '.doc', buildWordHTML(c), 'application/msword');
+            else if (fmt === 'excel') downloadText(fn + '.xls', buildExcelHTML(c), 'application/vnd.ms-excel');
+            else if (fmt === 'pptx') downloadBytes(fn + '.pptx', buildPptx(c), 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+        }
+        function downloadText(filename, text, mime) {
+            var blob = new Blob([String.fromCharCode(65279) + text], { type: mime || 'text/plain;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() { try { URL.revokeObjectURL(a.href); a.remove(); } catch (e) {} }, 1500);
+        }
+        function downloadBytes(filename, bytes, mime) {
+            var blob = new Blob([bytes], { type: mime || 'application/octet-stream' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() { try { URL.revokeObjectURL(a.href); a.remove(); } catch (e) {} }, 1500);
+        }
+        var WORD_CSS = 'body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75;color:#1e293b;font-size:14px;}'
+            + 'h1{font-size:24px;}h2{font-size:18px;color:#4c1d95;border-bottom:2px solid #a78bfa;padding-bottom:6px;}'
+            + '.hero{background:#ede9fe;padding:20px;}'
+            + '.card{margin-bottom:16px;}'
+            + '.q{margin:12px 0;}.q-text{font-weight:bold;}'
+            + '.blank{display:inline-block;min-width:70px;border-bottom:2px solid #94a3b8;}'
+            + '.ans{background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 12px;margin-top:6px;}'
+            + '.chapter{margin-bottom:10px;}.ch-title{font-weight:bold;}'
+            + '.md p{margin:0 0 8px;}.md ul{margin:0 0 8px;padding-left:20px;}';
+        function buildWordHTML(c) {
+            var h = buildExportHTML(c);
+            h = h.split('<html lang="zh-CN">').join('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">');
+            var p1 = h.split('<style>');
+            var p2 = p1[1].split('</style>');
+            h = p1[0] + '<style>' + WORD_CSS + '</style>' + p2[1];
+            h = h.split('<details class="ans"><summary>查看答案</summary><div>').join('<div class="ans"><div><b>【答案】</b>');
+            h = h.split('</div></details>').join('</div></div>');
+            return h;
+        }
+        function buildExcelHTML(c) {
+            var qs = [];
+            try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
+            var trs = qs.map(function(q, i) {
+                return '<tr><td>' + (i + 1) + '</td><td>' + esc(EXP_TYPE_PLAIN[q.type || 'fill'] || q.type || '') + '</td><td>' + esc(q.q || '') + '</td><td>' + esc(q.o || '') + '</td><td>' + esc(expAnswer(q)) + '</td></tr>';
+            }).join('');
+            return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
+                + '<head><meta charset="utf-8">'
+                + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>题库</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
+                + '</head><body>'
+                + '<table border="1" cellpadding="6" cellspacing="0"><tr><th>序号</th><th>题型</th><th>题目</th><th>选项</th><th>答案</th></tr>'
+                + trs + '</table></body></html>';
+        }
+        function printCourse(c) {
+            var w = window.open('', '_blank');
+            if (!w) { alert('浏览器阻止了新窗口，请允许弹窗后重试'); return; }
+            w.document.write(buildExportHTML(c));
+            w.document.close();
+            w.focus();
+            setTimeout(function() { w.print(); }, 600);
+        }
+        /* ---- PPTX 生成（无压缩 zip + 最小 Office Open XML） ---- */
+        function xmlEsc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        var CRC_T = null;
+        function crc32Bytes(bytes) {
+            if (!CRC_T) {
+                CRC_T = new Int32Array(256);
+                var n, k, cc;
+                for (n = 0; n < 256; n++) {
+                    cc = n;
+                    for (k = 0; k < 8; k++) cc = (cc & 1) ? (0xEDB88320 ^ (cc >>> 1)) : (cc >>> 1);
+                    CRC_T[n] = cc;
+                }
+            }
+            var crc = 0xFFFFFFFF, i;
+            for (i = 0; i < bytes.length; i++) crc = CRC_T[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+            return (crc ^ 0xFFFFFFFF) >>> 0;
+        }
+        function zipStored(files) {
+            var te = new TextEncoder();
+            var le16 = function(v) { return [v & 255, (v >> 8) & 255]; };
+            var le32 = function(v) { return [v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255]; };
+            var chunks = [], central = [], offset = 0;
+            files.forEach(function(f) {
+                var nb = te.encode(f.name), data = f.data, crc = crc32Bytes(data);
+                var lh = [0x50, 0x4B, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+                    .concat(le32(crc), le32(data.length), le32(data.length), le16(nb.length), le16(0));
+                var lhb = new Uint8Array(lh);
+                chunks.push(lhb, nb, data);
+                var ch = [0x50, 0x4B, 0x01, 0x02, 0x14, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+                    .concat(le32(crc), le32(data.length), le32(data.length), le16(nb.length), le16(0), le16(0), le16(0), le16(0), le32(0), le32(offset));
+                central.push({ h: new Uint8Array(ch), n: nb });
+                offset += lhb.length + nb.length + data.length;
+            });
+            var cs = offset, csize = 0;
+            central.forEach(function(e) { chunks.push(e.h, e.n); csize += e.h.length + e.n.length; });
+            var nf = files.length;
+            var end = [0x50, 0x4B, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00].concat(le16(nf), le16(nf), le32(csize), le32(cs), le16(0));
+            chunks.push(new Uint8Array(end));
+            var total = 0;
+            chunks.forEach(function(x) { total += x.length; });
+            var out = new Uint8Array(total), p = 0;
+            chunks.forEach(function(x) { out.set(x, p); p += x.length; });
+            return out;
+        }
+        var PPTX_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+        var PPTX_SLIDE_RELS = PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>';
+        var PPTX_MASTER = PPTX_HEAD + '<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="4400" b="1"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="2000"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:otherStyle></p:txStyles></p:sldMaster>';
+        var PPTX_MASTER_RELS = PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/></Relationships>';
+        var PPTX_LAYOUT = PPTX_HEAD + '<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="titleAndContent" preserve="1"><p:cSld name="标题和内容"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr><p:sp><p:nvSpPr><p:cNvPr id="2" name="标题"/><p:cNvSpPr/><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>标题</a:t></a:r></a:p></p:txBody></p:sp><p:sp><p:nvSpPr><p:cNvPr id="3" name="内容"/><p:cNvSpPr/><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>内容</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>';
+        var PPTX_LAYOUT_RELS = PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>';
+        var PPTX_THEME = PPTX_HEAD + '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:srgbClr val="000000"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F497D"/></a:dk2><a:lt2><a:srgbClr val="EEECE1"/></a:lt2><a:accent1><a:srgbClr val="4F81BD"/></a:accent1><a:accent2><a:srgbClr val="C0504D"/></a:accent2><a:accent3><a:srgbClr val="9BBB59"/></a:accent3><a:accent4><a:srgbClr val="8064A2"/></a:accent4><a:accent5><a:srgbClr val="4BACC6"/></a:accent5><a:accent6><a:srgbClr val="F79646"/></a:accent6><a:hlink><a:srgbClr val="0000FF"/></a:hlink><a:folHlink><a:srgbClr val="800080"/></a:folHlink></a:clrScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>';
+        var PPTX_ROOT_RELS = PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>';
+        function pptxPara(text, sz, bold) {
+            return '<a:p><a:r><a:rPr lang="zh-CN" sz="' + sz + '"' + (bold ? ' b="1"' : '') + ' dirty="0"/><a:t xml:space="preserve">' + xmlEsc(text) + '</a:t></a:r></a:p>';
+        }
+        function pptxShape(id, name, ph, x, y, cx, cy, paras) {
+            return '<p:sp><p:nvSpPr><p:cNvPr id="' + id + '" name="' + name + '"/><p:cNvSpPr/><p:nvPr>' + ph + '</p:nvPr></p:nvSpPr>'
+                + '<p:spPr><a:xfrm><a:off x="' + x + '" y="' + y + '"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>'
+                + '<p:txBody><a:bodyPr wrap="square"/><a:lstStyle/>' + paras.join('') + '</p:txBody></p:sp>';
+        }
+        function pptxSlideXml(titleParas, bodyParas) {
+            var shapes = pptxShape(2, '标题', '<p:ph type="title"/>', 685800, 342900, 7772400, 1143000, titleParas)
+                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 7772400, 4521200, bodyParas);
+            return PPTX_HEAD + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
+                + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
+                + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
+                + shapes + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+        }
+        function buildPptx(c) {
+            var qs = [];
+            try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
+            var te = new TextEncoder();
+            var meta = [c.category, c.subcategory].filter(function(x) { return x; }).join(' · ');
+            var slides = [{ t: [pptxPara(c.title || '未命名课件', 4000, true)], b: [pptxPara(meta, 2000, false), pptxPara('团契智学', 1800, false)] }];
+            if (c.content) {
+                var plain = stripMd(c.content);
+                slides.push({ t: [pptxPara('课程导读', 3200, true)], b: [pptxPara(plain.slice(0, 1500), 1800, false)] });
+            }
+            qs.forEach(function(q, i) {
+                var lines = ['【' + (EXP_TYPE_PLAIN[q.type || 'fill'] || '') + '】' + (q.q || '')];
+                if ((q.type === 'single' || q.type === 'multiple') && q.o) {
+                    String(q.o).split(',').forEach(function(o) { lines.push(String(o).trim()); });
+                }
+                var ans = expAnswer(q);
+                if (ans) lines.push('答案：' + ans);
+                slides.push({ t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)], b: lines.map(function(ln) { return pptxPara(ln, 1800, false); }) });
+            });
+            var files = [];
+            var addXml = function(name, xml) { files.push({ name: name, data: te.encode(xml) }); };
+            var slideOverrides = slides.map(function(s, i) {
+                return '<Override PartName="/ppt/slides/slide' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
+            }).join('');
+            addXml('[Content_Types].xml', PPTX_HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' + slideOverrides + '</Types>');
+            addXml('_rels/.rels', PPTX_ROOT_RELS);
+            var sldIds = slides.map(function(s, i) { return '<p:sldId id="' + (256 + i) + '" r:id="rId' + (i + 2) + '"/>'; }).join('');
+            addXml('ppt/presentation.xml', PPTX_HEAD + '<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst><p:sldMasterId r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>' + sldIds + '</p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>');
+            var presRels = slides.map(function(s, i) { return '<Relationship Id="rId' + (i + 2) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide' + (i + 1) + '.xml"/>'; }).join('');
+            addXml('ppt/_rels/presentation.xml.rels', PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>' + presRels + '</Relationships>');
+            addXml('ppt/slideMasters/slideMaster1.xml', PPTX_MASTER);
+            addXml('ppt/slideMasters/_rels/slideMaster1.xml.rels', PPTX_MASTER_RELS);
+            addXml('ppt/slideLayouts/slideLayout1.xml', PPTX_LAYOUT);
+            addXml('ppt/slideLayouts/_rels/slideLayout1.xml.rels', PPTX_LAYOUT_RELS);
+            addXml('ppt/theme/theme1.xml', PPTX_THEME);
+            slides.forEach(function(s, i) {
+                addXml('ppt/slides/slide' + (i + 1) + '.xml', pptxSlideXml(s.t, s.b));
+                addXml('ppt/slides/_rels/slide' + (i + 1) + '.xml.rels', PPTX_SLIDE_RELS);
+            });
+            return zipStored(files);
         }
 
         /* 教师管理密码门（服务端会话） */
@@ -2119,6 +2591,7 @@ function renderHTML(results, categories, opts) {
         var sn = localStorage.getItem(USER_KEY);
         var nb = document.getElementById('nameBtn'); if (sn && nb) nb.innerText = sn;
         var sqn = document.getElementById('scoreQueryName'); if (sqn && sn) sqn.value = sn;
+        if (document.getElementById('studentSelect')) loadStudents();
     </script>
 
     <!-- 字号调节：全站可见 -->
