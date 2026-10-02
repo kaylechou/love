@@ -1964,7 +1964,8 @@ function renderHTML(results, categories, opts) {
                     + '<button data-fmt="html" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📄<br>网页 HTML</button>'
                     + '<button data-fmt="word" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📝<br>Word 文档</button>'
                     + '<button data-fmt="excel" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📊<br>Excel 表格</button>'
-                    + '<button data-fmt="pptx" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📽️<br>PPT 演示</button>'
+                    + '<button data-fmt="pptx1" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📽️<br>PPT 单页版<br><span style="font-size:11px;font-weight:400;color:#94a3b8">自设动画</span></button>'
+                    + '<button data-fmt="pptx2" onclick="doExport(this.dataset.fmt)" style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">📽️<br>PPT 两页版<br><span style="font-size:11px;font-weight:400;color:#94a3b8">翻页揭示</span></button>'
                     + '</div>'
                     + '<button data-fmt="print" onclick="doExport(this.dataset.fmt)" style="margin-top:8px;width:100%;border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">🖨️ 打印 / 存为 PDF</button>'
                     + '<button onclick="closeExportMenu()" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">取消</button>'
@@ -2003,7 +2004,8 @@ function renderHTML(results, categories, opts) {
             if (fmt === 'html') downloadHTML(fn + '.html', buildExportHTML(c));
             else if (fmt === 'word') downloadText(fn + '.doc', buildWordHTML(c), 'application/msword');
             else if (fmt === 'excel') downloadText(fn + '.xls', buildExcelHTML(c), 'application/vnd.ms-excel');
-            else if (fmt === 'pptx') downloadBytes(fn + '.pptx', buildPptx(c), 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+            else if (fmt === 'pptx1') downloadBytes(fn + '-单页版.pptx', buildPptx(c, 'single'), 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+            else if (fmt === 'pptx2') downloadBytes(fn + '-两页版.pptx', buildPptx(c, 'dual'), 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
         }
         function downloadText(filename, text, mime) {
             var blob = new Blob([String.fromCharCode(65279) + text], { type: mime || 'text/plain;charset=utf-8' });
@@ -2184,15 +2186,20 @@ function renderHTML(results, categories, opts) {
                 + '<p:spPr><a:xfrm><a:off x="' + x + '" y="' + y + '"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>'
                 + '<p:txBody><a:bodyPr wrap="square"/><a:lstStyle/>' + paras.join('') + '</p:txBody></p:sp>';
         }
-        function pptxSlideXml(titleParas, bodyParas) {
+        function pptxSlideXml(titleParas, bodyParas, answerParas) {
+            var hasAns = answerParas && answerParas.length;
+            var bodyCy = hasAns ? 3000000 : 4521200;
             var shapes = pptxShape(2, '标题', '<p:ph type="title"/>', 685800, 342900, 10820400, 1143000, titleParas)
-                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 10820400, 4521200, bodyParas);
+                + pptxShape(3, '内容', '<p:ph type="body" idx="1"/>', 685800, 1600200, 10820400, bodyCy, bodyParas);
+            if (hasAns) {
+                shapes += pptxShape(4, '答案', '', 685800, 4800200, 10820400, 1700000, answerParas);
+            }
             return PPTX_HEAD + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
                 + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
                 + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
                 + shapes + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
         }
-        function buildPptx(c) {
+        function buildPptx(c, mode) {
             var qs = [];
             try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
             var te = new TextEncoder();
@@ -2213,22 +2220,32 @@ function renderHTML(results, categories, opts) {
                     b: pts.map(function(x) { return pptxPara('• ' + String(x).trim(), 1800, false); })
                 });
             });
+            var single = (mode === 'single');
             qs.forEach(function(q, i) {
                 var t = q.type || 'fill';
                 var lines = ['【' + (EXP_TYPE_PLAIN[t] || '') + '】' + (q.q || '')];
                 if ((t === 'single' || t === 'multiple') && q.o) {
                     String(q.o).split(',').forEach(function(o) { lines.push(String(o).trim()); });
                 }
-                slides.push({
-                    t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)],
-                    b: lines.map(function(ln) { return pptxPara(ln, 1800, false); })
-                });
+                var qParas = lines.map(function(ln) { return pptxPara(ln, 1800, false); });
                 var ansParas = pptxAnswerParas(q);
-                if (ansParas) {
+                if (single) {
                     slides.push({
-                        t: [pptxPara('第 ' + (i + 1) + ' 题 · 参考答案', 3200, true)],
-                        b: ansParas
+                        t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)],
+                        b: qParas,
+                        a: ansParas
                     });
+                } else {
+                    slides.push({
+                        t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)],
+                        b: qParas
+                    });
+                    if (ansParas) {
+                        slides.push({
+                            t: [pptxPara('第 ' + (i + 1) + ' 题 · 参考答案', 3200, true)],
+                            b: ansParas
+                        });
+                    }
                 }
             });
             var files = [];
@@ -2248,7 +2265,7 @@ function renderHTML(results, categories, opts) {
             addXml('ppt/slideLayouts/_rels/slideLayout1.xml.rels', PPTX_LAYOUT_RELS);
             addXml('ppt/theme/theme1.xml', PPTX_THEME);
             slides.forEach(function(s, i) {
-                addXml('ppt/slides/slide' + (i + 1) + '.xml', pptxSlideXml(s.t, s.b));
+                addXml('ppt/slides/slide' + (i + 1) + '.xml', pptxSlideXml(s.t, s.b, s.a));
                 addXml('ppt/slides/_rels/slide' + (i + 1) + '.xml.rels', PPTX_SLIDE_RELS);
             });
             return zipStored(files);
