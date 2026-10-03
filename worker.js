@@ -685,6 +685,9 @@ function renderHTML(results, categories, opts) {
         .qtab-count { font-size: .65rem; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); color: #e0e7ff; padding: .05rem .45rem; border-radius: 9999px; margin-left: .3rem; }
         .qtab-report { color: #fcd34d; font-weight: 700; }
         .qtab-report.qtab-active { color: #fde68a; border-bottom-color: #fbbf24; }
+        /* 经文高亮：引用徽章（紫）与经文正文（琥珀）作区分 */
+        .verse-ref { display: inline-block; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; font-weight: 700; font-size: .72rem; padding: .12rem .6rem; border-radius: 9999px; white-space: nowrap; vertical-align: .05em; box-shadow: 0 1px 4px rgba(124,58,237,.35); }
+        .verse-text { background: #fef3c7; border-bottom: 2px solid #f59e0b; border-radius: .2rem; padding: 0 .25rem; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
     </style>
 </head>
 <body class="bg-[#f6f7fb] min-h-screen text-slate-900 pb-20">
@@ -1058,6 +1061,36 @@ function renderHTML(results, categories, opts) {
         /* 小工具 */
         function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
         function stripEmoji(s) { return String(s == null ? "" : s).replace(/^[📖\s]+/, ""); } /* 去掉标题开头自带的 📖，避免与固定图标重复 */
+        /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
+        var BIBLE_BOOKS = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|哥林多前书|哥林多后书|约翰一书|约翰二书|约翰三书|彼得前书|彼得后书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|传道书|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录|诗篇|箴言|雅歌';
+        /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
+        function hlVerse(s) {
+            s = String(s == null ? "" : s);
+            var B = BIBLE_BOOKS;
+            var SP = ' *';
+            s = s.replace(new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '节', 'g'), '<span class="verse-ref">《$1》$2章$3节</span>');
+            s = s.replace(new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '节' + SP + '说' + SP + '[：:，,]' + SP + '([^<]*)', 'g'), '<span class="verse-ref">$1$2章$3节</span><span class="verse-text">$4</span>');
+            s = s.replace(new RegExp('(?<!">)(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '节', 'g'), '<span class="verse-ref">$1$2章$3节</span>');
+            s = s.replace(new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)', 'g'), '<span class="verse-ref">$1$2:$3</span><span class="verse-text">$4</span>');
+            s = s.replace(new RegExp('(?<!">)(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)', 'g'), '<span class="verse-ref">$1$2:$3</span>');
+            return s;
+        }
+        /* verseSegs：将 hlVerse 输出切分为段 [{k:0普通|1引用|2经文, t:文本}]，供 PPT 多 run 渲染 */
+        function verseSegs(s) {
+            var html = hlVerse(s), segs = [], i = 0;
+            var R1 = '<span class="verse-ref">', R2 = '<span class="verse-text">', E = '</span>';
+            while (i < html.length) {
+                var j1 = html.indexOf(R1, i), j2 = html.indexOf(R2, i), j = -1, k = 0, tag = '';
+                if (j1 >= 0 && (j2 < 0 || j1 < j2)) { j = j1; k = 1; tag = R1; }
+                else if (j2 >= 0) { j = j2; k = 2; tag = R2; }
+                if (j < 0) { segs.push({ k: 0, t: html.slice(i) }); break; }
+                if (j > i) segs.push({ k: 0, t: html.slice(i, j) });
+                var e = html.indexOf(E, j + tag.length);
+                segs.push({ k: k, t: html.slice(j + tag.length, e) });
+                i = e + E.length;
+            }
+            return segs;
+        }
         function stripMd(s) { return String(s || "").replace(/[#>*_~]/g, "").replace(/\\\\s+/g, " ").trim(); }
         function shuffle(arr) { for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = arr[i]; arr[i] = arr[j]; arr[j] = t; } return arr; }
         function fmtTime(t) { if (!t) return ""; try { return new Date(t).toLocaleString("zh-CN", { hour12: false }).slice(0, 16); } catch(e) { return t; } }
@@ -1452,7 +1485,7 @@ function renderHTML(results, categories, opts) {
         /* 把题目文本中的 ____（下划线越多空格越宽）替换为填空；无占位符则在末尾追加 */
         function studyPara(q, qi) {
             var bi = 0;
-            var html = esc(q.q).replace(/_{4,}|＿{2,}/g, function(m) {
+            var html = hlVerse(esc(q.q)).replace(/_{4,}|＿{2,}/g, function(m) {
                 var w = Math.min(220, Math.max(80, m.length * 16));
                 return studyInputHtml(qi, bi++, w);
             });
@@ -1464,8 +1497,8 @@ function renderHTML(results, categories, opts) {
             var verdict = '<div class="qverdict hidden mt-2 text-sm font-bold" id="verdict-' + i + '"></div>';
             if (q.type === 'verse') {
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
-                    + '<p class="text-sm font-bold text-blue-800 uppercase tracking-wider mb-2">📖 ' + esc(stripEmoji(q.h || q.o || '核心经文')) + '</p>'
-                    + '<div class="text-slate-800">' + studyPara(q, i) + '</div>' + verdict + '</div></div>';
+                    + '<p class="mb-3"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || '核心经文')) + '</span></p>'
+                    + '<div class="text-slate-800"><span class="verse-text">' + studyPara(q, i) + '</span></div>' + verdict + '</div></div>';
             }
             if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') {
                 var isMulti = q.type === 'multiple';
@@ -1475,11 +1508,11 @@ function renderHTML(results, categories, opts) {
                     var val = t.charAt(0);
                     return '<label class="sopt" data-val="' + esc(val) + '"><input type="' + (isMulti ? 'checkbox' : 'radio') + '" name="u-' + i + '" value="' + esc(val) + '" class="hidden"><span>' + esc(t) + '</span></label>';
                 }).join('');
-                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + esc(q.q) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">（多选）</span>' : '') + '</p>'
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(q.q)) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">（多选）</span>' : '') + '</p>'
                     + '<div class="flex flex-wrap gap-2 mt-3">' + pills + '</div>' + verdict + '</div>';
             }
             if (q.type === 'essay') {
-                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + esc(q.q) + '</p>'
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(q.q)) + '</p>'
                     + '<textarea id="u-' + i + '" class="quiz-input w-full p-4 border rounded-2xl bg-slate-50 h-28 mt-3" placeholder="输入你的回答..."></textarea>' + verdict + '</div>';
             }
             return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + studyPara(q, i) + '</p>' + verdict + '</div>';
@@ -1846,7 +1879,7 @@ function renderHTML(results, categories, opts) {
                             + '<span class="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-black shrink-0">' + (ci + 1) + '</span>'
                             + '<span>' + esc(ch.title) + '</span></h3>'
                             + (pts.length ? '<ul class="space-y-2">' + pts.map(function(p) {
-                                return '<li class="flex gap-2 text-sm text-slate-600 leading-relaxed"><span class="text-indigo-400 shrink-0 font-black">•</span><span>' + esc(p) + '</span></li>';
+                                return '<li class="flex gap-2 text-sm text-slate-600 leading-relaxed"><span class="text-indigo-400 shrink-0 font-black">•</span><span>' + hlVerse(esc(p)) + '</span></li>';
                             }).join('') + '</ul>' : '')
                             + '</div>';
                     }).join('') + '</div>';
@@ -2145,6 +2178,7 @@ function renderHTML(results, categories, opts) {
             + 'footer{text-align:center;color:#94a3b8;font-size:12px;margin-top:24px;}'
             + '.empty{color:#94a3b8;text-align:center;padding:20px;}'
             + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:1.8em;}'
+            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
             + '@media print{body{background:#fff;}.wrap{max-width:none;padding:0;}.card{box-shadow:none;border:1px solid #e2e8f0;break-inside:avoid;}details.ans{break-inside:avoid;}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}';
         function expInline(t) {
             return String(t).replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
@@ -2213,7 +2247,7 @@ function renderHTML(results, categories, opts) {
                 body += '<section class="card"><h2>🗺️ 章节导读</h2>' + realGuide.map(function(g, gi) {
                     var pts = (g.points || []).filter(function(x) { return String(x).trim(); });
                     return '<div class="chapter"><div class="ch-title">' + esc(g.title || ('第' + (gi + 1) + '章')) + '</div>'
-                        + (pts.length ? '<ul>' + pts.map(function(x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') + '</div>';
+                        + (pts.length ? '<ul>' + pts.map(function(x) { return '<li>' + hlVerse(esc(x)) + '</li>'; }).join('') + '</ul>' : '') + '</div>';
                 }).join('') + '</section>';
             }
             if (c.instructions) body += '<section class="card"><h2>📝 答题说明</h2><div class="md">' + expMd(c.instructions) + '</div></section>';
@@ -2226,7 +2260,7 @@ function renderHTML(results, categories, opts) {
                 hasQ = true;
                 body += '<section class="card"><h2>' + (EXP_TYPE_LABEL[t] || t) + '（共' + list.length + '题）</h2>';
                 list.forEach(function(q, qi) {
-                    var qtext = expInline(esc(q.q || ''));
+                    var qtext = expInline(hlVerse(esc(q.q || '')));
                     var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
                     var opts = '';
                     if ((t === 'single' || t === 'multiple') && q.o) {
@@ -2371,6 +2405,7 @@ function renderHTML(results, categories, opts) {
             + '.ans{background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 12px;margin-top:6px;}'
             + '.chapter{margin-bottom:10px;}.ch-title{font-weight:bold;}'
             + '.md p{margin:0 0 8px;}.md ul{margin:0 0 8px;padding-left:20px;}'
+            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
             + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:28px;}'
             + '.answer-key{page-break-before:always;}.answer-key ol{margin:6px 0 12px;padding-left:24px;}.answer-key li{margin-bottom:6px;}';
         function buildAnswerKey(c) {
@@ -2421,17 +2456,17 @@ function renderHTML(results, categories, opts) {
             if (realGuide.length) {
                 var grows = realGuide.map(function(g, gi) {
                     var pts = (g.points || []).filter(function(x) { return String(x).trim(); });
-                    return '<tr><td>' + (gi + 1) + '</td><td>' + esc(g.title || '') + '</td><td>' + esc(pts.join('；')) + '</td></tr>';
+                    return '<tr><td>' + (gi + 1) + '</td><td>' + esc(g.title || '') + '</td><td>' + hlVerse(esc(pts.join('；'))) + '</td></tr>';
                 }).join('');
                 guideHtml = '<h3>章节导读</h3><table border="1" cellpadding="6" cellspacing="0"><tr><th>序号</th><th>章节</th><th>要点</th></tr>' + grows + '</table><br><br>';
             }
             var trs = qs.map(function(q, i) {
                 var t = q.type || 'fill';
                 var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
-                return '<tr><td>' + (i + 1) + '</td><td>' + esc(EXP_TYPE_PLAIN[t] || t) + '</td><td>' + esc(bracket + (q.q || '')) + '</td><td>' + esc(q.o || '') + '</td><td>' + esc(expAnswer(q)) + '</td></tr>';
+                return '<tr><td>' + (i + 1) + '</td><td>' + esc(EXP_TYPE_PLAIN[t] || t) + '</td><td>' + hlVerse(esc(bracket + (q.q || ''))) + '</td><td>' + esc(q.o || '') + '</td><td>' + esc(expAnswer(q)) + '</td></tr>';
             }).join('');
             return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
-                + '<head><meta charset="utf-8">'
+                + '<head><meta charset="utf-8"><style>.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}</style>'
                 + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>题库</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
                 + '</head><body>'
                 + guideHtml
@@ -2653,11 +2688,23 @@ function renderHTML(results, categories, opts) {
         var PPTX_LAYOUT_RELS = PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>';
         var PPTX_THEME = PPTX_HEAD + '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:srgbClr val="000000"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F497D"/></a:dk2><a:lt2><a:srgbClr val="EEECE1"/></a:lt2><a:accent1><a:srgbClr val="4F81BD"/></a:accent1><a:accent2><a:srgbClr val="C0504D"/></a:accent2><a:accent3><a:srgbClr val="9BBB59"/></a:accent3><a:accent4><a:srgbClr val="8064A2"/></a:accent4><a:accent5><a:srgbClr val="4BACC6"/></a:accent5><a:accent6><a:srgbClr val="F79646"/></a:accent6><a:hlink><a:srgbClr val="0000FF"/></a:hlink><a:folHlink><a:srgbClr val="800080"/></a:folHlink></a:clrScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>';
         var PPTX_ROOT_RELS = PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>';
-        function pptxPara(text, sz, bold, color) {
+        function pptxRun(text, sz, bold, color) {
             var rpr = '<a:rPr lang="zh-CN" sz="' + sz + '"' + (bold ? ' b="1"' : '') + ' dirty="0"';
             if (color) rpr += '><a:solidFill><a:srgbClr val="' + color + '"/></a:solidFill></a:rPr>';
             else rpr += '/>';
-            return '<a:p><a:r>' + rpr + '<a:t xml:space="preserve">' + xmlEsc(text) + '</a:t></a:r></a:p>';
+            return '<a:r>' + rpr + '<a:t xml:space="preserve">' + text + '</a:t></a:r>';
+        }
+        function pptxPara(text, sz, bold, color) {
+            return '<a:p>' + pptxRun(xmlEsc(text), sz, bold, color) + '</a:p>';
+        }
+        /* 经文分段着色：引用紫色加粗，经文正文深琥珀色 */
+        function pptxRichPara(text, sz) {
+            var segs = verseSegs(esc(text));
+            var runs = segs.map(function(sg) {
+                var color = sg.k === 1 ? '7C3AED' : (sg.k === 2 ? 'B45309' : null);
+                return pptxRun(sg.t, sz, sg.k === 1, color);
+            });
+            return '<a:p>' + runs.join('') + '</a:p>';
         }
         function pptxAnswerParas(q) {
             var t = q.type || 'fill';
@@ -2707,7 +2754,7 @@ function renderHTML(results, categories, opts) {
                 if (!g.title && !pts.length) return;
                 slides.push({
                     t: [pptxPara('章节导读 · ' + (g.title || ('第' + (gi + 1) + '章')), 3200, true)],
-                    b: pts.map(function(x) { return pptxPara('• ' + String(x).trim(), 1800, false); })
+                    b: pts.map(function(x) { return pptxRichPara('• ' + String(x).trim(), 1800); })
                 });
             });
             var single = (mode === 'single');
@@ -2717,7 +2764,7 @@ function renderHTML(results, categories, opts) {
                 if ((t === 'single' || t === 'multiple') && q.o) {
                     String(q.o).split(',').forEach(function(o) { lines.push(String(o).trim()); });
                 }
-                var qParas = lines.map(function(ln) { return pptxPara(ln, 1800, false); });
+                var qParas = lines.map(function(ln) { return pptxRichPara(ln, 1800); });
                 var ansParas = pptxAnswerParas(q);
                 if (single) {
                     slides.push({
