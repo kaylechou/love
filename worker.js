@@ -640,7 +640,7 @@ if (pathname === "/admin" || pathname.indexOf("/admin/") === 0) {
 const list = await orderedCourses(env);
 const acats = [...new Set(list.map(item => item.category))];
 const data = authed? list: stripAnswers(list);
-return new Response(renderHTML(data, acats, { shareMode: false, isAdmin: true, adminAuthed: authed, notice: ""}), { headers: { "Content-Type": "text/html;charset=UTF-8"}});
+return new Response(renderHTML(data, acats, { shareMode: false, isAdmin: true, adminAuthed: authed, notice: ""}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 }
 
 // 课程分享短链：/ID-xxxx
@@ -650,7 +650,7 @@ const sr = await env.DB.prepare("SELECT * FROM courses WHERE id =?").bind(shortI
 const srows = (sr && sr.results) || [];
 if (!srows.length) return new Response("课程不存在或已删除", { status: 404});
 const scats = [...new Set(srows.map(item => item.category))];
-return new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: notice}), { headers: { "Content-Type": "text/html;charset=UTF-8"}});
+return new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: notice}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 }
 
 // 页面渲染（学员端）
@@ -662,7 +662,7 @@ if (shareId) {
 displayData = results.filter(item => item.id === shareId);
 isShareMode = true;
 }
-return new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice}), { headers: { "Content-Type": "text/html;charset=UTF-8"}});
+return new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 
 } catch (e) {
 return new Response("服务器错误: " + e.message, { status: 500});
