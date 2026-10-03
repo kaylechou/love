@@ -6,6 +6,14 @@
 
 ## 2026-10-03
 
+### 错题本升级：跟姓名走 + 全格式导出（`08a5d68c`）
+- 答题前必须输入学员姓名：点任何答题页签/「开始答题」时，无姓名弹窗阻断，登记后放行
+- 错题核对后自动收录（原有），现每条带：系列、子栏目、课件、题型、题号（如「填空题 · 第3题」）
+- 错题本按姓名隔离存储，列表新增题型·题号行
+- 错题本弹窗新增 📥 导出按钮，格式与课件导出一致：网页 HTML / Word / Excel / PPT 单页版 / PPT 两页版 / 打印(PDF)
+- 回归：served 脚本语法通过、6 项功能实测、两种 PPT 解包 CRC 与 XML 合法、线上 26 课验证
+
+
 ### PWA 支持：可安装为手机应用（`7a9b766d`）
 - 新增 `/manifest.json`、`/sw.js`、`/icon-192.png`、`/icon-512.png`、`/icon-180.png` 路由
 - 首页 head 新增 PWA 标签：manifest、theme-color、iOS standalone（apple-touch-icon / apple-mobile-web-app-capable）
