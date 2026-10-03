@@ -782,6 +782,7 @@ function renderHTML(results, categories, opts) {
             <div class="p-6 border-b flex items-center justify-between">
                 <h2 class="font-black text-lg">📝 我的错题本</h2>
                 <div class="flex gap-2">
+                    <button onclick="openWrongExportMenu()" class="text-xs bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold">📥 导出</button>
                     <button onclick="clearWrongBook()" class="text-xs bg-red-50 text-red-500 px-4 py-2 rounded-xl font-bold">清空</button>
                     <button onclick="toggleModal('wrongBookModal')" class="text-xs bg-slate-100 text-slate-500 px-4 py-2 rounded-xl font-bold">关闭</button>
                 </div>
@@ -931,6 +932,7 @@ function renderHTML(results, categories, opts) {
                 list.innerHTML = arr.map(function(x) {
                     return '<div class="border border-slate-100 rounded-2xl p-4">'
                         + '<div class="text-[11px] text-violet-500 font-bold mb-1">' + esc([x.series, x.sub, x.title].filter(function(s) { return s; }).join(' · ') || '') + '</div>'
+                        + '<div class="text-[11px] text-indigo-500 font-bold mb-1">' + esc(wrongTypeNum(x)) + '</div>'
                         + '<div class="text-sm font-bold text-slate-800 mb-2">' + esc(x.q || '') + '</div>'
                         + '<div class="text-xs text-slate-500">你的答案：' + esc(x.u || '（未填）') + '</div>'
                         + '<div class="text-xs text-emerald-600 font-bold mt-1">正确参考：' + esc(x.expected || '') + '</div></div>';
@@ -1206,6 +1208,43 @@ function renderHTML(results, categories, opts) {
 
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
         function login() { var n = prompt("输入姓名："); if (n) { localStorage.setItem(USER_KEY, n); location.reload(); } }
+        /* 答题前必须输入姓名：无姓名时弹窗阻断，登记后继续 */
+        function requireNameForQuiz(tab) {
+            var nm = "";
+            try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
+            if (nm) return true;
+            openNameGate(tab);
+            return false;
+        }
+        function openNameGate(tab) {
+            window._pendingQTab = tab;
+            var m = document.getElementById('nameGateModal');
+            if (!m) {
+                m = document.createElement('div');
+                m.id = 'nameGateModal';
+                m.style.cssText = 'position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:16px;';
+                m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.6)"></div>'
+                    + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:340px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
+                    + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:17px">👤 请先输入姓名</h3>'
+                    + '<p style="font-size:12px;color:#94a3b8;margin:0 0 14px">答题前需要登记姓名，成绩与错题本将记在此名下。</p>'
+                    + '<input id="nameGateInput" placeholder="输入学员姓名" style="width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box">'
+                    + '<button id="nameGateOk" style="width:100%;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700">确定，开始答题</button>'
+                    + '</div>';
+                document.body.appendChild(m);
+                document.getElementById('nameGateOk').onclick = function() {
+                    var v = (document.getElementById('nameGateInput').value || "").trim();
+                    if (!v) { alert("请输入姓名"); return; }
+                    try { localStorage.setItem(USER_KEY, v); } catch (e) {}
+                    var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = v;
+                    m.style.display = 'none';
+                    var t = window._pendingQTab; window._pendingQTab = null;
+                    if (t) switchQTab(t);
+                };
+            }
+            document.getElementById('nameGateInput').value = '';
+            m.style.display = 'flex';
+            setTimeout(function() { var i = document.getElementById('nameGateInput'); if (i) i.focus(); }, 60);
+        }
         /* 分享页姓名条：与主站共用同一本地姓名，成绩自动记在其名下 */
         function shareNameHTML() {
             var sn0 = (localStorage.getItem(USER_KEY) || "").trim();
@@ -1256,7 +1295,7 @@ function renderHTML(results, categories, opts) {
         function renderQ(q, i, num) {
             var verdict = '<div class="qverdict hidden mt-2 text-sm font-bold" id="verdict-' + i + '"></div>';
             if (q.type === 'verse') {
-                return '<div id="qcard-' + i + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
                     + '<p class="text-sm font-bold text-blue-800 uppercase tracking-wider mb-2">📖 ' + esc(stripEmoji(q.h || q.o || '核心经文')) + '</p>'
                     + '<div class="text-slate-800">' + studyPara(q, i) + '</div>' + verdict + '</div></div>';
             }
@@ -1268,14 +1307,14 @@ function renderHTML(results, categories, opts) {
                     var val = t.charAt(0);
                     return '<label class="sopt" data-val="' + esc(val) + '"><input type="' + (isMulti ? 'checkbox' : 'radio') + '" name="u-' + i + '" value="' + esc(val) + '" class="hidden"><span>' + esc(t) + '</span></label>';
                 }).join('');
-                return '<div id="qcard-' + i + '"><p>' + num + '. ' + esc(q.q) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">（多选）</span>' : '') + '</p>'
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + esc(q.q) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">（多选）</span>' : '') + '</p>'
                     + '<div class="flex flex-wrap gap-2 mt-3">' + pills + '</div>' + verdict + '</div>';
             }
             if (q.type === 'essay') {
-                return '<div id="qcard-' + i + '"><p>' + num + '. ' + esc(q.q) + '</p>'
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + esc(q.q) + '</p>'
                     + '<textarea id="u-' + i + '" class="quiz-input w-full p-4 border rounded-2xl bg-slate-50 h-28 mt-3" placeholder="输入你的回答..."></textarea>' + verdict + '</div>';
             }
-            return '<div id="qcard-' + i + '"><p>' + num + '. ' + studyPara(q, i) + '</p>' + verdict + '</div>';
+            return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + studyPara(q, i) + '</p>' + verdict + '</div>';
         }
         /* 进度统计：填空按空格数，选择/问答按题数 */
         function studyProgress() {
@@ -1337,6 +1376,7 @@ function renderHTML(results, categories, opts) {
                 var sni = document.getElementById("shareNameInput"); if (sni) sni.focus();
                 return;
             }
+            if (!(localStorage.getItem(USER_KEY) || "").trim()) { openNameGate(null); return; }
             var answers = [], ok = true;
             for (var v = 0; v < activeQuizzes.length; v++) {
                 var qv = activeQuizzes[v], u = '';
@@ -1454,7 +1494,8 @@ function renderHTML(results, categories, opts) {
                         '<div class="ans-compare mt-2 text-sm rounded-xl bg-red-50 border border-red-100 p-3 space-y-1 text-left">'
                         + '<div><span class="font-bold text-red-500">你的答案：</span><span class="text-slate-700">' + esc(userAnsText || '（未填）') + '</span></div>'
                         + '<div><span class="font-bold text-emerald-600">正确答案：</span><span class="text-slate-700">' + esc(correctText || '') + '</span></div></div>');
-                    wrongs.push({ cid: activeLessonId, title: activeCourseTitle, series: activeCategory, sub: activeSubcategory, q: q.q || '', type: q.type || '', u: userAnsText, expected: correctText, ts: Date.now() });
+                    var qn = card ? (card.getAttribute('data-qnum') || '') : '';
+                    wrongs.push({ cid: activeLessonId, title: activeCourseTitle, series: activeCategory, sub: activeSubcategory, q: q.q || '', type: q.type || '', n: qn, u: userAnsText, expected: correctText, ts: Date.now() });
                 }
             });
             if (wrongs.length) saveWrongs(wrongs);
@@ -1491,6 +1532,7 @@ function renderHTML(results, categories, opts) {
 
         /* 分 Tab 课件：页签切换 / 问答参考答案开关 / 成绩报告 */
         function switchQTab(tab) {
+            if (tab !== 'overview' && !requireNameForQuiz(tab)) return;
             document.querySelectorAll('#quizContainer .qsec').forEach(function (el) { el.classList.add('hidden'); });
             document.querySelectorAll('.qtab-btn').forEach(function (el) { el.classList.remove('qtab-active'); });
             var sec = document.getElementById('qsec-' + tab);
@@ -2152,6 +2194,155 @@ function renderHTML(results, categories, opts) {
             w.document.close();
             w.focus();
             setTimeout(function() { w.print(); }, 600);
+        }
+        /* ---- 错题本导出：与课件导出相同的全部格式（HTML / Word / Excel / PPT单页 / PPT两页 / 打印） ---- */
+        var WRONG_TYPE_LABEL = { fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨', verse: '经文诵读' };
+        function wrongTypeNum(x) {
+            var parts = [];
+            var tl = WRONG_TYPE_LABEL[x.type] || x.type || '';
+            if (tl) parts.push(tl);
+            if (x.n) parts.push('第' + x.n + '题');
+            return parts.join(' · ');
+        }
+        function wrongMeta(x) {
+            return [x.series, x.sub, x.title].filter(function(s) { return s; }).join(' · ');
+        }
+        function wrongDateStr() {
+            var now = new Date();
+            return now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
+        }
+        function wrongBookName() {
+            var nm = "";
+            try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
+            return nm || "匿名学员";
+        }
+        function openWrongExportMenu() {
+            var m = document.getElementById('wrongExportModal');
+            if (!m) {
+                m = document.createElement('div');
+                m.id = 'wrongExportModal';
+                m.style.cssText = 'position:fixed;inset:0;z-index:130;display:none;align-items:center;justify-content:center;padding:16px;';
+                var btn = 'style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff"';
+                m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.5)" onclick="closeWrongExportMenu()"></div>'
+                    + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:340px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
+                    + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 4px">📥 导出错题本</h3>'
+                    + '<p id="wrongExportSub" style="font-size:12px;color:#94a3b8;margin:0 0 16px"></p>'
+                    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+                    + '<button data-fmt="html" onclick="doWrongExport(this.dataset.fmt)" ' + btn + '>📄<br>网页 HTML</button>'
+                    + '<button data-fmt="word" onclick="doWrongExport(this.dataset.fmt)" ' + btn + '>📝<br>Word 文档</button>'
+                    + '<button data-fmt="excel" onclick="doWrongExport(this.dataset.fmt)" ' + btn + '>📊<br>Excel 表格</button>'
+                    + '<button data-fmt="pptx1" onclick="doWrongExport(this.dataset.fmt)" ' + btn + '>📽️<br>PPT 单页版<br><span style="font-size:11px;font-weight:400;color:#94a3b8">自设动画</span></button>'
+                    + '<button data-fmt="pptx2" onclick="doWrongExport(this.dataset.fmt)" ' + btn + '>📽️<br>PPT 两页版<br><span style="font-size:11px;font-weight:400;color:#94a3b8">翻页揭示</span></button>'
+                    + '</div>'
+                    + '<button data-fmt="print" onclick="doWrongExport(this.dataset.fmt)" style="margin-top:8px;width:100%;border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">🖨️ 打印 / 存为 PDF</button>'
+                    + '<button onclick="closeWrongExportMenu()" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">取消</button>'
+                    + '</div>';
+                document.body.appendChild(m);
+            }
+            var arr = getWrong()[wrongBookName()] || [];
+            document.getElementById('wrongExportSub').innerText = wrongBookName() + ' · 共' + arr.length + '题';
+            m.style.display = 'flex';
+        }
+        function closeWrongExportMenu() {
+            var m = document.getElementById('wrongExportModal');
+            if (m) m.style.display = 'none';
+        }
+        function doWrongExport(fmt) {
+            closeWrongExportMenu();
+            var name = wrongBookName();
+            var arr = getWrong()[name] || [];
+            if (!arr.length) { alert("错题本是空的"); return; }
+            var fn = safeFileName(name + '的错题本');
+            var pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+            if (fmt === 'html') downloadHTML(fn + '.html', buildWrongHTML(name, arr));
+            else if (fmt === 'word') downloadText(fn + '.doc', buildWrongWordHTML(name, arr), 'application/msword');
+            else if (fmt === 'excel') downloadText(fn + '.xls', buildWrongExcelHTML(name, arr), 'application/vnd.ms-excel');
+            else if (fmt === 'pptx1') downloadBytes(fn + '-单页版.pptx', buildWrongPptx(name, arr, 'single'), pptxMime);
+            else if (fmt === 'pptx2') downloadBytes(fn + '-两页版.pptx', buildWrongPptx(name, arr, 'dual'), pptxMime);
+            else if (fmt === 'print') printWrongs(name, arr);
+        }
+        function buildWrongHTML(name, arr) {
+            var ds = wrongDateStr();
+            var body = arr.map(function(x, i) {
+                return '<section class="card"><h2>第' + (i + 1) + '题 <span style="font-size:13px;color:#6366f1;">' + esc(wrongTypeNum(x)) + '</span></h2>'
+                    + (wrongMeta(x) ? '<p style="font-size:12px;color:#94a3b8;margin:-8px 0 10px;">' + esc(wrongMeta(x)) + '</p>' : '')
+                    + '<div class="md"><p>' + esc(x.q || '') + '</p>'
+                    + '<p>你的答案：<b style="color:#dc2626;">' + esc(x.u || '（未填）') + '</b></p>'
+                    + '<p>正确答案：<b style="color:#059669;">' + esc(x.expected || '') + '</b></p></div></section>';
+            }).join('');
+            return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+                + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                + '<title>' + esc(name) + '的错题本 - 团契智学</title><style>' + EXP_CSS + '</style></head>'
+                + '<body><div class="wrap"><header class="hero"><div class="meta">团契智学 · 错题本</div>'
+                + '<h1>' + esc(name) + '的错题本</h1><div class="date">共' + arr.length + '题 · 导出日期：' + ds + '</div></header>'
+                + body + '<footer>由团契智学学习平台导出</footer></div></body></html>';
+        }
+        function buildWrongWordHTML(name, arr) {
+            var h = buildWrongHTML(name, arr);
+            h = h.split('<html lang="zh-CN">').join('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">');
+            var p1 = h.split('<style>');
+            var p2 = p1[1].split('</style>');
+            h = p1[0] + '<style>' + WORD_CSS + '</style>' + p2[1];
+            return h;
+        }
+        function buildWrongExcelHTML(name, arr) {
+            var trs = arr.map(function(x, i) {
+                return '<tr><td>' + (i + 1) + '</td><td>' + esc(x.series || '') + '</td><td>' + esc(x.sub || '') + '</td><td>' + esc(x.title || '') + '</td>'
+                    + '<td>' + esc(WRONG_TYPE_LABEL[x.type] || x.type || '') + '</td><td>' + esc(x.n || '') + '</td>'
+                    + '<td>' + esc(x.q || '') + '</td><td>' + esc(x.u || '') + '</td><td>' + esc(x.expected || '') + '</td></tr>';
+            }).join('');
+            return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
+                + '<head><meta charset="utf-8"></head><body>'
+                + '<h3>' + esc(name) + '的错题本（共' + arr.length + '题）</h3>'
+                + '<table border="1" cellpadding="6" cellspacing="0"><tr><th>序号</th><th>系列</th><th>子栏目</th><th>课件</th><th>题型</th><th>题号</th><th>题目</th><th>你的答案</th><th>正确答案</th></tr>'
+                + trs + '</table></body></html>';
+        }
+        function printWrongs(name, arr) {
+            var w = window.open('', '_blank');
+            if (!w) { alert('浏览器阻止了新窗口，请允许弹窗后重试'); return; }
+            w.document.write(buildWrongHTML(name, arr));
+            w.document.close();
+            w.focus();
+            setTimeout(function() { w.print(); }, 600);
+        }
+        function buildWrongPptx(name, arr, mode) {
+            var te = new TextEncoder();
+            var single = (mode === 'single');
+            var slides = [{ t: [pptxPara(name + '的错题本', 4000, true)], b: [pptxPara('共' + arr.length + '题', 2000, false), pptxPara('团契智学', 1800, false)] }];
+            arr.forEach(function(x, i) {
+                var qParas = [pptxPara('【' + (WRONG_TYPE_LABEL[x.type] || x.type || '') + (x.n ? ' · 第' + x.n + '题' : '') + '】', 1800, true, '4F81BD')];
+                if (wrongMeta(x)) qParas.push(pptxPara(wrongMeta(x), 1600, false, '64748B'));
+                qParas.push(pptxPara(String(x.q || ''), 1800, false));
+                qParas.push(pptxPara('你的答案：' + (x.u || '（未填）'), 1800, false, 'C0504D'));
+                var ansParas = [pptxPara('【正确答案】', 1800, true, '047857'), pptxPara(String(x.expected || ''), 2000, false, '047857')];
+                if (single) {
+                    slides.push({ t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)], b: qParas, a: ansParas });
+                } else {
+                    slides.push({ t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)], b: qParas });
+                    slides.push({ t: [pptxPara('第 ' + (i + 1) + ' 题 · 参考答案', 3200, true)], b: ansParas });
+                }
+            });
+            var files = [];
+            var addXml = function(nm, xml) { files.push({ name: nm, data: te.encode(xml) }); };
+            var slideOverrides = slides.map(function(s, i) {
+                return '<Override PartName="/ppt/slides/slide' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
+            }).join('');
+            addXml('[Content_Types].xml', PPTX_HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' + slideOverrides + '</Types>');
+            addXml('_rels/.rels', PPTX_ROOT_RELS);
+            var sldIds = slides.map(function(s, i) { return '<p:sldId id="' + (256 + i) + '" r:id="rId' + (i + 2) + '"/>'; }).join('');
+            addXml('ppt/presentation.xml', PPTX_HEAD + '<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst><p:sldMasterId r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>' + sldIds + '</p:sldIdLst><p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>');
+            var presRels = slides.map(function(s, i) { return '<Relationship Id="rId' + (i + 2) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide' + (i + 1) + '.xml"/>'; }).join('');
+            addXml('ppt/_rels/presentation.xml.rels', PPTX_HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>' + presRels + '</Relationships>');
+            addXml('ppt/slideMasters/slideMaster1.xml', PPTX_MASTER);
+            addXml('ppt/slideMasters/_rels/slideMaster1.xml.rels', PPTX_MASTER_RELS);
+            addXml('ppt/slideLayouts/slideLayout1.xml', PPTX_LAYOUT);
+            addXml('ppt/slideLayouts/_rels/slideLayout1.xml.rels', PPTX_LAYOUT_RELS);
+            addXml('ppt/theme/theme1.xml', PPTX_THEME);
+            slides.forEach(function(s, i) {
+                addXml('ppt/slides/slide' + (i + 1) + '.xml', pptxSlideXml(s.t, s.b, s.a));
+                addXml('ppt/slides/_rels/slide' + (i + 1) + '.xml.rels', PPTX_SLIDE_RELS);
+            });
+            return zipStored(files);
         }
         /* ---- PPTX 生成（无压缩 zip + 最小 Office Open XML） ---- */
         function xmlEsc(s) {
