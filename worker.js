@@ -147,6 +147,7 @@ try { await db.prepare("ALTER TABLE progress ADD COLUMN submitted_at TEXT").run(
 try { await db.prepare("ALTER TABLE progress ADD COLUMN course_title TEXT").run();} catch (e) {}
 await db.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)").run();
 await db.prepare("CREATE TABLE IF NOT EXISTS students (username TEXT PRIMARY KEY, pw_hash TEXT, created_at TEXT)").run();
+try { await db.prepare("ALTER TABLE students ADD COLUMN is_admin INTEGER DEFAULT 0").run(); } catch (e) {}
 await db.prepare("CREATE TABLE IF NOT EXISTS wrongs (username TEXT, course_id TEXT, course_title TEXT, series TEXT, sub TEXT, qtype TEXT, qnum TEXT, question TEXT, user_answer TEXT, correct_answer TEXT, submitted_at TEXT)").run();
 await db.prepare("CREATE INDEX IF NOT EXISTS idx_wrongs_user ON wrongs(username, course_id)").run();
 /* 系列/子栏目：parent 为空=系列，非空=该系列下的子栏目；(parent, name) 联合主键 */
@@ -429,17 +430,17 @@ const mode = b.mode === "register" ? "register" : "login";
 if (!username) return json({ error: "请输入姓名" }, 400);
 if (password.length < 4) return json({ error: "密码至少4位" }, 400);
 const hash = await sha256hex("tq-student:" + username + ":" + password);
-const row = await env.DB.prepare("SELECT pw_hash FROM students WHERE username = ?").bind(username).first();
+const row = await env.DB.prepare("SELECT pw_hash, is_admin FROM students WHERE username = ?").bind(username).first();
 const tokenFor = async (h) => await sha256hex("tq-student-token:" + username + ":" + h);
 if (mode === "register") {
 if (row) return json({ error: "该姓名已注册，请直接登录" }, 409);
 const now = new Date().toISOString();
 await env.DB.prepare("INSERT INTO students (username, pw_hash, created_at) VALUES (?, ?, ?)").bind(username, hash, now).run();
-return json({ success: true, isNew: true, token: await tokenFor(hash) });
+return json({ success: true, isNew: true, token: await tokenFor(hash), is_admin: false });
 } else {
 if (!row) return json({ error: "该姓名尚未注册，请先注册" }, 404);
 if (row.pw_hash !== hash) return json({ error: "密码错误，请重试" }, 401);
-return json({ success: true, token: await tokenFor(row.pw_hash) });
+return json({ success: true, token: await tokenFor(row.pw_hash), is_admin: !!row.is_admin });
 }
 }
 
@@ -514,6 +515,23 @@ const r = await env.DB.prepare(
 return json({ students: (r && r.results) || []});
 }
 
+// API: 注册学员名单（含管理员标记，管理员）
+if (pathname === "/api/students/registered" && request.method === "GET") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403 });
+const r = await env.DB.prepare("SELECT username, is_admin, created_at FROM students ORDER BY created_at DESC LIMIT 500").all();
+return json({ students: (r && r.results) || [] });
+}
+
+// API: 设置/取消学员管理员（管理员）
+if (pathname === "/api/student/set-admin" && request.method === "POST") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403 });
+const b = await request.json().catch(() => ({}));
+const username = ((b.username || "") + "").trim();
+if (!username) return json({ error: "缺少姓名" }, 400);
+await env.DB.prepare("UPDATE students SET is_admin = ? WHERE username = ?").bind(b.is_admin ? 1 : 0, username).run();
+return json({ success: true });
+}
+
 // API: 删除成绩（管理员）：传 rowid 只删单条，不传 rowid 删除该学员全部成绩
 if (pathname === "/api/score/delete" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
@@ -532,7 +550,21 @@ return json({ success: true, deleted: del});
 
 // API: 取某课完整题目（含答案，管理员，教师版用）
 if (pathname === "/api/answers" && request.method === "GET") {
-if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
+let allowed = authed;
+if (!allowed) {
+const su = (searchParams.get("username") || "").trim();
+const stok = searchParams.get("token") || "";
+if (su && stok) {
+try {
+const srow = await env.DB.prepare("SELECT pw_hash, is_admin FROM students WHERE username = ?").bind(su).first();
+if (srow && srow.is_admin) {
+const expTok = await sha256hex("tq-student-token:" + su + ":" + srow.pw_hash);
+if (stok === expTok) allowed = true;
+}
+} catch (e) {}
+}
+}
+if (!allowed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
 const cid = searchParams.get("course_id") || "";
 const r = await env.DB.prepare("SELECT quizzes_json FROM courses WHERE id =?").bind(cid).all();
 const rows = (r && r.results) || [];
@@ -779,6 +811,13 @@ function renderHTML(results, categories, opts) {
             <div id="scoreEmpty" class="hidden text-slate-400 text-sm mt-3">暂无该学员的成绩记录</div>
             <button id="delAllScoresBtn" onclick="deleteAllScores()" class="hidden mt-3 text-xs font-bold text-red-500 border border-red-200 rounded-2xl px-4 py-2">🗑 删除该学员全部成绩</button>
             <button id="viewAllWrongsBtn" onclick="adminViewAllWrongs()" class="hidden mt-3 ml-2 text-xs font-bold text-violet-600 border border-violet-200 rounded-2xl px-4 py-2">📝 查看该学员错题</button>
+        </div>
+
+        <!-- 学员管理员 -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm mb-6">
+            <h3 class="font-bold text-slate-800 mb-2">👑 学员管理员</h3>
+            <p class="text-xs text-slate-400 mb-3">设为管理员的学员，在学员端打开课件可直接查看答案（无需答题），按钮在课件顶部右侧。</p>
+            <ul id="adminStudentList" class="space-y-2"><li class="text-sm text-slate-400">加载中…</li></ul>
         </div>
 
         <!-- 数据管理 -->
@@ -1363,7 +1402,7 @@ function renderHTML(results, categories, opts) {
             try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
             if (!nm) { login(); return; }
             if (confirm("退出当前学员（" + nm + "）？\\n该姓名下的错题本与本地学习记录会保留，下次登记同一姓名可继续查看。")) {
-                try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); } catch (e) {}
+                try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); localStorage.removeItem(STUDENT_ADMIN_KEY); } catch (e) {}
                 location.reload();
             }
         }
@@ -1376,6 +1415,10 @@ function renderHTML(results, categories, opts) {
             return false;
         }
         var STUDENT_TOKEN_KEY = "TQ_STUDENT_TOKEN_V1";
+        var STUDENT_ADMIN_KEY = "TQ_STUDENT_ADMIN_V1";
+        function studentToken() { try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch (e) { return ""; } }
+        function studentIsAdmin() { try { return !!((localStorage.getItem(USER_KEY) || "").trim()) && localStorage.getItem(STUDENT_ADMIN_KEY) === "1"; } catch (e) { return false; } }
+        function canViewAnswers() { return BOOT.isAdmin || studentIsAdmin(); }
         /* 学员登录/注册弹窗（姓名+密码）。pendingTab: 登录后要去的题签；reloadAfter: 登录后刷新页面 */
         function openAuthModal(mode, pendingTab, reloadAfter) {
             window._pendingQTab = (pendingTab === undefined || pendingTab === null) ? null : pendingTab;
@@ -1438,7 +1481,7 @@ function renderHTML(results, categories, opts) {
                 var r = await fetch('/api/student/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name, password: pw, mode: mode }) });
                 var j = await r.json();
                 if (!j.success) { showAuthErr(j.error || '操作失败，请重试'); return; }
-                try { localStorage.setItem(USER_KEY, name); localStorage.setItem(STUDENT_TOKEN_KEY, j.token || ""); } catch (e) {}
+                try { localStorage.setItem(USER_KEY, name); localStorage.setItem(STUDENT_TOKEN_KEY, j.token || ""); localStorage.setItem(STUDENT_ADMIN_KEY, j.is_admin ? "1" : "0"); } catch (e) {}
                 document.getElementById('authPw').value = '';
                 document.getElementById('authPw2').value = '';
                 document.getElementById('authModal').style.display = 'none';
@@ -1464,7 +1507,7 @@ function renderHTML(results, categories, opts) {
             return '<button onclick="openShareAuth()" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-xl font-bold">登录 / 注册</button>';
         }
         function shareRename() {
-            try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); } catch(e) {}
+            try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); localStorage.removeItem(STUDENT_ADMIN_KEY); } catch(e) {}
             document.getElementById("shareNameBox").innerHTML = shareNameHTML();
             var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = "设置姓名";
         }
@@ -1858,7 +1901,7 @@ function renderHTML(results, categories, opts) {
                 + '<span class="shrink-0">在线互动课件</span></div>'
                 + '<h1 class="text-xl md:text-2xl font-bold text-indigo-50 leading-snug">' + esc(item.title) + '</h1>'
                 + '<p class="text-indigo-300/80 text-xs mt-1">' + subTitle + '</p></div>'
-                + (BOOT.isAdmin ? teacherTopBtn : '<button onclick="openWrongBook(activeLessonId)" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-indigo-900/80 hover:bg-indigo-800 text-indigo-100 border border-indigo-700/50 transition">📝 错题本</button>')
+                + (canViewAnswers() ? teacherTopBtn : '<button onclick="openWrongBook(activeLessonId)" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-indigo-900/80 hover:bg-indigo-800 text-indigo-100 border border-indigo-700/50 transition">📝 错题本</button>')
                 + '</div>'
                 + '<div id="progress-bar" class="text-xs mt-2 text-indigo-200 font-medium">进度：已填写 0 / ' + totalUnits + '</div>'
                 + '<nav class="flex gap-1 overflow-x-auto mt-1.5">' + tabBtns + '</nav>'
@@ -1943,7 +1986,7 @@ function renderHTML(results, categories, opts) {
                 + '<div class="flex flex-wrap justify-center gap-3">'
                 + '<button id="qr-action" onclick="studySubmitBtn()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">核对答案</button>'
                 + '<button onclick="toggleStudyEdit();switchQTab(\\'overview\\')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs font-bold transition">↺ 重新作答</button>'
-                + (BOOT.isAdmin ? '<button onclick="teacherUnlock()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">📖 查看全套参考答案</button>' : '')
+                + (canViewAnswers() ? '<button onclick="teacherUnlock()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">📖 查看全套参考答案</button>' : '')
                 + '</div></div></section>';
             var bodyHtml = '<div id="quizContainer" class="space-y-6">' + overviewSec + typeSecs + reportSec + '</div>'
                 + '<div class="sticky bottom-0 z-40 mt-6 -mx-3 md:-mx-6 px-3 md:px-6 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">'
@@ -2101,6 +2144,36 @@ function renderHTML(results, categories, opts) {
             } catch (e) {
                 sel.innerHTML = '<option value="">名单加载失败，点刷新重试</option>';
             }
+        }
+        async function loadAdminStudents() {
+            var ul = document.getElementById('adminStudentList');
+            if (!ul) return;
+            try {
+                var r = await fetch('/api/students/registered');
+                if (r.status === 403) { ul.innerHTML = '<li class="text-sm text-slate-400">请先登录管理端</li>'; return; }
+                var j = await r.json();
+                var st = j.students || [];
+                if (!st.length) { ul.innerHTML = '<li class="text-sm text-slate-400">暂无注册学员</li>'; return; }
+                ul.innerHTML = st.map(function(s) {
+                    var admin = !!s.is_admin;
+                    return '<li class="flex items-center justify-between gap-2 border border-slate-100 rounded-2xl px-4 py-2.5">'
+                        + '<span class="text-sm font-bold text-slate-700">' + esc(s.username) + (admin ? ' <span class="text-[10px] bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">👑 管理员</span>' : '') + '</span>'
+                        + '<button data-un="' + esc(s.username) + '" data-to="' + (admin ? '0' : '1') + '" onclick="toggleStudentAdmin(this.dataset.un, this.dataset.to)" class="text-xs font-bold px-3 py-1.5 rounded-xl ' + (admin ? 'bg-slate-100 text-slate-500' : 'bg-violet-600 text-white') + '">'
+                        + (admin ? '取消管理员' : '设为管理员') + '</button></li>';
+                }).join('');
+            } catch (e) {
+                ul.innerHTML = '<li class="text-sm text-slate-400">加载失败，点刷新重试</li>';
+            }
+        }
+        async function toggleStudentAdmin(username, to) {
+            if (!confirm((to ? '设「' : '取消「') + username + '」为学员管理员？')) return;
+            try {
+                var r = await fetch('/api/student/set-admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, is_admin: !!to }) });
+                if (r.status === 403) { alert('请先登录管理端'); return; }
+                var j = await r.json();
+                if (j.success) loadAdminStudents();
+                else alert('设置失败：' + (j.error || '未知错误'));
+            } catch (e) { alert('设置失败，请稍后重试'); }
         }
         function pickStudent(v) {
             if (!v) return;
@@ -2827,14 +2900,18 @@ function renderHTML(results, categories, opts) {
                 document.getElementById('teacherBtn').innerText = '🔑 教师版查看答案';
                 return;
             }
-            var r = await fetch('/api/answers?course_id=' + encodeURIComponent(activeLessonId || ""));
+            var ansUrl = '/api/answers?course_id=' + encodeURIComponent(activeLessonId || "");
+            var isStuAdmin = !BOOT.isAdmin && studentIsAdmin();
+            if (isStuAdmin) ansUrl += '&username=' + encodeURIComponent(progName()) + '&token=' + encodeURIComponent(studentToken());
+            var r = await fetch(ansUrl);
             if (r.status === 403) {
+                if (isStuAdmin) { alert("登录已过期，请重新登录"); return; }
                 var p = prompt("请输入管理密码进入教师版：");
                 if (!p) return;
                 var v = await fetch('/api/verify', { method: 'POST', body: JSON.stringify({ password: p }) });
                 var j = await v.json();
                 if (!j.ok) { alert("密码错误"); return; }
-                r = await fetch('/api/answers?course_id=' + encodeURIComponent(activeLessonId || ""));
+                r = await fetch(ansUrl);
             }
             if (!r.ok) { alert("获取答案失败"); return; }
             var qs = (await r.json()).quizzes || [];
@@ -3233,6 +3310,7 @@ function renderHTML(results, categories, opts) {
         syncNameBtn();
         var sqn = document.getElementById('scoreQueryName'); if (sqn && sn) sqn.value = sn;
         if (document.getElementById('studentSelect')) loadStudents();
+        if (document.getElementById('adminStudentList')) loadAdminStudents();
     </script>
 
     <!-- 字号调节：全站可见 -->
