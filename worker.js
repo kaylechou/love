@@ -522,6 +522,19 @@ const r = await env.DB.prepare("SELECT username, is_admin, created_at FROM stude
 return json({ students: (r && r.results) || [] });
 }
 
+// API: 学员自查管理员身份（token 鉴权）
+if (pathname === "/api/student/me" && request.method === "GET") {
+const su = (searchParams.get("username") || "").trim();
+const stok = searchParams.get("token") || "";
+if (!su || !stok) return json({ is_admin: false });
+try {
+const srow = await env.DB.prepare("SELECT pw_hash, is_admin FROM students WHERE username = ?").bind(su).first();
+if (!srow) return json({ is_admin: false });
+const expTok = await sha256hex("tq-student-token:" + su + ":" + srow.pw_hash);
+return json({ is_admin: stok === expTok && !!srow.is_admin });
+} catch (e) { return json({ is_admin: false }); }
+}
+
 // API: 设置/取消学员管理员（管理员）
 if (pathname === "/api/student/set-admin" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403 });
@@ -1419,6 +1432,15 @@ function renderHTML(results, categories, opts) {
         function studentToken() { try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch (e) { return ""; } }
         function studentIsAdmin() { try { return !!((localStorage.getItem(USER_KEY) || "").trim()) && localStorage.getItem(STUDENT_ADMIN_KEY) === "1"; } catch (e) { return false; } }
         function canViewAnswers() { return BOOT.isAdmin || studentIsAdmin(); }
+        async function refreshStudentAdmin() {
+            if (BOOT.isAdmin || !progName() || !studentToken()) return;
+            try {
+                var r = await fetch("/api/student/me?username=" + encodeURIComponent(progName()) + "&token=" + encodeURIComponent(studentToken()));
+                if (!r.ok) return;
+                var j = await r.json();
+                try { localStorage.setItem(STUDENT_ADMIN_KEY, j.is_admin ? "1" : "0"); } catch (e) {}
+            } catch (e) {}
+        }
         /* 学员登录/注册弹窗（姓名+密码）。pendingTab: 登录后要去的题签；reloadAfter: 登录后刷新页面 */
         function openAuthModal(mode, pendingTab, reloadAfter) {
             window._pendingQTab = (pendingTab === undefined || pendingTab === null) ? null : pendingTab;
@@ -1839,6 +1861,7 @@ function renderHTML(results, categories, opts) {
             activeCategory = item.category || "";
             activeSubcategory = item.subcategory || "";
             teacherMode = false;
+            await refreshStudentAdmin();
             var prog = getMyProg();
             if (!prog[id] || !prog[id].completed) { prog[id] = { started: true, completed: false }; setMyProg(prog); }
             activeQuizzes = JSON.parse(item.quizzes_json || "[]");
