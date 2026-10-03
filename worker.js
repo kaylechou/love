@@ -907,6 +907,31 @@ function renderHTML(results, categories, opts) {
         /* 学习进度（存浏览器本地） */
         function getProg() { try { return JSON.parse(localStorage.getItem(PROG_KEY) || "{}"); } catch(e) { return {}; } }
         function setProg(p) { localStorage.setItem(PROG_KEY, JSON.stringify(p)); }
+        /* 学习进度按姓名隔离；未登录视为空；老格式（顶层为课程id）自动迁移到当前姓名下 */
+        function progName() { try { return (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) { return ""; } }
+        function getMyProg() {
+            var nm = progName();
+            var all = getProg();
+            if (!nm) return {};
+            if (all[nm] && typeof all[nm] === "object" && !("started" in all[nm]) && !("completed" in all[nm])) return all[nm];
+            var mine = {}, rest = {}, moved = false, k, v;
+            for (k in all) {
+                if (!all.hasOwnProperty(k)) continue;
+                if (k === nm) { rest[k] = all[k]; continue; }
+                v = all[k];
+                if (v && typeof v === "object" && ("started" in v || "completed" in v)) { mine[k] = v; moved = true; }
+                else rest[k] = v;
+            }
+            if (moved) { rest[nm] = mine; setProg(rest); return mine; }
+            return {};
+        }
+        function setMyProg(p) {
+            var nm = progName();
+            if (!nm) return;
+            var all = getProg();
+            all[nm] = p;
+            setProg(all);
+        }
 
         /* 错题本（按姓名存浏览器本地） */
         function getWrong() { try { return JSON.parse(localStorage.getItem(WRONG_KEY) || "{}"); } catch(e) { return {}; } }
@@ -1022,7 +1047,7 @@ function renderHTML(results, categories, opts) {
 
         /* 状态徽标 */
         function statusBadge(id) {
-            var p = getProg()[id] || {};
+            var p = getMyProg()[id] || {};
             if (p.completed)
                 return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 flex items-center justify-center text-[9px]">✓</span>已完成</span>';
             if (p.started)
@@ -1128,7 +1153,7 @@ function renderHTML(results, categories, opts) {
         /* 统计卡片（本地进度） */
         function updateStats() {
             if (!document.getElementById('statTotal')) return;
-            var prog = getProg();
+            var prog = getMyProg();
             var done = 0, doing = 0, sum = 0, n = 0;
             allData.forEach(function(c) {
                 var p = prog[c.id];
@@ -1162,7 +1187,7 @@ function renderHTML(results, categories, opts) {
                     }
                 });
                 var done = Object.keys(doneIds).length;
-                var prog = getProg(), doing = 0;
+                var prog = getMyProg(), doing = 0;
                 allData.forEach(function(c) {
                     var p = prog[c.id];
                     if (p && p.started && !p.completed && !doneIds[c.id]) doing++;
@@ -1230,7 +1255,7 @@ function renderHTML(results, categories, opts) {
             if (!nm) { login(); return; }
             if (confirm("退出当前学员（" + nm + "）？\\n该姓名下的错题本与本地学习记录会保留，下次登记同一姓名可继续查看。")) {
                 try { localStorage.removeItem(USER_KEY); } catch (e) {}
-                syncNameBtn();
+                location.reload();
             }
         }
         /* 答题前必须输入姓名：无姓名时弹窗阻断，登记后继续 */
@@ -1261,6 +1286,7 @@ function renderHTML(results, categories, opts) {
                     if (!v) { alert("请输入姓名"); return; }
                     try { localStorage.setItem(USER_KEY, v); } catch (e) {}
                     syncNameBtn();
+                    if (activeLessonId) { var _pg = getMyProg(); if (!_pg[activeLessonId] || !_pg[activeLessonId].completed) { _pg[activeLessonId] = { started: true, completed: false }; setMyProg(_pg); } }
                     m.style.display = 'none';
                     var t = window._pendingQTab; window._pendingQTab = null;
                     if (t) switchQTab(t);
@@ -1525,9 +1551,9 @@ function renderHTML(results, categories, opts) {
             });
             if (wrongs.length) saveWrongs(wrongs);
             if (activeLessonId) {
-                var prog = getProg();
+                var prog = getMyProg();
                 prog[activeLessonId] = { started: true, completed: true, score: res.score, total: res.gradable };
-                setProg(prog);
+                setMyProg(prog);
             }
             var btn = document.getElementById('studySubmit'), hint = document.getElementById('studyHint');
             var p = studyProgress();
@@ -1612,8 +1638,8 @@ function renderHTML(results, categories, opts) {
             activeCategory = item.category || "";
             activeSubcategory = item.subcategory || "";
             teacherMode = false;
-            var prog = getProg();
-            if (!prog[id] || !prog[id].completed) { prog[id] = { started: true, completed: false }; setProg(prog); }
+            var prog = getMyProg();
+            if (!prog[id] || !prog[id].completed) { prog[id] = { started: true, completed: false }; setMyProg(prog); }
             activeQuizzes = JSON.parse(item.quizzes_json || "[]");
 
             var videoHtml = "";
