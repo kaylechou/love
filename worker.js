@@ -1793,12 +1793,12 @@ function renderHTML(results, categories, opts) {
             /* ===== 分 Tab 互动课件：导读 / 按题型分页 / 成绩报告（参考互动课件 UI） ===== */
             lastGradeRes = null;
             var typeTabs = [
+                { t: 'verse', label: '经文诵读', icon: '📖' },
                 { t: 'fill', label: '填空题', icon: '✏️' },
                 { t: 'single', label: '单项选择题', icon: '🔘' },
                 { t: 'multiple', label: '多项选择题', icon: '☑️' },
                 { t: 'judge', label: '判断题', icon: '⚖️' },
-                { t: 'essay', label: '问答与思辨', icon: '💬' },
-                { t: 'verse', label: '经文诵读', icon: '📖' }
+                { t: 'essay', label: '问答与思辨', icon: '💬' }
             ].filter(function (mt) { return activeQuizzes.some(function (q) { return q.type === mt.t; }); });
             var CN_NUM = ['一', '二', '三', '四', '五', '六'];
             typeTabs.forEach(function (mt, ti) {
@@ -2212,7 +2212,7 @@ function renderHTML(results, categories, opts) {
                 }).join('') + '</section>';
             }
             if (c.instructions) body += '<section class="card"><h2>📝 答题说明</h2><div class="md">' + expMd(c.instructions) + '</div></section>';
-            var order = ['fill', 'single', 'multiple', 'judge', 'essay', 'verse'], groups = {};
+            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay'], groups = {};
             qs.forEach(function(q) { var t = q.type || 'fill'; (groups[t] = groups[t] || []).push(q); });
             var hasQ = false;
             order.forEach(function(t) {
@@ -2372,7 +2372,7 @@ function renderHTML(results, categories, opts) {
             var qs = [];
             try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
             if (!qs.length) return '';
-            var order = ['fill', 'single', 'multiple', 'judge', 'essay', 'verse'];
+            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay'];
             var groups = {};
             qs.forEach(function(q) { var t = q.type || 'fill'; (groups[t] = groups[t] || []).push(q); });
             var html = '<div class="card answer-key"><h2>📋 参考答案</h2>';
