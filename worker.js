@@ -146,6 +146,9 @@ await db.prepare("CREATE TABLE IF NOT EXISTS progress (username TEXT, course_id 
 try { await db.prepare("ALTER TABLE progress ADD COLUMN submitted_at TEXT").run();} catch (e) {}
 try { await db.prepare("ALTER TABLE progress ADD COLUMN course_title TEXT").run();} catch (e) {}
 await db.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)").run();
+await db.prepare("CREATE TABLE IF NOT EXISTS students (username TEXT PRIMARY KEY, pw_hash TEXT, created_at TEXT)").run();
+await db.prepare("CREATE TABLE IF NOT EXISTS wrongs (username TEXT, course_id TEXT, course_title TEXT, series TEXT, sub TEXT, qtype TEXT, qnum TEXT, question TEXT, user_answer TEXT, correct_answer TEXT, submitted_at TEXT)").run();
+await db.prepare("CREATE INDEX IF NOT EXISTS idx_wrongs_user ON wrongs(username, course_id)").run();
 /* 系列/子栏目：parent 为空=系列，非空=该系列下的子栏目；(parent, name) 联合主键 */
 await db.prepare("CREATE TABLE IF NOT EXISTS categories (parent TEXT DEFAULT '', name TEXT, description TEXT DEFAULT '', created_at TEXT DEFAULT '', PRIMARY KEY (parent, name))").run();
 try { await db.prepare("ALTER TABLE categories ADD COLUMN parent TEXT DEFAULT ''").run();} catch (e) {}
@@ -376,6 +379,14 @@ return json({ success: true});
 if (pathname === "/api/submit" && request.method === "POST") {
 const b = await request.json();
 const username = ((b.username || "匿名学员") + "").trim() || "匿名学员";
+/* 已注册学员提交成绩需校验登录 token，防止冒名 */
+try {
+const srow = await env.DB.prepare("SELECT pw_hash FROM students WHERE username = ?").bind(username).first();
+if (srow && srow.pw_hash) {
+const expected = await sha256hex("tq-student-token:" + username + ":" + srow.pw_hash);
+if ((b.token || "") !== expected) return json({ error: "登录已过期，请重新登录" }, 401);
+}
+} catch (e) {}
 const courseId = b.course_id || "";
 const now = new Date().toISOString();
 if (Array.isArray(b.answers) && courseId) {
@@ -407,6 +418,69 @@ const title = b.courseTitle || "";
 await env.DB.prepare("INSERT INTO progress (username, course_id, course_title, score, submitted_at) VALUES (?,?,?,?,?)")
 .bind(username, courseId, title, b.score || "", now).run();
 return json({ success: true});
+}
+
+// API: 学员注册 / 登录（密码校验，通过后下发 token）
+if (pathname === "/api/student/auth" && request.method === "POST") {
+const b = await request.json();
+const username = ((b.username || "") + "").trim();
+const password = (b.password || "") + "";
+const mode = b.mode === "register" ? "register" : "login";
+if (!username) return json({ error: "请输入姓名" }, 400);
+if (password.length < 4) return json({ error: "密码至少4位" }, 400);
+const hash = await sha256hex("tq-student:" + username + ":" + password);
+const row = await env.DB.prepare("SELECT pw_hash FROM students WHERE username = ?").bind(username).first();
+const tokenFor = async (h) => await sha256hex("tq-student-token:" + username + ":" + h);
+if (mode === "register") {
+if (row) return json({ error: "该姓名已注册，请直接登录" }, 409);
+const now = new Date().toISOString();
+await env.DB.prepare("INSERT INTO students (username, pw_hash, created_at) VALUES (?, ?, ?)").bind(username, hash, now).run();
+return json({ success: true, isNew: true, token: await tokenFor(hash) });
+} else {
+if (!row) return json({ error: "该姓名尚未注册，请先注册" }, 404);
+if (row.pw_hash !== hash) return json({ error: "密码错误，请重试" }, 401);
+return json({ success: true, token: await tokenFor(row.pw_hash) });
+}
+}
+
+// API: 学员上传错题（按课程整体替换，供教师管理端查看）
+if (pathname === "/api/wrongs/save" && request.method === "POST") {
+const b = await request.json();
+const username = ((b.username || "") + "").trim();
+if (!username || username === "匿名学员") return json({ error: "缺少姓名" }, 400);
+try {
+const srow = await env.DB.prepare("SELECT pw_hash FROM students WHERE username = ?").bind(username).first();
+if (srow && srow.pw_hash) {
+const expected = await sha256hex("tq-student-token:" + username + ":" + srow.pw_hash);
+if ((b.token || "") !== expected) return json({ error: "登录已过期，请重新登录" }, 401);
+}
+} catch (e) {}
+const courseId = b.course_id || "";
+const title = b.courseTitle || "";
+const items = Array.isArray(b.wrongs) ? b.wrongs.slice(0, 100) : [];
+const now = new Date().toISOString();
+if (courseId || title) {
+await env.DB.prepare("DELETE FROM wrongs WHERE username=? AND (course_id=? OR course_title=?)").bind(username, courseId, title).run();
+}
+for (const it of items) {
+await env.DB.prepare("INSERT INTO wrongs (username, course_id, course_title, series, sub, qtype, qnum, question, user_answer, correct_answer, submitted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+.bind(username, courseId, title, it.series || "", it.sub || "", it.type || "", String(it.n || ""), it.q || "", it.u || "", it.expected || "", now).run();
+}
+return json({ success: true, count: items.length });
+}
+
+// API: 按姓名查错题（管理员）
+if (pathname === "/api/wrongs" && request.method === "GET") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403 });
+const username = (searchParams.get("username") || "").trim();
+const courseId = (searchParams.get("course_id") || "").trim();
+if (!username) return json({ wrongs: [] });
+let wsql = "SELECT course_id, course_title, series, sub, qtype, qnum, question, user_answer, correct_answer, submitted_at FROM wrongs WHERE username = ?";
+const wargs = [username];
+if (courseId) { wsql += " AND course_id = ?"; wargs.push(courseId); }
+wsql += " ORDER BY submitted_at DESC LIMIT 200";
+const wr = await env.DB.prepare(wsql).bind(...wargs).all();
+return json({ wrongs: (wr && wr.results) || [] });
 }
 
 // API: 按姓名查成绩
@@ -701,6 +775,7 @@ function renderHTML(results, categories, opts) {
             <ul id="scoreList" class="space-y-3 mt-3"></ul>
             <div id="scoreEmpty" class="hidden text-slate-400 text-sm mt-3">暂无该学员的成绩记录</div>
             <button id="delAllScoresBtn" onclick="deleteAllScores()" class="hidden mt-3 text-xs font-bold text-red-500 border border-red-200 rounded-2xl px-4 py-2">🗑 删除该学员全部成绩</button>
+            <button id="viewAllWrongsBtn" onclick="adminViewAllWrongs()" class="hidden mt-3 ml-2 text-xs font-bold text-violet-600 border border-violet-200 rounded-2xl px-4 py-2">📝 查看该学员错题</button>
         </div>
 
         <!-- 数据管理 -->
@@ -1241,7 +1316,7 @@ function renderHTML(results, categories, opts) {
         }
 
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
-        function login() { var n = prompt("输入姓名："); if (n) { localStorage.setItem(USER_KEY, n); location.reload(); } }
+        function login() { openAuthModal('login', null, true); }
         /* 姓名按钮：未登记则登录，已登记则确认后登出（本地错题本按姓名保留） */
         function syncNameBtn() {
             var nm = "";
@@ -1254,7 +1329,7 @@ function renderHTML(results, categories, opts) {
             try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
             if (!nm) { login(); return; }
             if (confirm("退出当前学员（" + nm + "）？\\n该姓名下的错题本与本地学习记录会保留，下次登记同一姓名可继续查看。")) {
-                try { localStorage.removeItem(USER_KEY); } catch (e) {}
+                try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); } catch (e) {}
                 location.reload();
             }
         }
@@ -1263,58 +1338,99 @@ function renderHTML(results, categories, opts) {
             var nm = "";
             try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
             if (nm) return true;
-            openNameGate(tab);
+            openAuthModal('login', tab, false);
             return false;
         }
-        function openNameGate(tab) {
-            window._pendingQTab = tab;
-            var m = document.getElementById('nameGateModal');
+        var STUDENT_TOKEN_KEY = "TQ_STUDENT_TOKEN_V1";
+        /* 学员登录/注册弹窗（姓名+密码）。pendingTab: 登录后要去的题签；reloadAfter: 登录后刷新页面 */
+        function openAuthModal(mode, pendingTab, reloadAfter) {
+            window._pendingQTab = (pendingTab === undefined || pendingTab === null) ? null : pendingTab;
+            window._authReload = !!reloadAfter;
+            var m = document.getElementById('authModal');
             if (!m) {
                 m = document.createElement('div');
-                m.id = 'nameGateModal';
-                m.style.cssText = 'position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:16px;';
+                m.id = 'authModal';
+                m.style.cssText = 'position:fixed;inset:0;z-index:130;display:none;align-items:center;justify-content:center;padding:16px;';
+                var inp = 'style="width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box"';
                 m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.6)"></div>'
                     + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:340px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
-                    + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:17px">👤 请先输入姓名</h3>'
-                    + '<p style="font-size:12px;color:#94a3b8;margin:0 0 14px">答题前需要登记姓名，成绩与错题本将记在此名下。</p>'
-                    + '<input id="nameGateInput" placeholder="输入学员姓名" style="width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box">'
-                    + '<button id="nameGateOk" style="width:100%;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700">确定，开始答题</button>'
+                    + '<h3 id="authTitle" style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:17px">👤 学员登录</h3>'
+                    + '<p id="authDesc" style="font-size:12px;color:#94a3b8;margin:0 0 14px">请输入姓名与密码，成绩与错题本将记在此名下。</p>'
+                    + '<input id="authName" placeholder="学员姓名" ' + inp + '>'
+                    + '<input id="authPw" type="password" placeholder="密码（至少4位）" ' + inp + '>'
+                    + '<input id="authPw2" type="password" placeholder="确认密码" ' + inp + ' style="display:none;width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box">'
+                    + '<div id="authErr" style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px"></div>'
+                    + '<button id="authOk" onclick="submitAuth()" style="width:100%;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;margin-bottom:8px">登 录</button>'
+                    + '<button id="authSwitch" onclick="toggleAuthMode()" style="width:100%;background:none;border:none;color:#4f46e5;font-size:12px;padding:6px">首次使用？点此注册</button>'
                     + '</div>';
                 document.body.appendChild(m);
-                document.getElementById('nameGateOk').onclick = function() {
-                    var v = (document.getElementById('nameGateInput').value || "").trim();
-                    if (!v) { alert("请输入姓名"); return; }
-                    try { localStorage.setItem(USER_KEY, v); } catch (e) {}
-                    syncNameBtn();
-                    if (activeLessonId) { var _pg = getMyProg(); if (!_pg[activeLessonId] || !_pg[activeLessonId].completed) { _pg[activeLessonId] = { started: true, completed: false }; setMyProg(_pg); } }
-                    m.style.display = 'none';
-                    var t = window._pendingQTab; window._pendingQTab = null;
-                    if (t) switchQTab(t);
-                };
+                ['authName','authPw','authPw2'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') submitAuth(); });
+                });
             }
-            document.getElementById('nameGateInput').value = '';
+            setAuthMode(mode === 'register' ? 'register' : 'login');
+            var nm = document.getElementById('authName');
+            if (nm && !nm.value) { try { nm.value = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {} }
             m.style.display = 'flex';
-            setTimeout(function() { var i = document.getElementById('nameGateInput'); if (i) i.focus(); }, 60);
+            setTimeout(function() { var el = document.getElementById(window._authMode === 'login' ? 'authPw' : 'authName'); if (el) el.focus(); }, 60);
         }
+        function setAuthMode(mode) {
+            window._authMode = mode;
+            var isReg = (mode === 'register');
+            document.getElementById('authTitle').innerText = isReg ? '👤 学员注册' : '👤 学员登录';
+            document.getElementById('authDesc').innerText = isReg ? '首次使用请设置登录密码，请牢记。' : '请输入姓名与密码，成绩与错题本将记在此名下。';
+            document.getElementById('authOk').innerText = isReg ? '注 册' : '登 录';
+            document.getElementById('authSwitch').innerText = isReg ? '已有账号？点此登录' : '首次使用？点此注册';
+            document.getElementById('authPw2').style.display = isReg ? '' : 'none';
+            hideAuthErr();
+        }
+        function toggleAuthMode() { setAuthMode(window._authMode === 'register' ? 'login' : 'register'); }
+        function showAuthErr(msg) { var e = document.getElementById('authErr'); if (e) { e.innerText = msg; e.style.display = ''; } }
+        function hideAuthErr() { var e = document.getElementById('authErr'); if (e) e.style.display = 'none'; }
+        async function submitAuth() {
+            var name = (document.getElementById('authName').value || "").trim();
+            var pw = document.getElementById('authPw').value || "";
+            var mode = window._authMode || 'login';
+            if (!name) { showAuthErr('请输入姓名'); return; }
+            if (pw.length < 4) { showAuthErr('密码至少4位'); return; }
+            if (mode === 'register') {
+                var pw2 = document.getElementById('authPw2').value || "";
+                if (pw !== pw2) { showAuthErr('两次输入的密码不一致'); return; }
+            }
+            var btn = document.getElementById('authOk');
+            btn.disabled = true; btn.innerText = '处理中…';
+            try {
+                var r = await fetch('/api/student/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name, password: pw, mode: mode }) });
+                var j = await r.json();
+                if (!j.success) { showAuthErr(j.error || '操作失败，请重试'); return; }
+                try { localStorage.setItem(USER_KEY, name); localStorage.setItem(STUDENT_TOKEN_KEY, j.token || ""); } catch (e) {}
+                document.getElementById('authPw').value = '';
+                document.getElementById('authPw2').value = '';
+                document.getElementById('authModal').style.display = 'none';
+                if (window._authReload) { window._authReload = false; location.reload(); return; }
+                syncNameBtn();
+                var snb = document.getElementById("shareNameBox"); if (snb) snb.innerHTML = shareNameHTML();
+                if (activeLessonId) { var _pg = getMyProg(); if (!_pg[activeLessonId] || !_pg[activeLessonId].completed) { _pg[activeLessonId] = { started: true, completed: false }; setMyProg(_pg); } }
+                var t = window._pendingQTab; window._pendingQTab = null;
+                if (t) switchQTab(t);
+            } catch (e) {
+                showAuthErr('网络错误，请重试');
+            } finally {
+                btn.disabled = false;
+                setAuthMode(window._authMode || 'login');
+            }
+        }
+        function openShareAuth() { openAuthModal('login', null, false); }
         /* 分享页姓名条：与主站共用同一本地姓名，成绩自动记在其名下 */
         function shareNameHTML() {
             var sn0 = (localStorage.getItem(USER_KEY) || "").trim();
             if (sn0) return '<span class="text-slate-600">学员：<b class="text-slate-800">' + esc(sn0) + '</b></span>'
                 + '<button onclick="shareRename()" class="text-xs text-violet-600 underline">更换</button>';
-            return '<input id="shareNameInput" placeholder="输入学员姓名（成绩将记在此名下）" class="border border-violet-200 rounded-xl px-3 py-1.5 text-sm w-52 outline-none focus:border-violet-400 bg-white">'
-                + '<button onclick="shareSetName()" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-xl font-bold">确定</button>';
-        }
-        function shareSetName() {
-            var el = document.getElementById("shareNameInput");
-            var v = ((el && el.value) || "").trim();
-            if (!v) { alert("请输入姓名"); return; }
-            try { localStorage.setItem(USER_KEY, v); } catch(e) {}
-            document.getElementById("shareNameBox").innerHTML = shareNameHTML();
-            var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = v;
-            if (!BOOT.isAdmin) refreshStats();
+            return '<button onclick="openShareAuth()" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-xl font-bold">登录 / 注册</button>';
         }
         function shareRename() {
-            try { localStorage.removeItem(USER_KEY); } catch(e) {}
+            try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); } catch(e) {}
             document.getElementById("shareNameBox").innerHTML = shareNameHTML();
             var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = "设置姓名";
         }
@@ -1427,7 +1543,7 @@ function renderHTML(results, categories, opts) {
                 var sni = document.getElementById("shareNameInput"); if (sni) sni.focus();
                 return;
             }
-            if (!(localStorage.getItem(USER_KEY) || "").trim()) { openNameGate(null); return; }
+            if (!(localStorage.getItem(USER_KEY) || "").trim()) { openAuthModal('login', null, false); return; }
             var answers = [], ok = true;
             for (var v = 0; v < activeQuizzes.length; v++) {
                 var qv = activeQuizzes[v], u = '';
@@ -1463,7 +1579,7 @@ function renderHTML(results, categories, opts) {
             try {
                 var r = await fetch('/api/submit', {
                     method: 'POST',
-                    body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, answers: answers })
+                    body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, answers: answers, token: (function(){ try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch(e) { return ""; } })() })
                 });
                 var res = await r.json();
                 if (!r.ok || !res.details) throw 0;
@@ -1550,6 +1666,14 @@ function renderHTML(results, categories, opts) {
                 }
             });
             if (wrongs.length) saveWrongs(wrongs);
+            /* 错题同步到服务端，教师可在管理端查看（失败不影响本地） */
+            try {
+                if (name && name !== "匿名学员") {
+                    fetch('/api/wrongs/save', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, wrongs: wrongs,
+                            token: (function(){ try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch(e) { return ""; } })() }) });
+                }
+            } catch (e) {}
             if (activeLessonId) {
                 var prog = getMyProg();
                 prog[activeLessonId] = { started: true, completed: true, score: res.score, total: res.gradable };
@@ -1825,13 +1949,16 @@ function renderHTML(results, categories, opts) {
                 var j = await r.json();
                 var rows = j.scores || [];
                 var delAllBtn = document.getElementById('delAllScoresBtn');
+                var viewWrongsBtn = document.getElementById('viewAllWrongsBtn');
                 if (!rows.length) {
                     list.innerHTML = '';
                     empty.classList.remove('hidden');
                     if (delAllBtn) delAllBtn.classList.add('hidden');
+                    if (viewWrongsBtn) viewWrongsBtn.classList.add('hidden');
                     return;
                 }
                 if (delAllBtn) delAllBtn.classList.remove('hidden');
+                if (viewWrongsBtn) viewWrongsBtn.classList.remove('hidden');
                 var pctSum = 0, pctCnt = 0;
                 list.innerHTML = rows.map(function(s) {
                     var mm = String(s.score || "").match(/(\\\d+)\\\s*\\\/\\\s*(\\\d+)/);
@@ -1840,6 +1967,7 @@ function renderHTML(results, categories, opts) {
                         + '<span class="text-slate-600 text-sm flex-1">' + esc(s.course_title || s.course_id) + '</span>'
                         + '<span class="text-slate-400 text-xs">' + esc(fmtTime(s.submitted_at)) + '</span>'
                         + '<span class="text-indigo-600 font-bold text-sm">' + esc(s.score) + '</span>'
+                        + '<button data-cid="' + esc(s.course_id || '') + '" onclick="adminViewWrongs(this)" class="text-xs text-violet-600 border border-violet-200 rounded-lg px-2 py-1 shrink-0">📝 错题</button>'
                         + '<button onclick="deleteOneScore(' + (s.rowid || 0) + ')" class="text-xs text-red-400 border border-red-100 rounded-lg px-2 py-1 shrink-0">删除</button></li>';
                 }).join('');
                 if (pctCnt > 0) {
@@ -1850,8 +1978,75 @@ function renderHTML(results, categories, opts) {
                 list.innerHTML = '<li class="text-red-400 text-sm">查询失败，请稍后重试</li>';
                 var dab = document.getElementById('delAllScoresBtn');
                 if (dab) dab.classList.add('hidden');
+                var vwb = document.getElementById('viewAllWrongsBtn');
+                if (vwb) vwb.classList.add('hidden');
             }
         }
+
+        /* 管理端查看学员错题 */
+        function closeAdminWrongModal() { var m = document.getElementById('adminWrongModal'); if (m) m.style.display = 'none'; }
+        function ensureAdminWrongModal() {
+            var m = document.getElementById('adminWrongModal');
+            if (m) return m;
+            m = document.createElement('div');
+            m.id = 'adminWrongModal';
+            m.style.cssText = 'position:fixed;inset:0;z-index:130;display:none;align-items:center;justify-content:center;padding:16px;';
+            m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.6)" onclick="closeAdminWrongModal()"></div>'
+                + '<div style="position:relative;background:#fff;border-radius:24px;width:100%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
+                + '<div style="padding:18px 20px 12px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
+                + '<h3 id="adminWrongTitle" style="font-weight:800;color:#1e293b;margin:0;font-size:16px">📝 学员错题</h3>'
+                + '<button onclick="closeAdminWrongModal()" style="background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer">✕</button>'
+                + '</div>'
+                + '<div id="adminWrongList" style="padding:16px 20px;overflow-y:auto"></div>'
+                + '</div>';
+            document.body.appendChild(m);
+            return m;
+        }
+        function renderAdminWrongs(arr) {
+            var groups = {}, order = [];
+            arr.forEach(function(x) {
+                var k = x.course_title || x.course_id || '未知课件';
+                if (!groups[k]) { groups[k] = []; order.push(k); }
+                groups[k].push(x);
+            });
+            return order.map(function(k) {
+                var items = groups[k].map(function(x) {
+                    var tl = WRONG_TYPE_LABEL[x.qtype] || x.qtype || '';
+                    var typeLine = [tl, x.qnum ? ('第' + x.qnum + '题') : ''].filter(function(s) { return s; }).join(' · ');
+                    return '<div class="border border-slate-100 rounded-2xl p-4 mb-3">'
+                        + '<div class="text-[11px] text-violet-500 font-bold mb-1">' + esc([x.series, x.sub].filter(function(s) { return s; }).join(' · ')) + '</div>'
+                        + (typeLine ? '<div class="text-[11px] text-indigo-500 font-bold mb-1">' + esc(typeLine) + '</div>' : '')
+                        + '<div class="text-sm text-slate-800 font-medium mb-2">' + esc(x.question) + '</div>'
+                        + '<div class="text-xs mb-1"><span class="text-red-500 font-bold">学员答案：</span><span class="text-slate-600">' + esc(x.user_answer) + '</span></div>'
+                        + '<div class="text-xs"><span class="text-emerald-600 font-bold">正确答案：</span><span class="text-slate-600">' + esc(x.correct_answer) + '</span></div>'
+                        + '</div>';
+                }).join('');
+                return '<div class="font-bold text-slate-700 text-sm mt-4 mb-2">📖 ' + esc(k) + '（' + groups[k].length + '题）</div>' + items;
+            }).join('');
+        }
+        async function adminViewWrongs(btn) {
+            var cid = btn ? (btn.getAttribute('data-cid') || '') : '';
+            var nameEl = document.getElementById('scoreQueryName');
+            var name = nameEl ? nameEl.value.trim() : '';
+            if (!name) { alert('请先输入学员姓名并查询'); return; }
+            var m = ensureAdminWrongModal();
+            document.getElementById('adminWrongTitle').innerText = '📝 ' + name + ' 的错题';
+            var list = document.getElementById('adminWrongList');
+            list.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">加载中…</div>';
+            m.style.display = 'flex';
+            try {
+                var url = '/api/wrongs?username=' + encodeURIComponent(name) + (cid ? '&course_id=' + encodeURIComponent(cid) : '');
+                var r = await fetch(url);
+                if (!r.ok) throw 0;
+                var j = await r.json();
+                var arr = j.wrongs || [];
+                if (!arr.length) { list.innerHTML = '<div class="text-center text-slate-400 text-sm py-8">该学员暂无错题记录</div>'; return; }
+                list.innerHTML = renderAdminWrongs(arr);
+            } catch (e) {
+                list.innerHTML = '<div class="text-center text-red-400 text-sm py-8">加载失败，请稍后重试</div>';
+            }
+        }
+        function adminViewAllWrongs() { adminViewWrongs(null); }
 
         /* 学员名单 / 删除成绩（管理端） */
         async function loadStudents() {
