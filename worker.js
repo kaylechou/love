@@ -630,7 +630,7 @@ function renderHTML(results, categories, opts) {
                       + '<button onclick="exportSelected()" class="text-xs bg-emerald-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-emerald-200 hover:opacity-95 transition">📥 批量导出</button>'
                       + '<button onclick="openEditModal()" class="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-violet-200 hover:opacity-95 transition">+ 创建新课件</button>'
                     : '<button onclick="openWrongBook()" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">📝 错题本</button>'
-                      + '<button onclick="login()" id="nameBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">设置姓名</button>'}
+                      + '<button onclick="nameBtnClick()" id="nameBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">设置姓名</button>'}
             </div>
         </div>
     </header>
@@ -1217,6 +1217,22 @@ function renderHTML(results, categories, opts) {
 
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
         function login() { var n = prompt("输入姓名："); if (n) { localStorage.setItem(USER_KEY, n); location.reload(); } }
+        /* 姓名按钮：未登记则登录，已登记则确认后登出（本地错题本按姓名保留） */
+        function syncNameBtn() {
+            var nm = "";
+            try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
+            var nb = document.getElementById("nameBtn");
+            if (nb) nb.innerText = nm || "设置姓名";
+        }
+        function nameBtnClick() {
+            var nm = "";
+            try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
+            if (!nm) { login(); return; }
+            if (confirm("退出当前学员（" + nm + "）？\\n该姓名下的错题本与本地学习记录会保留，下次登记同一姓名可继续查看。")) {
+                try { localStorage.removeItem(USER_KEY); } catch (e) {}
+                syncNameBtn();
+            }
+        }
         /* 答题前必须输入姓名：无姓名时弹窗阻断，登记后继续 */
         function requireNameForQuiz(tab) {
             var nm = "";
@@ -1244,7 +1260,7 @@ function renderHTML(results, categories, opts) {
                     var v = (document.getElementById('nameGateInput').value || "").trim();
                     if (!v) { alert("请输入姓名"); return; }
                     try { localStorage.setItem(USER_KEY, v); } catch (e) {}
-                    var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = v;
+                    syncNameBtn();
                     m.style.display = 'none';
                     var t = window._pendingQTab; window._pendingQTab = null;
                     if (t) switchQTab(t);
@@ -2941,7 +2957,7 @@ function renderHTML(results, categories, opts) {
         applyFontScale();
         document.addEventListener("DOMContentLoaded", applyFontScale); /* 浮钮HTML在script之后，等DOM就绪再刷标签 */
         var sn = localStorage.getItem(USER_KEY);
-        var nb = document.getElementById('nameBtn'); if (sn && nb) nb.innerText = sn;
+        syncNameBtn();
         var sqn = document.getElementById('scoreQueryName'); if (sqn && sn) sqn.value = sn;
         if (document.getElementById('studentSelect')) loadStudents();
     </script>
