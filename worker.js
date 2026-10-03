@@ -764,7 +764,7 @@ function renderHTML(results, categories, opts) {
 
     <!-- 答题 / 学习弹窗 -->
     <div id="lessonModal" class="hidden fixed inset-0 bg-white z-[80] overflow-y-auto">
-        <div class="w-full max-w-3xl md:max-w-5xl mx-auto px-4 py-6 md:p-12 pb-32">
+        <div class="w-full max-w-6xl mx-auto px-3 md:px-6 py-6 pb-32">
             <div id="lessonHeader"></div>
             <div id="studyProg" class="hidden mt-4 text-sm font-bold text-violet-600"></div>
             <div id="lessonBody" class="mt-10 space-y-4"></div>
@@ -965,7 +965,8 @@ function renderHTML(results, categories, opts) {
         var FONT_KEY = "TQ_FONT_V1";
         var FONT_SCALES = [0.85, 1, 1.15, 1.3, 1.5];
         var FONT_LABELS = ["小", "标准", "较大", "大", "特大"];
-        function getFontIdx() { var i = parseInt(localStorage.getItem(FONT_KEY) || "1", 10); if (isNaN(i)) i = 1; return Math.min(4, Math.max(0, i)); }
+        var FONT_DEFAULT = 2;
+        function getFontIdx() { var i = parseInt(localStorage.getItem(FONT_KEY) || String(FONT_DEFAULT), 10); if (isNaN(i)) i = FONT_DEFAULT; return Math.min(4, Math.max(0, i)); }
         function applyFontScale() {
             var i = getFontIdx();
             document.documentElement.style.fontSize = (16 * FONT_SCALES[i]) + "px";
@@ -978,7 +979,7 @@ function renderHTML(results, categories, opts) {
             p.classList.toggle("hidden");
             if (f) f.classList.toggle("open", !p.classList.contains("hidden"));
         }
-        function fontReset() { try { localStorage.setItem(FONT_KEY, "1"); } catch(e) {} applyFontScale(); }
+        function fontReset() { try { localStorage.setItem(FONT_KEY, String(FONT_DEFAULT)); } catch(e) {} applyFontScale(); }
 
         async function load() {
             var r = await fetch('/api/data');
@@ -1645,8 +1646,8 @@ function renderHTML(results, categories, opts) {
                 + '<button id="qtab-report" onclick="switchQTab(\\'report\\')" class="qtab-btn qtab-report">📊 成绩报告</button>';
             var teacherTopBtn = BOOT.isAdmin ? '<button id="teacherBtn" onclick="teacherUnlock()" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-amber-200 border border-amber-500/30 transition">🔑 教师版查看答案</button>' : '';
             document.getElementById('lessonHeader').innerHTML = shareBar
-                + '<div class="sticky top-0 z-40 -mx-4 md:-mx-12 px-4 md:px-12 pt-4 pb-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 shadow-md">'
-                + '<div class="w-full max-w-5xl mx-auto"><div class="flex items-start justify-between gap-3">'
+                + '<div class="sticky top-0 z-40 -mx-3 md:-mx-6 px-3 md:px-6 pt-4 pb-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 shadow-md">'
+                + '<div class="w-full max-w-6xl mx-auto"><div class="flex items-start justify-between gap-3">'
                 + '<div class="min-w-0"><div class="flex items-center gap-2 text-[11px] font-semibold text-indigo-300 uppercase tracking-wider mb-1">'
                 + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(item.category || '课程') + '</span>'
                 + (item.subcategory ? '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(item.subcategory) + '</span>' : '')
@@ -1729,20 +1730,20 @@ function renderHTML(results, categories, opts) {
             var reportSec = '<section id="qsec-report" class="qsec hidden"><div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 text-center space-y-6">'
                 + '<div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto text-3xl">🎓</div>'
                 + '<div><h2 class="text-2xl font-bold text-slate-900">答题成绩与复习报告</h2><p class="text-xs text-slate-500 mt-1">' + esc(item.title) + ' · 综合测评</p></div>'
-                + '<div class="grid grid-cols-3 gap-3 max-w-xl mx-auto">'
+                + '<div class="grid grid-cols-3 gap-3 max-w-3xl mx-auto">'
                 + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">已答客观题</div><div class="text-xl md:text-2xl font-bold text-indigo-600" id="qr-progress">0 / 0</div></div>'
                 + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">客观题得分</div><div class="text-xl md:text-2xl font-bold text-emerald-600" id="qr-score">--</div></div>'
                 + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">理解掌握评级</div><div class="text-xl md:text-2xl font-bold text-slate-400" id="qr-rating">待核对</div></div>'
                 + '</div>'
-                + '<p id="qr-hint" class="text-xs text-slate-500 max-w-xl mx-auto leading-relaxed"></p>'
+                + '<p id="qr-hint" class="text-xs text-slate-500 max-w-3xl mx-auto leading-relaxed"></p>'
                 + '<div class="flex flex-wrap justify-center gap-3">'
                 + '<button id="qr-action" onclick="studySubmitBtn()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">核对答案</button>'
                 + '<button onclick="toggleStudyEdit();switchQTab(\\'overview\\')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs font-bold transition">↺ 重新作答</button>'
                 + (BOOT.isAdmin ? '<button onclick="teacherUnlock()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">📖 查看全套参考答案</button>' : '')
                 + '</div></div></section>';
             var bodyHtml = '<div id="quizContainer" class="space-y-6">' + overviewSec + typeSecs + reportSec + '</div>'
-                + '<div class="sticky bottom-0 z-40 mt-6 -mx-4 md:-mx-12 px-4 md:px-12 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">'
-                + '<div class="w-full max-w-5xl mx-auto bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 flex items-center justify-between gap-3">'
+                + '<div class="sticky bottom-0 z-40 mt-6 -mx-3 md:-mx-6 px-3 md:px-6 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">'
+                + '<div class="w-full max-w-6xl mx-auto bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 flex items-center justify-between gap-3">'
                 + '<p id="studyHint" class="text-rose-500 text-xs italic">请填写完所有空格以激活核对功能</p>'
                 + '<button id="studySubmit" disabled onclick="studySubmitBtn()" class="shrink-0 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold py-2.5 px-6 rounded-xl shadow transition active:scale-95 text-sm">核对答案</button>'
                 + '</div></div>'
