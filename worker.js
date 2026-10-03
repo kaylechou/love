@@ -1316,6 +1316,7 @@ function renderHTML(results, categories, opts) {
         }
 
         function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+        function closeLessonModal() { document.getElementById('lessonModal').classList.add('hidden'); }
         function login() { openAuthModal('login', null, true); }
         /* 姓名按钮：未登记则登录，已登记则确认后登出（本地错题本按姓名保留） */
         function syncNameBtn() {
@@ -1789,6 +1790,10 @@ function renderHTML(results, categories, opts) {
                 shareBar = '<div class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 text-left">'
                     + '<a href="/" class="text-sm font-bold text-violet-700 hover:underline">← 返回智学课程系统</a>'
                     + '<div id="shareNameBox" class="flex items-center gap-2 text-sm">' + shareNameHTML() + '</div></div>';
+            } else {
+                shareBar = '<div class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 text-left">'
+                    + '<a href="javascript:void(0)" onclick="closeLessonModal()" class="text-sm font-bold text-violet-700 hover:underline">← 返回课程列表</a>'
+                    + '<div class="flex items-center gap-2 text-sm">' + shareNameHTML() + '</div></div>';
             }
             /* ===== 分 Tab 互动课件：导读 / 按题型分页 / 成绩报告（参考互动课件 UI） ===== */
             lastGradeRes = null;
