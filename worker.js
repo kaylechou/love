@@ -1914,7 +1914,7 @@ function renderHTML(results, categories, opts) {
                     return '<button id="qtab-' + mt.t + '" onclick="switchQTab(\\'' + mt.t + '\\')" class="qtab-btn">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + '<span class="qtab-count">' + mt.count + '题</span></button>';
                 }).join('')
                 + '<button id="qtab-report" onclick="switchQTab(\\'report\\')" class="qtab-btn qtab-report">📊 成绩报告</button>';
-            var teacherTopBtn = BOOT.isAdmin ? '<button id="teacherBtn" onclick="teacherUnlock()" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-amber-200 border border-amber-500/30 transition">🔑 教师版查看答案</button>' : '';
+            var teacherTopBtn = '<button id="teacherBtn" onclick="teacherUnlock()" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-amber-200 border border-amber-500/30 transition">🔑 教师版查看答案</button>';
             document.getElementById('lessonHeader').innerHTML = shareBar
                 + '<div class="sticky top-0 z-40 -mx-3 md:-mx-6 px-3 md:px-6 pt-4 pb-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 shadow-md">'
                 + '<div class="w-full max-w-6xl mx-auto"><div class="flex items-start justify-between gap-3">'
