@@ -780,7 +780,7 @@ function renderHTML(results, categories, opts) {
     <div id="wrongBookModal" class="hidden fixed inset-0 bg-slate-900/60 z-[90] flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
             <div class="p-6 border-b flex items-center justify-between">
-                <h2 class="font-black text-lg">📝 我的错题本</h2>
+                <h2 id="wrongBookTitle" class="font-black text-lg">📝 我的错题本</h2>
                 <div class="flex gap-2">
                     <button onclick="openWrongExportMenu()" class="text-xs bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold">📥 导出</button>
                     <button onclick="clearWrongBook()" class="text-xs bg-red-50 text-red-500 px-4 py-2 rounded-xl font-bold">清空</button>
@@ -922,12 +922,16 @@ function renderHTML(results, categories, opts) {
             w[name] = arr.slice(0, 100);
             setWrong(w);
         }
-        function openWrongBook() {
+        function openWrongBook(courseId) {
+            window._wrongCourseId = courseId || null;
             var name = localStorage.getItem(USER_KEY) || "匿名学员";
-            var arr = (getWrong()[name] || []);
+            var all = (getWrong()[name] || []);
+            var arr = courseId ? all.filter(function(x) { return x.cid === courseId; }) : all;
+            var titleEl = document.getElementById('wrongBookTitle');
+            if (titleEl) titleEl.innerText = courseId ? ('📝 错题本' + (arr.length && arr[0].title ? ' · ' + arr[0].title : '')) : '📝 我的错题本';
             var list = document.getElementById('wrongBookList');
             if (!arr.length) {
-                list.innerHTML = '<div class="text-center text-slate-400 text-sm py-10">错题本是空的，答错的题目会自动收录在这里</div>';
+                list.innerHTML = '<div class="text-center text-slate-400 text-sm py-10">' + (courseId ? '本课件暂无错题，答错的题目会自动收录在这里' : '错题本是空的，答错的题目会自动收录在这里') + '</div>';
             } else {
                 list.innerHTML = arr.map(function(x) {
                     return '<div class="border border-slate-100 rounded-2xl p-4">'
@@ -941,10 +945,14 @@ function renderHTML(results, categories, opts) {
             toggleModal('wrongBookModal');
         }
         function clearWrongBook() {
-            if (!confirm("确定清空错题本？")) return;
+            var fc = window._wrongCourseId || null;
+            if (!confirm(fc ? "确定清空本课件的错题记录？" : "确定清空错题本？")) return;
             var name = localStorage.getItem(USER_KEY) || "匿名学员";
-            var w = getWrong(); w[name] = []; setWrong(w);
-            openWrongBook();
+            var w = getWrong();
+            if (fc) w[name] = (w[name] || []).filter(function(x) { return x.cid !== fc; });
+            else w[name] = [];
+            setWrong(w);
+            openWrongBook(fc);
         }
 
         /* 小工具 */
@@ -1645,7 +1653,7 @@ function renderHTML(results, categories, opts) {
                 + '<span class="shrink-0">在线互动课件</span></div>'
                 + '<h1 class="text-xl md:text-2xl font-bold text-indigo-50 leading-snug">' + esc(item.title) + '</h1>'
                 + '<p class="text-indigo-300/80 text-xs mt-1">' + subTitle + '</p></div>'
-                + teacherTopBtn
+                + (BOOT.isAdmin ? teacherTopBtn : '<button onclick="openWrongBook(activeLessonId)" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-indigo-900/80 hover:bg-indigo-800 text-indigo-100 border border-indigo-700/50 transition">📝 错题本</button>')
                 + '</div>'
                 + '<div id="progress-bar" class="text-xs mt-2 text-indigo-200 font-medium">进度：已填写 0 / ' + totalUnits + '</div>'
                 + '<nav class="flex gap-1 overflow-x-auto mt-1.5">' + tabBtns + '</nav>'
@@ -2239,8 +2247,10 @@ function renderHTML(results, categories, opts) {
                     + '</div>';
                 document.body.appendChild(m);
             }
+            var fc = window._wrongCourseId || null;
             var arr = getWrong()[wrongBookName()] || [];
-            document.getElementById('wrongExportSub').innerText = wrongBookName() + ' · 共' + arr.length + '题';
+            if (fc) arr = arr.filter(function(x) { return x.cid === fc; });
+            document.getElementById('wrongExportSub').innerText = wrongBookName() + ' · 共' + arr.length + '题' + (fc ? '（本课件）' : '（全部课件）');
             m.style.display = 'flex';
         }
         function closeWrongExportMenu() {
@@ -2251,6 +2261,8 @@ function renderHTML(results, categories, opts) {
             closeWrongExportMenu();
             var name = wrongBookName();
             var arr = getWrong()[name] || [];
+            var fc = window._wrongCourseId || null;
+            if (fc) arr = arr.filter(function(x) { return x.cid === fc; });
             if (!arr.length) { alert("错题本是空的"); return; }
             var fn = safeFileName(name + '的错题本');
             var pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
