@@ -1200,13 +1200,14 @@ function renderHTML(results, categories, opts) {
         }
         function openVideoChoice(videos) {
             if (!videos.length) return;
-            if (videos.length === 1) { window.open(videos[0].url, "_blank", "noopener"); return; }
+            if (videos.length === 1) { openVideoUrl(videos[0].url); return; }
             window._vidsChoice = videos;
             var m = document.getElementById("videoChoiceModal");
             if (!m) return;
             document.getElementById("videoChoiceList").innerHTML = videos.map(function (v, i) {
+                var wxTip = (isWeComUrl(v.url) && !isWeChat()) ? '<span class="block text-xs text-emerald-600 mt-0.5">需在微信中打开观看</span>' : '';
                 return '<button data-vi="' + i + '" onclick="openVideoByIdx(this)" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition active:scale-95 flex items-center gap-3">'
-                    + '<span class="text-2xl">\u25b6\ufe0f</span><span><span class="block font-bold text-slate-800">' + esc(v.label) + '</span><span class="block text-xs text-slate-400 truncate max-w-[220px]">' + esc(v.url) + '</span></span></button>';
+                    + '<span class="text-2xl">\u25b6\ufe0f</span><span><span class="block font-bold text-slate-800">' + esc(v.label) + '</span><span class="block text-xs text-slate-400 truncate max-w-[220px]">' + esc(v.url) + '</span>' + wxTip + '</span></button>';
             }).join("");
             m.classList.remove("hidden");
         }
@@ -1214,7 +1215,36 @@ function renderHTML(results, categories, opts) {
             var i = parseInt(el.getAttribute("data-vi") || "0", 10);
             var v = (window._vidsChoice || [])[i];
             document.getElementById("videoChoiceModal").classList.add("hidden");
-            if (v && v.url) window.open(v.url, "_blank", "noopener");
+            if (v && v.url) openVideoUrl(v.url);
+        }
+        function isWeChat() { try { return /micromessenger/i.test(navigator.userAgent); } catch (e) { return false; } }
+        function isWeComUrl(u) { return /drive\\.weixin\\.qq\\.com/i.test(u || ""); }
+        function openVideoUrl(url) {
+            if (isWeComUrl(url) && !isWeChat()) {
+                window._wecomPendingUrl = url;
+                var m = document.getElementById("wechatTipModal");
+                if (m) m.classList.remove("hidden");
+                return;
+            }
+            window.open(url, "_blank", "noopener");
+        }
+        function copyWecomLink() {
+            var url = window._wecomPendingUrl || "";
+            var done = function () {
+                var m = document.getElementById("wechatTipModal");
+                if (m) m.classList.add("hidden");
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(done, done);
+            } else {
+                var ta = document.createElement("textarea");
+                ta.value = url;
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand("copy"); } catch (e) {}
+                document.body.removeChild(ta);
+                done();
+            }
         }
         function getVideoNetEnv() {
             try { return localStorage.getItem(VIDEO_NET_KEY) || ""; } catch (e) { return ""; }
@@ -3519,6 +3549,16 @@ function renderHTML(results, categories, opts) {
             </div>
             <div id="videoChoiceList" class="space-y-3"></div>
             <button onclick="document.getElementById('videoChoiceModal').classList.add('hidden')" class="mt-4 w-full text-xs text-slate-400 hover:underline text-center">取消</button>
+        </div>
+    </div>
+    <div id="wechatTipModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6" style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px);">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="text-3xl mb-2">📱</div>
+            <h3 class="text-lg font-black text-slate-900 mb-1">请在微信中打开</h3>
+            <p class="text-xs text-slate-500 mb-5">这个视频需要在微信内观看<br>点击下方按钮复制链接</p>
+            <button onclick="copyWecomLink()" class="w-full p-3 rounded-2xl bg-indigo-600 text-white font-bold text-sm active:scale-95 transition">复制视频链接</button>
+            <p class="text-xs text-slate-400 mt-3">复制后发送到微信任意聊天<br>点开链接即可观看</p>
+            <button onclick="document.getElementById('wechatTipModal').classList.add('hidden')" class="mt-4 text-xs text-slate-400 hover:underline">取消</button>
         </div>
     </div>
     <div id="viewModeFab">
