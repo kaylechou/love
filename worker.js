@@ -738,8 +738,6 @@ function renderHTML(results, categories, opts) {
         /* 经文高亮：引用徽章（紫）与经文正文（琥珀）作区分 */
         .verse-ref { display: inline-block; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; font-weight: 700; font-size: .72rem; padding: .12rem .6rem; border-radius: 9999px; white-space: nowrap; vertical-align: .05em; box-shadow: 0 1px 4px rgba(124,58,237,.35); }
         .verse-text { background: #fef3c7; border-bottom: 2px solid #f59e0b; border-radius: .2rem; padding: 0 .25rem; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-        .qfill .verse-ref { background: none; color: #4f46e5; padding: 0; box-shadow: none; font-size: .85rem; }
-        .qfill .verse-text { background: none; border-bottom: none; padding: 0; }
     </style>
 </head>
 <body class="bg-[#f6f7fb] min-h-screen text-slate-900 pb-20">
@@ -1620,7 +1618,7 @@ function renderHTML(results, categories, opts) {
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(q.q)) + '</p>'
                     + '<textarea id="u-' + i + '" class="quiz-input w-full p-4 border rounded-2xl bg-slate-50 h-28 mt-3" placeholder="输入你的回答..."></textarea>' + verdict + '</div>';
             }
-            return '<div id="qcard-' + i + '" data-qnum="' + num + '" class="qfill"><p>' + num + '. ' + studyPara(q, i) + '</p>' + verdict + '</div>';
+            return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + studyPara(q, i) + '</p>' + verdict + '</div>';
         }
         /* 进度统计：填空按空格数，选择/问答按题数 */
         function studyProgress() {
