@@ -3475,7 +3475,7 @@ function renderHTML(results, categories, opts) {
         var sn = localStorage.getItem(USER_KEY);
         syncNameBtn();
         syncVideoBtn();
-        try { if (!localStorage.getItem(VIDEO_NET_KEY)) setTimeout(openNetEnvModal, 800); } catch (e) {}
+        
         var sqn = document.getElementById('scoreQueryName'); if (sqn && sn) sqn.value = sn;
         if (document.getElementById('studentSelect')) loadStudents();
         if (document.getElementById('adminStudentList')) loadAdminStudents();
