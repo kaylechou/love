@@ -1164,40 +1164,62 @@ function renderHTML(results, categories, opts) {
         }
         function fontStep(d) { var i = getFontIdx() + d; i = Math.min(4, Math.max(0, i)); try { localStorage.setItem(FONT_KEY, String(i)); } catch(e) {} applyFontScale(); }
         var VIEW_MODE_KEY = "TQ_VIEW_MODE_V1";
-        /* 视频网络可访问性：检测 YouTube 等是否可达，不可达则隐藏视频入口 */
-        var VIDEO_NET_OK = null, VIDEO_NET_KEY = "TQ_VIDEO_NET_V1";
+        /* 视频网络可访问性：检测视频域名是否可达，不可达则隐藏视频入口 */
+        var VIDEO_NET = {}, VIDEO_NET_KEY = "TQ_VIDEO_NET_V2";
+        function videoDomain(url) {
+            try { return new URL(url).hostname; } catch (e) { return ""; }
+        }
         function isVideoBlocked(url) {
             if (!url) return false;
-            if (/youtube[.]com|youtu[.]be/i.test(url)) return VIDEO_NET_OK === false;
-            return false;
+            var d = videoDomain(url);
+            if (!d) return false;
+            return VIDEO_NET[d] === false;
         }
         function hideVideoUI() {
             document.querySelectorAll(".video-badge").forEach(function (el) { el.style.display = "none"; });
             var vh = document.getElementById("lessonVideoWrap");
             if (vh) vh.style.display = "none";
         }
-        function checkVideoNet() {
-            try {
-                var c = JSON.parse(localStorage.getItem(VIDEO_NET_KEY) || "null");
-                if (c && Date.now() - c.t < (c.v ? 7 * 24 * 3600 * 1000 : 2 * 3600 * 1000)) {
-                    VIDEO_NET_OK = c.v;
-                    if (!c.v) hideVideoUI();
-                    return;
+        function checkOneDomain(domain) {
+            return new Promise(function (resolve) {
+                if (VIDEO_NET[domain] !== undefined) { resolve(VIDEO_NET[domain]); return; }
+                try {
+                    var c = JSON.parse(localStorage.getItem(VIDEO_NET_KEY + "_" + domain) || "null");
+                    if (c && Date.now() - c.t < (c.v ? 7 * 24 * 3600 * 1000 : 2 * 3600 * 1000)) {
+                        VIDEO_NET[domain] = c.v;
+                        resolve(c.v);
+                        return;
+                    }
+                } catch (e) {}
+                var done = false;
+                function fin(ok) {
+                    if (done) return; done = true;
+                    VIDEO_NET[domain] = ok;
+                    try { localStorage.setItem(VIDEO_NET_KEY + "_" + domain, JSON.stringify({ v: ok, t: Date.now() })); } catch (e) {}
+                    resolve(ok);
                 }
-            } catch (e) {}
-            var done = false;
-            function fin(ok) {
-                if (done) return; done = true;
-                VIDEO_NET_OK = ok;
-                try { localStorage.setItem(VIDEO_NET_KEY, JSON.stringify({ v: ok, t: Date.now() })); } catch (e) {}
-                if (!ok) hideVideoUI();
-            }
-            setTimeout(function () { fin(false); }, 6000);
+                setTimeout(function () { fin(false); }, 6000);
+                try {
+                    fetch("https://" + domain + "/favicon.ico", { mode: "no-cors", cache: "no-store" })
+                        .then(function () { fin(true); })
+                        .catch(function () { fin(false); });
+                } catch (e) { fin(false); }
+            });
+        }
+        function checkVideoNet() {
+            var domains = {};
             try {
-                fetch("https://www.youtube.com/favicon.ico", { mode: "no-cors", cache: "no-store" })
-                    .then(function () { fin(true); })
-                    .catch(function () { fin(false); });
-            } catch (e) { fin(false); }
+                (allData || []).forEach(function (c) {
+                    var d = videoDomain(c.video_url || "");
+                    if (d) domains[d] = 1;
+                });
+            } catch (e) {}
+            var list = Object.keys(domains);
+            if (!list.length) return;
+            Promise.all(list.map(checkOneDomain)).then(function () {
+                var blocked = list.some(function (d) { return VIDEO_NET[d] === false; });
+                if (blocked) hideVideoUI();
+            });
         }
         function applyViewMode() {
             var mode = "mobile";
@@ -1255,6 +1277,7 @@ function renderHTML(results, categories, opts) {
             } catch (e) {}
             var list = (BOOT.list && BOOT.list.length) ? BOOT.list : (BOOT.shareMode ? [] : allData);
             renderSections(list);
+            checkVideoNet();
             updateStats();
             if (!BOOT.isAdmin) {
                 var nr = await fetch('/api/notice').then(function(x){ return x.json(); }).catch(function(){ return {}; });
@@ -1941,6 +1964,8 @@ function renderHTML(results, categories, opts) {
 
             var videoHtml = "";
             if (item.video_url && !isVideoBlocked(item.video_url)) {
+                var vd = videoDomain(item.video_url);
+                if (vd && VIDEO_NET[vd] === undefined) checkOneDomain(vd).then(function (ok) { if (!ok) hideVideoUI(); });
                 if (/\\\.(mp4|webm|m4v|ogg)(\\\?|#|$)/i.test(item.video_url)) {
                     videoHtml = '<div id="lessonVideoWrap" class="rounded-3xl overflow-hidden bg-black mb-8"><video src="' + esc(item.video_url) + '" controls playsinline preload="metadata" class="w-full max-h-[60vh]"></video></div>';
                 } else {
@@ -3411,7 +3436,6 @@ function renderHTML(results, categories, opts) {
         applyFontScale();
         applyViewMode();
         document.addEventListener("DOMContentLoaded", applyFontScale);
-        checkVideoNet();
         window.addEventListener("resize", function() { try { if (localStorage.getItem(VIEW_MODE_KEY) === "desktop") applyViewMode(); } catch (e) {} }); /* 浮钮HTML在script之后，等DOM就绪再刷标签 */
         var sn = localStorage.getItem(USER_KEY);
         syncNameBtn();
