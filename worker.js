@@ -718,6 +718,7 @@ function renderHTML(results, categories, opts) {
         #viewModeFab { position: fixed; left: 1rem; bottom: 5rem; z-index: 100; }
         #viewModeBtn { height: 3rem; min-width: 3rem; padding: 0 .9rem; border-radius: 9999px; background: linear-gradient(135deg,#0ea5e9,#6366f1); color: #fff; font-weight: 900; font-size: 1rem; box-shadow: 0 6px 20px rgba(14,165,233,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; opacity: .55; transition: opacity .25s; }
         #viewModeBtn:hover { opacity: 1; }
+        html.view-desktop .course-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
         #viewModeBtn:active { transform: scale(.94); }
         #fontPanel .font-reset-btn { height: 1.7rem; font-size: .7rem; font-weight: 700; background: #fff; color: #94a3b8; }
         #fontPanel { background: #fff; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.18); border: 1px solid #ede9fe; padding: .55rem; display: flex; flex-direction: column; gap: .35rem; align-items: center; }
@@ -1171,6 +1172,7 @@ function renderHTML(results, categories, opts) {
             var vmFab = document.getElementById("viewModeFab");
             var fontFab = document.getElementById("fontFab");
             if (mode === "desktop") {
+                de.classList.add("view-desktop");
                 var scale = window.innerWidth / 1024;
                 scale = Math.max(0.3, Math.min(1, scale));
                 de.style.zoom = scale;
@@ -1178,6 +1180,7 @@ function renderHTML(results, categories, opts) {
                 if (vmFab) { vmFab.style.zoom = inv; vmFab.style.left = inv + "rem"; vmFab.style.bottom = (5 * inv) + "rem"; }
                 if (fontFab) { fontFab.style.zoom = inv; fontFab.style.right = inv + "rem"; fontFab.style.bottom = (5 * inv) + "rem"; }
             } else {
+                de.classList.remove("view-desktop");
                 de.style.zoom = "";
                 if (vmFab) { vmFab.style.zoom = ""; vmFab.style.left = ""; vmFab.style.bottom = ""; }
                 if (fontFab) { fontFab.style.zoom = ""; fontFab.style.right = ""; fontFab.style.bottom = ""; }
@@ -1316,7 +1319,7 @@ function renderHTML(results, categories, opts) {
                 subOrder.forEach(function(sk) {
                     ki++;
                     var cards = subgroups[sk].map(function(c, idx) { return courseCard(c, idx); }).join('');
-                    var gridHtml = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">' + cards + '</div>';
+                    var gridHtml = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 course-cards">' + cards + '</div>';
                     if (sk) {
                         var sd = info.subDesc[sk] || "";
                         var kKey = "sub:" + cat + "::" + sk, kBody = "treeBodyS" + si + "K" + ki, kChev = "treeChevS" + si + "K" + ki;
