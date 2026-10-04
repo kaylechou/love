@@ -965,7 +965,7 @@ function renderHTML(results, categories, opts) {
                     <p class="text-[11px] text-slate-400 mt-2">分章节一条条加小结，学员端"课程导读"页会渲染成章节卡片。</p>
                 </div>
                 <textarea id="f_instructions" placeholder="答题说明（留空则自动生成）..." class="w-full h-20 border p-3 rounded-xl text-sm"></textarea>
-                <input id="f_video" placeholder="视频链接（可选，如微信云盘分享链接）" class="w-full border p-3 rounded-xl text-sm">
+                <textarea id="f_video" rows="3" placeholder="视频链接（可选，一行一个；格式：名称|链接，如：&#10;YouTube|https://youtu.be/xxx&#10;企业微盘|https://drive.weixin.qq.com/...&#10;只写链接也行，会自动识别网站名）" class="w-full border p-3 rounded-xl text-sm"></textarea>
             </div>
             <div class="flex-1 p-6 flex flex-col overflow-hidden">
                 <div class="flex items-center gap-2 mb-3 flex-wrap">
@@ -1176,6 +1176,39 @@ function renderHTML(results, categories, opts) {
         function videoDomain(url) {
             try { return new URL(url).hostname.toLowerCase(); } catch (e) { return ""; }
         }
+        /* 解析多视频链接：一行一个，格式 "名称|URL" 或纯 URL；返回 [{label, url}] */
+        function parseVideoUrls(s) {
+            var out = [];
+            String(s || "").split("\n").forEach(function (line) {
+                line = line.trim();
+                if (!line) return;
+                var label = "", url = line;
+                var p = line.indexOf("|");
+                if (p > 0) { label = line.slice(0, p).trim(); url = line.slice(p + 1).trim(); }
+                if (!url) return;
+                if (!label) {
+                    var d = videoDomain(url);
+                    if (/youtu.?be|youtube/i.test(d)) label = "YouTube";
+                    else if (/bilibili/i.test(d)) label = "哔哩哔哩";
+                    else if (/weixin\.qq/i.test(d)) label = "企业微盘";
+                    else if (/\.(mp4|webm|m4v|ogg)(\?|#|$)/i.test(url)) label = "视频直链";
+                    else label = d || "视频链接";
+                }
+                if (!isVideoBlocked(url)) out.push({ label: label, url: url });
+            });
+            return out;
+        }
+        function openVideoChoice(videos) {
+            if (!videos.length) return;
+            if (videos.length === 1) { window.open(videos[0].url, "_blank", "noopener"); return; }
+            var m = document.getElementById("videoChoiceModal");
+            if (!m) return;
+            document.getElementById("videoChoiceList").innerHTML = videos.map(function (v, i) {
+                return '<button onclick="window.open(\'' + v.url.replace(/\'/g, "\\'") + '\', \'_blank\', \'noopener\');document.getElementById(\'videoChoiceModal\').classList.add(\'hidden\')" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition active:scale-95 flex items-center gap-3">'
+                    + '<span class="text-2xl">▶️</span><span><span class="block font-bold text-slate-800">' + esc(v.label) + '</span><span class="block text-xs text-slate-400 truncate max-w-[220px]">' + esc(v.url) + '</span></span></button>';
+            }).join("");
+            m.classList.remove("hidden");
+        }
         function getVideoNetEnv() {
             try { return localStorage.getItem(VIDEO_NET_KEY) || ""; } catch (e) { return ""; }
         }
@@ -1332,7 +1365,7 @@ function renderHTML(results, categories, opts) {
                     + '<button data-id="' + c.id + '" onclick="deleteCourse(this.dataset.id)" title="删除" class="text-slate-300 hover:text-red-500 transition">🗑️</button>';
             }
             var cardBtns = '<div class="flex items-center gap-3 text-[15px]">' + shareBtn + adminBtns + '</div>';
-            var videoBadge = (c.video_url && !isVideoBlocked(c.video_url)) ? ' <span class="video-badge text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full align-middle">🎬 视频</span>' : '';
+            var videoBadge = parseVideoUrls(c.video_url).length ? ' <span class="video-badge text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full align-middle">🎬 视频</span>' : '';
             var goText = '开始学习';
             return '<div class="course-card bg-white rounded-[1.75rem] border border-slate-100 shadow-sm p-6 flex flex-col gap-4 hover:shadow-lg hover:-translate-y-0.5 transition"'
                 + ' data-search="' + esc(c.title + " " + c.content + " " + (c.subcategory || "")).toLowerCase() + '"'
@@ -1971,15 +2004,16 @@ function renderHTML(results, categories, opts) {
             activeQuizzes = JSON.parse(item.quizzes_json || "[]");
 
             var videoHtml = "";
-            if (item.video_url && !isVideoBlocked(item.video_url)) {
-                if (/\\\.(mp4|webm|m4v|ogg)(\\\?|#|$)/i.test(item.video_url)) {
-                    videoHtml = '<div id="lessonVideoWrap" class="rounded-3xl overflow-hidden bg-black mb-8"><video src="' + esc(item.video_url) + '" controls playsinline preload="metadata" class="w-full max-h-[60vh]"></video></div>';
-                } else {
-                    videoHtml = '<div id="lessonVideoWrap"><a href="' + esc(item.video_url) + '" target="_blank" rel="noopener" class="block rounded-3xl mb-8 p-8 text-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white no-underline">'
-                        + '<div class="text-5xl mb-3">▶️</div>'
-                        + '<div class="font-black text-lg mb-1">观看课程视频</div>'
-                        + '<div class="text-slate-400 text-xs">点击在新页面打开观看</div></a></div>';
-                }
+            var vids = parseVideoUrls(item.video_url);
+            if (vids.length === 1 && /\\\.(mp4|webm|m4v|ogg)(\\\?|#|$)/i.test(vids[0].url)) {
+                videoHtml = '<div id="lessonVideoWrap" class="rounded-3xl overflow-hidden bg-black mb-8"><video src="' + esc(vids[0].url) + '" controls playsinline preload="metadata" class="w-full max-h-[60vh]"></video></div>';
+            } else if (vids.length >= 1) {
+                window._curVids = vids;
+                var sub = vids.length > 1 ? "共" + vids.length + "个视频源，点击选择" : esc(vids[0].label);
+                videoHtml = '<div id="lessonVideoWrap"><a href="javascript:void(0)" onclick="openVideoChoice(window._curVids)" class="block rounded-3xl mb-8 p-8 text-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white no-underline">'
+                    + '<div class="text-5xl mb-3">▶️</div>'
+                    + '<div class="font-black text-lg mb-1">观看课程视频</div>'
+                    + '<div class="text-slate-400 text-xs">' + sub + '</div></a></div>';
             }
             studyRevealed = false;
             var info0 = catInfo[item.category] || { description: "", subDesc: {} };
@@ -3479,6 +3513,17 @@ function renderHTML(results, categories, opts) {
                 </button>
             </div>
             <button onclick="setVideoNetEnv('cn', true)" class="mt-4 text-xs text-slate-400 hover:underline">稍后再说</button>
+        </div>
+    </div>
+    <div id="videoChoiceModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6" style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px);">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
+            <div class="text-center mb-4">
+                <div class="text-3xl mb-2">🎬</div>
+                <h3 class="text-lg font-black text-slate-900">选择视频源</h3>
+                <p class="text-xs text-slate-500 mt-1">请选择一个视频链接打开观看</p>
+            </div>
+            <div id="videoChoiceList" class="space-y-3"></div>
+            <button onclick="document.getElementById('videoChoiceModal').classList.add('hidden')" class="mt-4 w-full text-xs text-slate-400 hover:underline text-center">取消</button>
         </div>
     </div>
     <div id="viewModeFab">
