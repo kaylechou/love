@@ -1212,8 +1212,9 @@ function renderHTML(results, categories, opts) {
             var b = document.getElementById("videoToggleBtn");
             if (b) {
                 var env = getVideoNetEnv() || "cn";
-                b.innerHTML = env === "cn" ? "🇨🇳" : "🌍";
-                b.title = "网络环境：" + (env === "cn" ? "大陆" : "海外") + "（点击切换）";
+                b.innerHTML = "🎬";
+                b.title = "视频入口：" + (env === "cn" ? "精简显示" : "全部显示") + "（点击切换）";
+                b.style.opacity = env === "cn" ? ".55" : "1";
             }
         }
         function isVideoBlocked(url) {
@@ -3459,21 +3460,21 @@ function renderHTML(results, categories, opts) {
             <button onclick="fontStep(-1)" title="缩小字体">A－</button>
             <button onclick="fontReset()" title="恢复标准字号" class="font-reset-btn">重置</button>
         </div>
-        <button id="videoToggleBtn" onclick="openNetEnvModal()" title="选择网络环境">🇨🇳</button>
+        <button id="videoToggleBtn" onclick="openNetEnvModal()" title="视频入口设置">🎬</button>
         <button id="fontFabBtn" onclick="toggleFontPanel()" title="调整字体大小">字体</button>
     </div>
     <div id="netEnvModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6" style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px);">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center">
-            <div class="text-3xl mb-2">📡</div>
-            <h3 class="text-lg font-black text-slate-900 mb-1">选择你的网络环境</h3>
-            <p class="text-xs text-slate-500 mb-5">用于决定是否显示视频入口，选一次即可记住</p>
+            <div class="text-3xl mb-2">🎬</div>
+            <h3 class="text-lg font-black text-slate-900 mb-1">视频入口设置</h3>
+            <p class="text-xs text-slate-500 mb-5">选择视频内容的显示方式，选一次即可记住</p>
             <div class="space-y-3">
                 <button data-env="cn" onclick="setVideoNetEnv('cn')" class="netenv-opt w-full p-4 rounded-2xl border-2 text-left transition active:scale-95">
-                    <div class="text-base font-black">🇨🇳 大陆网络</div>
-                    <div class="text-xs text-slate-500 mt-1">只显示大陆可直接打开的视频</div>
+                    <div class="text-base font-black">精简显示</div>
+                    <div class="text-xs text-slate-500 mt-1">部分视频入口将不显示，页面更简洁</div>
                 </button>
                 <button data-env="intl" onclick="setVideoNetEnv('intl')" class="netenv-opt w-full p-4 rounded-2xl border-2 text-left transition active:scale-95">
-                    <div class="text-base font-black">🌍 海外网络</div>
+                    <div class="text-base font-black">全部显示</div>
                     <div class="text-xs text-slate-500 mt-1">显示全部视频入口</div>
                 </button>
             </div>
