@@ -679,7 +679,6 @@ function renderHTML(results, categories, opts) {
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script>try{if(localStorage.getItem("TQ_VIEW_MODE_V1")==="desktop"){document.querySelector('meta[name="viewport"]').setAttribute("content","width=1024");}}catch(e){}</script>
     <meta name="theme-color" content="#1e3a5f">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1167,6 +1166,14 @@ function renderHTML(results, categories, opts) {
         function applyViewMode() {
             var mode = "mobile";
             try { mode = localStorage.getItem(VIEW_MODE_KEY) || "mobile"; } catch (e) {}
+            var de = document.documentElement;
+            if (mode === "desktop") {
+                var scale = window.innerWidth / 1024;
+                scale = Math.max(0.3, Math.min(1, scale));
+                de.style.zoom = scale;
+            } else {
+                de.style.zoom = "";
+            }
             var btn = document.getElementById("viewModeBtn");
             if (btn) {
                 btn.innerHTML = mode === "desktop" ? "📱" : "🖥️";
@@ -1177,7 +1184,7 @@ function renderHTML(results, categories, opts) {
             var cur = "mobile";
             try { cur = localStorage.getItem(VIEW_MODE_KEY) || "mobile"; } catch (e) {}
             try { localStorage.setItem(VIEW_MODE_KEY, cur === "desktop" ? "mobile" : "desktop"); } catch (e) {}
-            location.reload();
+            applyViewMode();
         }
         function toggleFontPanel() {
             var p = document.getElementById("fontPanel");
@@ -3350,7 +3357,8 @@ function renderHTML(results, categories, opts) {
         }
         applyFontScale();
         applyViewMode();
-        document.addEventListener("DOMContentLoaded", applyFontScale); /* 浮钮HTML在script之后，等DOM就绪再刷标签 */
+        document.addEventListener("DOMContentLoaded", applyFontScale);
+        window.addEventListener("resize", function() { try { if (localStorage.getItem(VIEW_MODE_KEY) === "desktop") applyViewMode(); } catch (e) {} }); /* 浮钮HTML在script之后，等DOM就绪再刷标签 */
         var sn = localStorage.getItem(USER_KEY);
         syncNameBtn();
         var sqn = document.getElementById('scoreQueryName'); if (sqn && sn) sqn.value = sn;
