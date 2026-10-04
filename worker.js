@@ -1947,7 +1947,7 @@ function renderHTML(results, categories, opts) {
                 mt.num = CN_NUM[ti] || '';
                 mt.count = activeQuizzes.filter(function (q) { return q.type === mt.t; }).length;
             });
-            var tabBtns = '<button id="qtab-overview" onclick="switchQTab(\\'overview\\')" class="qtab-btn qtab-active">📖 课程导读</button>'
+            var tabBtns = '<button id="qtab-overview" onclick="switchQTab(\\'overview\\')" class="qtab-btn qtab-active">📚 课程导读</button>'
                 + typeTabs.map(function (mt) {
                     return '<button id="qtab-' + mt.t + '" onclick="switchQTab(\\'' + mt.t + '\\')" class="qtab-btn">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + '<span class="qtab-count">' + mt.count + '题</span></button>';
                 }).join('')
@@ -2382,7 +2382,7 @@ function renderHTML(results, categories, opts) {
             var meta = [c.category, c.subcategory].filter(function(x) { return x; }).join(' · ');
             var now = new Date(), ds = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
             var body = '', i;
-            if (c.content) body += '<section class="card"><h2>📖 课程导读</h2><div class="md">' + expMd(c.content) + '</div></section>';
+            if (c.content) body += '<section class="card"><h2>📚 课程导读</h2><div class="md">' + expMd(c.content) + '</div></section>';
             if (c.video_url) body += '<section class="card"><h2>🎬 课程视频</h2><p class="md"><a href="' + esc(c.video_url) + '">观看课程视频</a></p></section>';
             var realGuide = guide.filter(function(g) { return g && (g.title || (g.points || []).length); });
             if (realGuide.length) {
