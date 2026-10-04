@@ -716,6 +716,9 @@ function renderHTML(results, categories, opts) {
         #videoToggleBtn { width: 2.6rem; height: 2.6rem; border-radius: 9999px; background: linear-gradient(135deg,#f59e0b,#ef4444); color: #fff; font-size: 1.1rem; box-shadow: 0 6px 20px rgba(245,158,11,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; opacity: .55; transition: opacity .25s; display: flex; align-items: center; justify-content: center; }
         #videoToggleBtn:hover { opacity: 1; }
         #videoToggleBtn:active { transform: scale(.94); }
+        #netEnvModal .netenv-opt { border-color: #e2e8f0; background: #f8fafc; }
+        #netEnvModal .netenv-opt:hover { border-color: #a5b4fc; background: #eef2ff; }
+        #netEnvModal .netenv-opt.netenv-cur { border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 2px rgba(99,102,241,.25); }
         #fontFabBtn { opacity: .55; transition: opacity .25s; }
         #fontFab.open #fontFabBtn, #fontFabBtn:hover { opacity: 1; }
         #viewModeFab { position: fixed; left: 1rem; bottom: 5rem; z-index: 100; }
@@ -1167,34 +1170,50 @@ function renderHTML(results, categories, opts) {
         }
         function fontStep(d) { var i = getFontIdx() + d; i = Math.min(4, Math.max(0, i)); try { localStorage.setItem(FONT_KEY, String(i)); } catch(e) {} applyFontScale(); }
         var VIEW_MODE_KEY = "TQ_VIEW_MODE_V1";
-        /* 视频显示：零网络探测，仅靠域名黑名单+手动开关（最安全，不触发任何对外请求） */
-        var VIDEO_SHOW_KEY = "TQ_VIDEO_SHOW_V1";
+        /* 视频显示：学员按网络环境二选一（零网络探测，最安全） */
+        var VIDEO_NET_KEY = "TQ_VIDEO_NET_ENV_V1";
         var BLOCKED_VIDEO_DOMAINS = ["youtube.com", "youtu.be", "vimeo.com", "dailymotion.com", "twitch.tv", "facebook.com", "twitter.com", "instagram.com"];
         function videoDomain(url) {
             try { return new URL(url).hostname.toLowerCase(); } catch (e) { return ""; }
         }
-        function getVideoShowMode() {
-            try { return localStorage.getItem(VIDEO_SHOW_KEY) || "auto"; } catch (e) { return "auto"; }
+        function getVideoNetEnv() {
+            try { return localStorage.getItem(VIDEO_NET_KEY) || ""; } catch (e) { return ""; }
         }
-        function setVideoShowMode(m) {
-            try { localStorage.setItem(VIDEO_SHOW_KEY, m); } catch (e) {}
-            location.reload();
+        function setVideoNetEnv(env, norefresh) {
+            try { localStorage.setItem(VIDEO_NET_KEY, env); } catch (e) {}
+            var m = document.getElementById("netEnvModal");
+            if (m) m.classList.add("hidden");
+            syncVideoBtn();
+            if (!norefresh) location.reload();
         }
-        function toggleVideoMode() {
-            var cur = getVideoShowMode();
-            var next = cur === "auto" ? "show" : (cur === "show" ? "hide" : "auto");
-            var names = { auto: "自动", show: "全部显示", hide: "全部隐藏" };
-            if (confirm("视频入口显示设置\\n\\n当前：" + names[cur] + "\\n\\n自动：根据网络情况自动决定是否显示\\n全部显示：所有视频入口都显示\\n全部隐藏：所有视频入口都隐藏\\n\\n切换到：" + names[next] + "？")) {
-                setVideoShowMode(next);
+        function openNetEnvModal() {
+            var m = document.getElementById("netEnvModal");
+            if (m) {
+                m.classList.remove("hidden");
+                var cur = getVideoNetEnv() || "cn";
+                document.querySelectorAll("#netEnvModal .netenv-opt").forEach(function (el) {
+                    el.classList.toggle("netenv-cur", el.dataset.env === cur);
+                });
             }
+        }
+        function isVideoBlocked(url) {
+            if (!url) return false;
+            var env = getVideoNetEnv() || "cn";
+            if (env === "intl") return false;
+            var d = videoDomain(url);
+            if (!d) return false;
+            for (var i = 0; i < BLOCKED_VIDEO_DOMAINS.length; i++) {
+                var b = BLOCKED_VIDEO_DOMAINS[i];
+                if (d === b || d.slice(-b.length - 1) === "." + b) return true;
+            }
+            return false;
         }
         function syncVideoBtn() {
             var b = document.getElementById("videoToggleBtn");
             if (b) {
-                var mode = getVideoShowMode();
-                b.innerHTML = "🎬";
-                b.title = "视频入口：" + ({ auto: "自动", show: "全部显示", hide: "全部隐藏" })[mode] + "（点击切换）";
-                b.style.opacity = mode === "hide" ? ".3" : ".55";
+                var env = getVideoNetEnv() || "cn";
+                b.innerHTML = env === "cn" ? "🇨🇳" : "🌍";
+                b.title = "网络环境：" + (env === "cn" ? "大陆" : "海外") + "（点击切换）";
             }
         }
         function isVideoBlocked(url) {
@@ -3426,6 +3445,7 @@ function renderHTML(results, categories, opts) {
         var sn = localStorage.getItem(USER_KEY);
         syncNameBtn();
         syncVideoBtn();
+        try { if (!localStorage.getItem(VIDEO_NET_KEY)) setTimeout(openNetEnvModal, 800); } catch (e) {}
         var sqn = document.getElementById('scoreQueryName'); if (sqn && sn) sqn.value = sn;
         if (document.getElementById('studentSelect')) loadStudents();
         if (document.getElementById('adminStudentList')) loadAdminStudents();
@@ -3439,8 +3459,26 @@ function renderHTML(results, categories, opts) {
             <button onclick="fontStep(-1)" title="缩小字体">A－</button>
             <button onclick="fontReset()" title="恢复标准字号" class="font-reset-btn">重置</button>
         </div>
-        <button id="videoToggleBtn" onclick="toggleVideoMode()" title="视频入口显示设置">🎬</button>
+        <button id="videoToggleBtn" onclick="openNetEnvModal()" title="选择网络环境">🇨🇳</button>
         <button id="fontFabBtn" onclick="toggleFontPanel()" title="调整字体大小">字体</button>
+    </div>
+    <div id="netEnvModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6" style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px);">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="text-3xl mb-2">📡</div>
+            <h3 class="text-lg font-black text-slate-900 mb-1">选择你的网络环境</h3>
+            <p class="text-xs text-slate-500 mb-5">用于决定是否显示视频入口，选一次即可记住</p>
+            <div class="space-y-3">
+                <button data-env="cn" onclick="setVideoNetEnv('cn')" class="netenv-opt w-full p-4 rounded-2xl border-2 text-left transition active:scale-95">
+                    <div class="text-base font-black">🇨🇳 大陆网络</div>
+                    <div class="text-xs text-slate-500 mt-1">只显示大陆可直接打开的视频</div>
+                </button>
+                <button data-env="intl" onclick="setVideoNetEnv('intl')" class="netenv-opt w-full p-4 rounded-2xl border-2 text-left transition active:scale-95">
+                    <div class="text-base font-black">🌍 海外网络</div>
+                    <div class="text-xs text-slate-500 mt-1">显示全部视频入口</div>
+                </button>
+            </div>
+            <button onclick="setVideoNetEnv('cn', true)" class="mt-4 text-xs text-slate-400 hover:underline">稍后再说</button>
+        </div>
     </div>
     <div id="viewModeFab">
         <button id="viewModeBtn" onclick="toggleViewMode()" title="切换到桌面版">🖥️</button>
