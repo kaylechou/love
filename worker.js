@@ -1250,19 +1250,7 @@ function renderHTML(results, categories, opts) {
                 b.style.opacity = env === "cn" ? ".55" : "1";
             }
         }
-        function isVideoBlocked(url) {
-            if (!url) return false;
-            var mode = getVideoShowMode();
-            if (mode === "show") return false;
-            if (mode === "hide") return true;
-            var d = videoDomain(url);
-            if (!d) return false;
-            for (var i = 0; i < BLOCKED_VIDEO_DOMAINS.length; i++) {
-                var b = BLOCKED_VIDEO_DOMAINS[i];
-                if (d === b || d.slice(-b.length - 1) === "." + b) return true;
-            }
-            return false;
-        }
+
         function applyViewMode() {
             var mode = "mobile";
             try { mode = localStorage.getItem(VIEW_MODE_KEY) || "mobile"; } catch (e) {}
