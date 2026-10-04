@@ -1164,62 +1164,46 @@ function renderHTML(results, categories, opts) {
         }
         function fontStep(d) { var i = getFontIdx() + d; i = Math.min(4, Math.max(0, i)); try { localStorage.setItem(FONT_KEY, String(i)); } catch(e) {} applyFontScale(); }
         var VIEW_MODE_KEY = "TQ_VIEW_MODE_V1";
-        /* 视频网络可访问性：检测视频域名是否可达，不可达则隐藏视频入口 */
-        var VIDEO_NET = {}, VIDEO_NET_KEY = "TQ_VIDEO_NET_V2";
+        /* 视频显示：零网络探测，仅靠域名黑名单+手动开关（最安全，不触发任何对外请求） */
+        var VIDEO_SHOW_KEY = "TQ_VIDEO_SHOW_V1";
+        var BLOCKED_VIDEO_DOMAINS = ["youtube.com", "youtu.be", "vimeo.com", "dailymotion.com", "twitch.tv", "facebook.com", "twitter.com", "instagram.com"];
         function videoDomain(url) {
-            try { return new URL(url).hostname; } catch (e) { return ""; }
+            try { return new URL(url).hostname.toLowerCase(); } catch (e) { return ""; }
+        }
+        function getVideoShowMode() {
+            try { return localStorage.getItem(VIDEO_SHOW_KEY) || "auto"; } catch (e) { return "auto"; }
+        }
+        function setVideoShowMode(m) {
+            try { localStorage.setItem(VIDEO_SHOW_KEY, m); } catch (e) {}
+            location.reload();
+        }
+        function toggleVideoMode() {
+            var cur = getVideoShowMode();
+            var next = cur === "auto" ? "show" : (cur === "show" ? "hide" : "auto");
+            var names = { auto: "自动", show: "全部显示", hide: "全部隐藏" };
+            if (confirm("视频入口显示设置\\n\\n当前：" + names[cur] + "\\n\\n自动：屏蔽已知不可访问的视频网站（如 YouTube），其他正常显示\\n全部显示：所有视频入口都显示\\n全部隐藏：所有视频入口都隐藏\\n\\n切换到：" + names[next] + "？")) {
+                setVideoShowMode(next);
+            }
+        }
+        function syncVideoBtn() {
+            var b = document.getElementById("videoToggleBtn");
+            if (b) {
+                var names = { auto: "自动", show: "显示", hide: "隐藏" };
+                b.innerHTML = "🎬 " + names[getVideoShowMode()];
+            }
         }
         function isVideoBlocked(url) {
             if (!url) return false;
+            var mode = getVideoShowMode();
+            if (mode === "show") return false;
+            if (mode === "hide") return true;
             var d = videoDomain(url);
             if (!d) return false;
-            return VIDEO_NET[d] === false;
-        }
-        function hideVideoUI() {
-            document.querySelectorAll(".video-badge").forEach(function (el) { el.style.display = "none"; });
-            var vh = document.getElementById("lessonVideoWrap");
-            if (vh) vh.style.display = "none";
-        }
-        function checkOneDomain(domain) {
-            return new Promise(function (resolve) {
-                if (VIDEO_NET[domain] !== undefined) { resolve(VIDEO_NET[domain]); return; }
-                try {
-                    var c = JSON.parse(localStorage.getItem(VIDEO_NET_KEY + "_" + domain) || "null");
-                    if (c && Date.now() - c.t < (c.v ? 7 * 24 * 3600 * 1000 : 2 * 3600 * 1000)) {
-                        VIDEO_NET[domain] = c.v;
-                        resolve(c.v);
-                        return;
-                    }
-                } catch (e) {}
-                var done = false;
-                function fin(ok) {
-                    if (done) return; done = true;
-                    VIDEO_NET[domain] = ok;
-                    try { localStorage.setItem(VIDEO_NET_KEY + "_" + domain, JSON.stringify({ v: ok, t: Date.now() })); } catch (e) {}
-                    resolve(ok);
-                }
-                setTimeout(function () { fin(false); }, 6000);
-                try {
-                    fetch("https://" + domain + "/favicon.ico", { mode: "no-cors", cache: "no-store" })
-                        .then(function () { fin(true); })
-                        .catch(function () { fin(false); });
-                } catch (e) { fin(false); }
-            });
-        }
-        function checkVideoNet() {
-            var domains = {};
-            try {
-                (allData || []).forEach(function (c) {
-                    var d = videoDomain(c.video_url || "");
-                    if (d) domains[d] = 1;
-                });
-            } catch (e) {}
-            var list = Object.keys(domains);
-            if (!list.length) return;
-            Promise.all(list.map(checkOneDomain)).then(function () {
-                var blocked = list.some(function (d) { return VIDEO_NET[d] === false; });
-                if (blocked) hideVideoUI();
-            });
+            for (var i = 0; i < BLOCKED_VIDEO_DOMAINS.length; i++) {
+                var b = BLOCKED_VIDEO_DOMAINS[i];
+                if (d === b || d.slice(-b.length - 1) === "." + b) return true;
+            }
+            return false;
         }
         function applyViewMode() {
             var mode = "mobile";
@@ -1277,7 +1261,6 @@ function renderHTML(results, categories, opts) {
             } catch (e) {}
             var list = (BOOT.list && BOOT.list.length) ? BOOT.list : (BOOT.shareMode ? [] : allData);
             renderSections(list);
-            checkVideoNet();
             updateStats();
             if (!BOOT.isAdmin) {
                 var nr = await fetch('/api/notice').then(function(x){ return x.json(); }).catch(function(){ return {}; });
@@ -1964,8 +1947,6 @@ function renderHTML(results, categories, opts) {
 
             var videoHtml = "";
             if (item.video_url && !isVideoBlocked(item.video_url)) {
-                var vd = videoDomain(item.video_url);
-                if (vd && VIDEO_NET[vd] === undefined) checkOneDomain(vd).then(function (ok) { if (!ok) hideVideoUI(); });
                 if (/\\\.(mp4|webm|m4v|ogg)(\\\?|#|$)/i.test(item.video_url)) {
                     videoHtml = '<div id="lessonVideoWrap" class="rounded-3xl overflow-hidden bg-black mb-8"><video src="' + esc(item.video_url) + '" controls playsinline preload="metadata" class="w-full max-h-[60vh]"></video></div>';
                 } else {
@@ -3439,6 +3420,7 @@ function renderHTML(results, categories, opts) {
         window.addEventListener("resize", function() { try { if (localStorage.getItem(VIEW_MODE_KEY) === "desktop") applyViewMode(); } catch (e) {} }); /* 浮钮HTML在script之后，等DOM就绪再刷标签 */
         var sn = localStorage.getItem(USER_KEY);
         syncNameBtn();
+        syncVideoBtn();
         var sqn = document.getElementById('scoreQueryName'); if (sqn && sn) sqn.value = sn;
         if (document.getElementById('studentSelect')) loadStudents();
         if (document.getElementById('adminStudentList')) loadAdminStudents();
@@ -3451,6 +3433,7 @@ function renderHTML(results, categories, opts) {
             <div id="fontLevelLabel" class="text-xs font-bold text-slate-600 px-1">标准</div>
             <button onclick="fontStep(-1)" title="缩小字体">A－</button>
             <button onclick="fontReset()" title="恢复标准字号" class="font-reset-btn">重置</button>
+            <button id="videoToggleBtn" onclick="toggleVideoMode()" title="视频入口显示设置" style="width:auto;padding:0 .6rem;font-size:.7rem;">🎬 视频</button>
         </div>
         <button id="fontFabBtn" onclick="toggleFontPanel()" title="调整字体大小">字体</button>
     </div>
