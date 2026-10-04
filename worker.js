@@ -2001,7 +2001,7 @@ function renderHTML(results, categories, opts) {
             function qCardWrap(q, i, n) {
                 return '<div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 text-slate-700 leading-relaxed">' + renderQ(q, i, n) + '</div>';
             }
-            var typeSecs = typeTabs.map(function (mt) {
+            var typeSecs = typeTabs.map(function (mt, ti) {
                 var secHtml = '';
                 var qnum = 0;
                 if (hasSections) {
@@ -2029,10 +2029,18 @@ function renderHTML(results, categories, opts) {
                     });
                     secHtml = '<div class="space-y-4">' + flat + '</div>';
                 }
+                var prevBtn = ti > 0
+                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti - 1].t + '\\')" class="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95">← 上一题型：' + typeTabs[ti - 1].label + '</button>'
+                    : '<span></span>';
+                var nextBtn = ti < typeTabs.length - 1
+                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti + 1].t + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">下一题型：' + typeTabs[ti + 1].label + ' →</button>'
+                    : '<button onclick="switchQTab(\\'report\\')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">查看成绩报告 →</button>';
                 return '<section id="qsec-' + mt.t + '" class="qsec hidden">'
                     + '<div class="flex items-center gap-2 mb-4"><span class="w-2 h-6 bg-indigo-600 rounded-full"></span>'
                     + '<h2 class="text-xl font-bold text-slate-900">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + ' <span class="text-sm font-normal text-slate-400">(共' + mt.count + '题)</span></h2></div>'
-                    + secHtml + '</section>';
+                    + secHtml
+                    + '<div class="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-slate-200">' + prevBtn + nextBtn + '</div>'
+                    + '</section>';
             }).join('');
             /* 成绩报告页 */
             var reportSec = '<section id="qsec-report" class="qsec hidden"><div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 text-center space-y-6">'
