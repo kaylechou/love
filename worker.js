@@ -1184,7 +1184,7 @@ function renderHTML(results, categories, opts) {
             var cur = getVideoShowMode();
             var next = cur === "auto" ? "show" : (cur === "show" ? "hide" : "auto");
             var names = { auto: "自动", show: "全部显示", hide: "全部隐藏" };
-            if (confirm("视频入口显示设置\\n\\n当前：" + names[cur] + "\\n\\n自动：屏蔽已知不可访问的视频网站（如 YouTube），其他正常显示\\n全部显示：所有视频入口都显示\\n全部隐藏：所有视频入口都隐藏\\n\\n切换到：" + names[next] + "？")) {
+            if (confirm("视频入口显示设置\\n\\n当前：" + names[cur] + "\\n\\n自动：根据网络情况自动决定是否显示\\n全部显示：所有视频入口都显示\\n全部隐藏：所有视频入口都隐藏\\n\\n切换到：" + names[next] + "？")) {
                 setVideoShowMode(next);
             }
         }
