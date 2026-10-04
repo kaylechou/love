@@ -1323,7 +1323,7 @@ function renderHTML(results, categories, opts) {
             }
             var sid = new URLSearchParams(window.location.search).get('id');
             if (!sid) {
-                var pm = window.location.pathname.match(/^\\/(ID-[A-Za-z0-9_-]+)$/);
+                var pm = window.location.pathname.match(/^\/(ID-[A-Za-z0-9_-]+)$/);
                 if (pm) sid = pm[1];
             }
             if (sid && allData.length > 0) startLesson(sid);
