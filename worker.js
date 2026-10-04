@@ -713,6 +713,9 @@ function renderHTML(results, categories, opts) {
         #fontFab { position: fixed; right: 1rem; bottom: 5rem; z-index: 100; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
         #fontFabBtn { height: 3rem; padding: 0 1.1rem; border-radius: 9999px; background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff; font-weight: 900; font-size: 1rem; box-shadow: 0 6px 20px rgba(124,93,250,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; }
         #fontFabBtn:active { transform: scale(.94); }
+        #videoToggleBtn { width: 2.6rem; height: 2.6rem; border-radius: 9999px; background: linear-gradient(135deg,#f59e0b,#ef4444); color: #fff; font-size: 1.1rem; box-shadow: 0 6px 20px rgba(245,158,11,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; opacity: .55; transition: opacity .25s; display: flex; align-items: center; justify-content: center; }
+        #videoToggleBtn:hover { opacity: 1; }
+        #videoToggleBtn:active { transform: scale(.94); }
         #fontFabBtn { opacity: .55; transition: opacity .25s; }
         #fontFab.open #fontFabBtn, #fontFabBtn:hover { opacity: 1; }
         #viewModeFab { position: fixed; left: 1rem; bottom: 5rem; z-index: 100; }
@@ -1188,8 +1191,10 @@ function renderHTML(results, categories, opts) {
         function syncVideoBtn() {
             var b = document.getElementById("videoToggleBtn");
             if (b) {
-                var names = { auto: "自动", show: "显示", hide: "隐藏" };
-                b.innerHTML = "🎬 " + names[getVideoShowMode()];
+                var mode = getVideoShowMode();
+                b.innerHTML = "🎬";
+                b.title = "视频入口：" + ({ auto: "自动", show: "全部显示", hide: "全部隐藏" })[mode] + "（点击切换）";
+                b.style.opacity = mode === "hide" ? ".3" : ".55";
             }
         }
         function isVideoBlocked(url) {
@@ -3433,8 +3438,8 @@ function renderHTML(results, categories, opts) {
             <div id="fontLevelLabel" class="text-xs font-bold text-slate-600 px-1">标准</div>
             <button onclick="fontStep(-1)" title="缩小字体">A－</button>
             <button onclick="fontReset()" title="恢复标准字号" class="font-reset-btn">重置</button>
-            <button id="videoToggleBtn" onclick="toggleVideoMode()" title="视频入口显示设置" style="width:auto;padding:0 .6rem;font-size:.7rem;">🎬 视频</button>
         </div>
+        <button id="videoToggleBtn" onclick="toggleVideoMode()" title="视频入口显示设置">🎬</button>
         <button id="fontFabBtn" onclick="toggleFontPanel()" title="调整字体大小">字体</button>
     </div>
     <div id="viewModeFab">
