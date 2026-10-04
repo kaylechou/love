@@ -2039,7 +2039,7 @@ function renderHTML(results, categories, opts) {
                     + '<div class="flex items-center gap-2 mb-4"><span class="w-2 h-6 bg-indigo-600 rounded-full"></span>'
                     + '<h2 class="text-xl font-bold text-slate-900">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + ' <span class="text-sm font-normal text-slate-400">(共' + mt.count + '题)</span></h2></div>'
                     + secHtml
-                    + '<div class="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-slate-200">' + prevBtn + nextBtn + '</div>'
+                    + '<div class="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-slate-200 mb-24">' + prevBtn + nextBtn + '</div>'
                     + '</section>';
             }).join('');
             /* 成绩报告页 */
