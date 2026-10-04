@@ -1,3 +1,11 @@
+# 2026-10-04 第 51 次部署：视频显示改零探测方案+手动开关
+- 上线 deployment：`6d026181b2264914a68131f35c85f9f0`
+- 安全考虑：移除所有网络探测请求（不再 fetch 任何外部域名），改用纯本地域名黑名单判断
+- 内置屏蔽域名：youtube.com、youtu.be、vimeo.com、dailymotion.com、twitch.tv、facebook.com、twitter.com、instagram.com
+- 三种模式（存在 localStorage，默认自动）：自动（屏蔽黑名单域名，其他显示）/ 全部显示 / 全部隐藏
+- 字体面板新增 🎬 视频按钮，点击弹窗切换模式，按钮文字显示当前模式
+- 回归：served 脚本语法通过
+
 # 2026-10-04 第 50 次部署：视频检测改为通用域名机制
 - 上线 deployment：`c695ddfb52e54356af423da898c1d02b`
 - 不再只检测 YouTube：任意视频链接都提取域名逐个检测可访问性（favicon 探测，6 秒超时）
