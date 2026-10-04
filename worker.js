@@ -1179,7 +1179,7 @@ function renderHTML(results, categories, opts) {
         /* 解析多视频链接：一行一个，格式 "名称|URL" 或纯 URL；返回 [{label, url}] */
         function parseVideoUrls(s) {
             var out = [];
-            String(s || "").split("\n").forEach(function (line) {
+            String(s || "").split("\\n").forEach(function (line) {
                 line = line.trim();
                 if (!line) return;
                 var label = "", url = line;
@@ -1190,8 +1190,8 @@ function renderHTML(results, categories, opts) {
                     var d = videoDomain(url);
                     if (/youtu.?be|youtube/i.test(d)) label = "YouTube";
                     else if (/bilibili/i.test(d)) label = "哔哩哔哩";
-                    else if (/weixin\.qq/i.test(d)) label = "企业微盘";
-                    else if (/\.(mp4|webm|m4v|ogg)(\?|#|$)/i.test(url)) label = "视频直链";
+                    else if (/weixin\\.qq/i.test(d)) label = "企业微盘";
+                    else if (/\\.(mp4|webm|m4v|ogg)(\\?|#|$)/i.test(url)) label = "视频直链";
                     else label = d || "视频链接";
                 }
                 if (!isVideoBlocked(url)) out.push({ label: label, url: url });
@@ -1201,13 +1201,20 @@ function renderHTML(results, categories, opts) {
         function openVideoChoice(videos) {
             if (!videos.length) return;
             if (videos.length === 1) { window.open(videos[0].url, "_blank", "noopener"); return; }
+            window._vidsChoice = videos;
             var m = document.getElementById("videoChoiceModal");
             if (!m) return;
             document.getElementById("videoChoiceList").innerHTML = videos.map(function (v, i) {
-                return '<button onclick="window.open(\'' + v.url.replace(/\'/g, "\\'") + '\', \'_blank\', \'noopener\');document.getElementById(\'videoChoiceModal\').classList.add(\'hidden\')" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition active:scale-95 flex items-center gap-3">'
-                    + '<span class="text-2xl">▶️</span><span><span class="block font-bold text-slate-800">' + esc(v.label) + '</span><span class="block text-xs text-slate-400 truncate max-w-[220px]">' + esc(v.url) + '</span></span></button>';
+                return '<button data-vi="' + i + '" onclick="openVideoByIdx(this)" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition active:scale-95 flex items-center gap-3">'
+                    + '<span class="text-2xl">\u25b6\ufe0f</span><span><span class="block font-bold text-slate-800">' + esc(v.label) + '</span><span class="block text-xs text-slate-400 truncate max-w-[220px]">' + esc(v.url) + '</span></span></button>';
             }).join("");
             m.classList.remove("hidden");
+        }
+        function openVideoByIdx(el) {
+            var i = parseInt(el.getAttribute("data-vi") || "0", 10);
+            var v = (window._vidsChoice || [])[i];
+            document.getElementById("videoChoiceModal").classList.add("hidden");
+            if (v && v.url) window.open(v.url, "_blank", "noopener");
         }
         function getVideoNetEnv() {
             try { return localStorage.getItem(VIDEO_NET_KEY) || ""; } catch (e) { return ""; }
@@ -1323,7 +1330,7 @@ function renderHTML(results, categories, opts) {
             }
             var sid = new URLSearchParams(window.location.search).get('id');
             if (!sid) {
-                var pm = window.location.pathname.match(/^\/(ID-[A-Za-z0-9_-]+)$/);
+                var pm = window.location.pathname.match(/^\\/(ID-[A-Za-z0-9_-]+)$/);
                 if (pm) sid = pm[1];
             }
             if (sid && allData.length > 0) startLesson(sid);
