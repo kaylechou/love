@@ -1,3 +1,9 @@
+# 2026-10-04 第 57 次部署：修复课程列表卡"加载中"
+- 上线 deployment：`2789e4990fc94084b98e6c202affeb14`
+- 根因：worker.js 里有两个重复的 isVideoBlocked 函数定义，第二个引用了不存在的 getVideoShowMode()，导致整个页面脚本报错、课程列表卡在"加载中"
+- 修复：删除重复的旧版函数定义，保留当前版本
+- 回归：worker.js 语法通过
+
 # 2026-10-04 第 56 次部署：一课多视频源+学员自选
 - 上线 deployment：`b4d4719a3a344b93b8b57faa0b632c7e`
 - 管理端视频链接改为多行 textarea，一行一个，格式"名称|链接"（如 YouTube|https://youtu.be/xxx）；只写链接也行，自动识别网站名
