@@ -1167,14 +1167,21 @@ function renderHTML(results, categories, opts) {
             var mode = "mobile";
             try { mode = localStorage.getItem(VIEW_MODE_KEY) || "mobile"; } catch (e) {}
             var de = document.documentElement;
+            var btn = document.getElementById("viewModeBtn");
+            var vmFab = document.getElementById("viewModeFab");
+            var fontFab = document.getElementById("fontFab");
             if (mode === "desktop") {
                 var scale = window.innerWidth / 1024;
                 scale = Math.max(0.3, Math.min(1, scale));
                 de.style.zoom = scale;
+                var inv = 1 / scale;
+                if (vmFab) { vmFab.style.zoom = inv; vmFab.style.left = inv + "rem"; vmFab.style.bottom = (5 * inv) + "rem"; }
+                if (fontFab) { fontFab.style.zoom = inv; fontFab.style.right = inv + "rem"; fontFab.style.bottom = (5 * inv) + "rem"; }
             } else {
                 de.style.zoom = "";
+                if (vmFab) { vmFab.style.zoom = ""; vmFab.style.left = ""; vmFab.style.bottom = ""; }
+                if (fontFab) { fontFab.style.zoom = ""; fontFab.style.right = ""; fontFab.style.bottom = ""; }
             }
-            var btn = document.getElementById("viewModeBtn");
             if (btn) {
                 btn.innerHTML = mode === "desktop" ? "📱" : "🖥️";
                 btn.title = mode === "desktop" ? "切换到移动版" : "切换到桌面版";
