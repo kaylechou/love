@@ -679,6 +679,7 @@ function renderHTML(results, categories, opts) {
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>try{if(localStorage.getItem("TQ_VIEW_MODE_V1")==="desktop"){document.querySelector('meta[name="viewport"]').setAttribute("content","width=1024");}}catch(e){}</script>
     <meta name="theme-color" content="#1e3a5f">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -715,6 +716,10 @@ function renderHTML(results, categories, opts) {
         #fontFabBtn:active { transform: scale(.94); }
         #fontFabBtn { opacity: .55; transition: opacity .25s; }
         #fontFab.open #fontFabBtn, #fontFabBtn:hover { opacity: 1; }
+        #viewModeFab { position: fixed; left: 1rem; bottom: 5rem; z-index: 100; }
+        #viewModeBtn { height: 3rem; min-width: 3rem; padding: 0 .9rem; border-radius: 9999px; background: linear-gradient(135deg,#0ea5e9,#6366f1); color: #fff; font-weight: 900; font-size: 1rem; box-shadow: 0 6px 20px rgba(14,165,233,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; opacity: .55; transition: opacity .25s; }
+        #viewModeBtn:hover { opacity: 1; }
+        #viewModeBtn:active { transform: scale(.94); }
         #fontPanel .font-reset-btn { height: 1.7rem; font-size: .7rem; font-weight: 700; background: #fff; color: #94a3b8; }
         #fontPanel { background: #fff; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.18); border: 1px solid #ede9fe; padding: .55rem; display: flex; flex-direction: column; gap: .35rem; align-items: center; }
         #fontPanel button { width: 2.6rem; height: 2.2rem; border-radius: .6rem; background: #f5f3ff; color: #6d28d9; font-weight: 900; cursor: pointer; border: 1px solid #ede9fe; }
@@ -1158,6 +1163,22 @@ function renderHTML(results, categories, opts) {
             var lb = document.getElementById("fontLevelLabel"); if (lb) lb.innerText = FONT_LABELS[i];
         }
         function fontStep(d) { var i = getFontIdx() + d; i = Math.min(4, Math.max(0, i)); try { localStorage.setItem(FONT_KEY, String(i)); } catch(e) {} applyFontScale(); }
+        var VIEW_MODE_KEY = "TQ_VIEW_MODE_V1";
+        function applyViewMode() {
+            var mode = "mobile";
+            try { mode = localStorage.getItem(VIEW_MODE_KEY) || "mobile"; } catch (e) {}
+            var btn = document.getElementById("viewModeBtn");
+            if (btn) {
+                btn.innerHTML = mode === "desktop" ? "📱" : "🖥️";
+                btn.title = mode === "desktop" ? "切换到移动版" : "切换到桌面版";
+            }
+        }
+        function toggleViewMode() {
+            var cur = "mobile";
+            try { cur = localStorage.getItem(VIEW_MODE_KEY) || "mobile"; } catch (e) {}
+            try { localStorage.setItem(VIEW_MODE_KEY, cur === "desktop" ? "mobile" : "desktop"); } catch (e) {}
+            location.reload();
+        }
         function toggleFontPanel() {
             var p = document.getElementById("fontPanel");
             var f = document.getElementById("fontFab");
@@ -3328,6 +3349,7 @@ function renderHTML(results, categories, opts) {
             else alert("修改失败：" + (j.error || "未知错误"));
         }
         applyFontScale();
+        applyViewMode();
         document.addEventListener("DOMContentLoaded", applyFontScale); /* 浮钮HTML在script之后，等DOM就绪再刷标签 */
         var sn = localStorage.getItem(USER_KEY);
         syncNameBtn();
@@ -3345,6 +3367,9 @@ function renderHTML(results, categories, opts) {
             <button onclick="fontReset()" title="恢复标准字号" class="font-reset-btn">重置</button>
         </div>
         <button id="fontFabBtn" onclick="toggleFontPanel()" title="调整字体大小">字体</button>
+    </div>
+    <div id="viewModeFab">
+        <button id="viewModeBtn" onclick="toggleViewMode()" title="切换到桌面版">🖥️</button>
     </div>
 <script>
 /* PWA：注册 Service Worker（满足 Android WebAPK 可安装性；iOS 用添加到主屏幕） */
