@@ -1,0 +1,1 @@
+{"dependencies":{},"description":"团契智学 NAS/Docker 版（Node 22+ 内置 sqlite，零编译）","engines":{"node":">=22"},"name":"tuanqi-nas","scripts":{"start":"node server.mjs"},"type":"module","version":"1.0.0"}
