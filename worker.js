@@ -1867,16 +1867,24 @@ function twCourse(c) {
             if (!f) return nm;
             return curLang() === 'tw' ? toTW(f) : f;
         }
-        /* 子栏目名差异化高亮：旧约/新约徽章 + 分类名 */
+        /* 子栏目名差异化高亮：旧约/新约/讲员徽章 + 分类名 */
         function hlSubcat(s) {
             s = esc(s);
-            return s.replace(/^(旧約|新約|旧约|新约)([\s•·]*)/, function (m, t) {
+            /* 旧约/新约 */
+            var out = s.replace(/^(旧約|新約|旧约|新约)([\s•·]*)/, function (m, t) {
                 var isOld = t.charAt(0) === '旧' || t.charAt(0) === '舊';
                 var style = isOld
                     ? 'background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;'
                     : 'background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;';
                 return '<span style="display:inline-block;' + style + 'font-weight:700;font-size:.72rem;padding:.12rem .6rem;border-radius:9999px;white-space:nowrap;vertical-align:.05em;box-shadow:0 1px 4px rgba(0,0,0,.2);">' + t + '</span><span style="color:#94a3b8;margin:0 .35rem;">•</span>';
             });
+            if (out !== s) return out;
+            /* 讲员名-系列名，如：寇绍涵牧师-根基建造101 */
+            out = s.replace(/^([^-\s•·]+?)(?:牧师|老师|博士|长老)([\s\-—•·]+)/, function (m, name, sep) {
+                var title = m.slice(0, m.length - sep.length);
+                return '<span style="display:inline-block;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;font-weight:700;font-size:.72rem;padding:.12rem .6rem;border-radius:9999px;white-space:nowrap;vertical-align:.05em;box-shadow:0 1px 4px rgba(0,0,0,.2);">' + title + '</span><span style="color:#94a3b8;margin:0 .35rem;">•</span>';
+            });
+            return out;
         }
         function hlVerse(s) {
             s = String(s == null ? "" : s);
