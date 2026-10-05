@@ -2479,7 +2479,7 @@ function twCourse(c) {
                 var vq = Object.assign({}, q);
                 vq.q = stripVerseTag(q.q);
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
-                    + '<p class="mb-3"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || t("coreVerse"))) + '</span></p>'
+                    + ((q.h || q.o) ? '<p class="mb-3"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o)) + '</span></p>' : '')
                     + '<div class="text-slate-800"><span class="verse-text">' + studyPara(vq, i) + '</span></div>' + verdict + '</div></div>';
             }
             if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') {
@@ -3326,7 +3326,7 @@ function twCourse(c) {
                             if (ce > 0 && ce < 12) rawQ = rawQ.slice(ce + 1);
                         }
                         /* 经文出处徽章（与网页端一致，q.o 如"《约翰福音》3章16节"） */
-                        vref = '<div class="verse-ref-line"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || t("coreVerse"))) + '</span></div>';
+                        vref = (q.h || q.o) ? '<div class="verse-ref-line"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o)) + '</span></div>' : '';
                     }
                     var qtext = expInline(hlVerse(esc(rawQ)));
                     var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
