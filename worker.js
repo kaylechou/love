@@ -1429,6 +1429,7 @@ function renderHTML(results, categories, opts) {
                 if (pm) sid = pm[1];
             }
             if (sid && allData.length > 0) startLesson(sid);
+            try { var _w = sessionStorage.getItem('TQ_WELCOME'); if (_w) { sessionStorage.removeItem('TQ_WELCOME'); showWelcomeToast(_w); } } catch (e) {}
         }
         window.onload = load;
 
@@ -1735,8 +1736,9 @@ function renderHTML(results, categories, opts) {
                 document.getElementById('authPw').value = '';
                 document.getElementById('authPw2').value = '';
                 document.getElementById('authModal').style.display = 'none';
-                if (window._authReload) { window._authReload = false; location.reload(); return; }
+                if (window._authReload) { window._authReload = false; try { sessionStorage.setItem('TQ_WELCOME', name); } catch (e) {} location.reload(); return; }
                 syncNameBtn();
+                showWelcomeToast(name);
                 var snb = document.getElementById("shareNameBox"); if (snb) snb.innerHTML = shareNameHTML();
                 if (activeLessonId) { var _pg = getMyProg(); if (!_pg[activeLessonId] || !_pg[activeLessonId].completed) { _pg[activeLessonId] = { started: true, completed: false }; setMyProg(_pg); } }
                 var t = window._pendingQTab; window._pendingQTab = null;
@@ -1749,6 +1751,30 @@ function renderHTML(results, categories, opts) {
             }
         }
         function openShareAuth() { openAuthModal('login', null, false); }
+        /* 登录成功欢迎动画：全屏遮罩 + 渐入弹跳卡片，自动消失，可点击提前关闭 */
+        function showWelcomeToast(name) {
+            var old = document.getElementById('welcomeToast');
+            if (old) old.remove();
+            var st = document.getElementById('welcomeToastStyle');
+            if (!st) {
+                st = document.createElement('style');
+                st.id = 'welcomeToastStyle';
+                st.textContent = '@keyframes tqWelcomeIn{0%{opacity:0;transform:scale(.8) translateY(24px)}60%{opacity:1;transform:scale(1.05) translateY(0)}100%{opacity:1;transform:scale(1) translateY(0)}}'
+                    + '@keyframes tqWelcomeGlow{0%,100%{box-shadow:0 0 24px rgba(139,92,246,.45)}50%{box-shadow:0 0 48px rgba(139,92,246,.8)}}'
+                    + '@keyframes tqWelcomeFade{to{opacity:0;visibility:hidden}}';
+                document.head.appendChild(st);
+            }
+            var div = document.createElement('div');
+            div.id = 'welcomeToast';
+            div.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(15,10,40,.45);backdrop-filter:blur(4px);animation:tqWelcomeFade .4s ease 2.6s forwards;cursor:pointer';
+            div.innerHTML = '<div style="text-align:center;padding:36px 52px;background:linear-gradient(135deg,#7c3aed,#4f46e5);border-radius:24px;color:#fff;animation:tqWelcomeIn .55s cubic-bezier(.2,1.4,.4,1),tqWelcomeGlow 2s ease-in-out infinite;max-width:86vw">'
+                + '<div style="font-size:46px;margin-bottom:12px">🎉</div>'
+                + '<div style="font-size:22px;font-weight:800;margin-bottom:8px">欢迎 ' + esc(name) + '</div>'
+                + '<div style="font-size:15px;opacity:.92">开启学习之旅！</div></div>';
+            div.onclick = function() { div.remove(); };
+            setTimeout(function() { if (div.parentNode) div.remove(); }, 3100);
+            document.body.appendChild(div);
+        }
         /* 分享页姓名条：与主站共用同一本地姓名，成绩自动记在其名下 */
         function shareNameHTML() {
             var sn0 = (localStorage.getItem(USER_KEY) || "").trim();
