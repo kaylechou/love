@@ -1159,7 +1159,7 @@ var I18N = {
 zh: {
 appName: '团契智学', wrongBook: '📝 错题本', setName: '设置姓名', langT: '选择语言', cancel: '取消',
 searchPh: '搜索课程...', statAll: '全部课程', statDone: '已完成', statDoing: '进行中', statAvg: '平均分',
-startLearning: '开始学习', videoBadge: '🎬 视频', copyLinkT: '复制分享链接', nLessons: '{n} 课', emptyResult: '没有找到匹配的课程',
+startLearning: '开始学习', loading: '加载中...', videoBadge: '🎬 视频', copyLinkT: '复制分享链接', nLessons: '{n} 课', emptyResult: '没有找到匹配的课程',
 stDone: '已完成', stDoing: '进行中', stNot: '未开始',
 backList: '← 返回课程列表', backHome: '← 返回智学课程系统', studentIs: '学员：', changeBtn: '更换', loginReg: '登录 / 注册',
 tabGuide: '📚 课程导读', tabReport: '📊 成绩报告',
@@ -1222,7 +1222,7 @@ statAll: 'Total Courses',
 statDone: 'Completed',
 statDoing: 'In Progress',
 statAvg: 'Avg Score',
-startLearning: 'Start Learning',
+startLearning: 'Start Learning', loading: 'Loading...',
 videoBadge: '🎬 Video',
 copyLinkT: 'Copy share link',
 nLessons: '{n} lessons',
@@ -1371,7 +1371,7 @@ statAll: '全コース',
 statDone: '完了',
 statDoing: '学習中',
 statAvg: '平均点',
-startLearning: '学習開始',
+startLearning: '学習開始', loading: '読み込み中...',
 videoBadge: '🎬 動画',
 copyLinkT: '共有リンクをコピー',
 nLessons: '{n}課',
@@ -1520,7 +1520,7 @@ statAll: '전체 강의',
 statDone: '완료',
 statDoing: '학습 중',
 statAvg: '평균 점수',
-startLearning: '학습 시작',
+startLearning: '학습 시작', loading: '로딩 중...',
 videoBadge: '🎬 영상',
 copyLinkT: '공유 링크 복사',
 nLessons: '{n}강',
@@ -2249,7 +2249,7 @@ function twCourse(c) {
                 + '<div class="flex items-center justify-between"><div class="flex items-center gap-2">' + (BOOT.isAdmin ? '<input type="checkbox" class="exp-check w-4 h-4 accent-violet-600" data-id="' + c.id + '" title="勾选后可批量导出">' : '') + statusBadge(c.id) + '</div>' + cardBtns + '</div>'
                 + '<div><h3 class="font-bold text-[1.05rem] text-slate-900 leading-snug">' + hlVerse(esc(c.title)) + videoBadge + '</h3>'
                 + '<p class="text-sm text-slate-400 mt-2 leading-relaxed line-clamp-2">' + hlVerse(esc(desc)) + '</p></div>'
-                + '<button data-id="' + c.id + '" onclick="startLesson(this.dataset.id)" class="mt-auto w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-violet-200 hover:shadow-xl hover:opacity-95 active:scale-[.99] transition flex items-center justify-center gap-2">' + goText + ' <span aria-hidden="true">→</span></button>'
+                + '<button data-id="' + c.id + '" onclick="startLesson(this.dataset.id)" onmouseenter="prefetchCourse(this.dataset.id)" ontouchstart="prefetchCourse(this.dataset.id)" class="mt-auto w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-violet-200 hover:shadow-xl hover:opacity-95 active:scale-[.99] transition flex items-center justify-center gap-2">' + goText + ' <span aria-hidden="true">→</span></button>'
                 + '</div>';
         }
 
@@ -3015,7 +3015,32 @@ function twCourse(c) {
             if (act) { act.innerText = tr("backEdit"); act.className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
         }
 
+        /* 课程预取：手指悬停/触摸时提前拉取，下次点击直接命中缓存 */
+        var _prefetching = {};
+        function prefetchCourse(id) {
+            if (!id || _prefetching[id]) return;
+            var i, hit = false;
+            var pools = [allData, (typeof BOOT !== "undefined" && BOOT.list) || []];
+            for (var p = 0; p < pools.length && !hit; p++) {
+                var arr = pools[p] || [];
+                for (i = 0; i < arr.length; i++) { if (arr[i].id === id && arr[i].quizzes_json !== undefined) { hit = true; break; } }
+            }
+            if (hit) return;
+            _prefetching[id] = true;
+            fetch('/api/course?id=' + encodeURIComponent(id)).then(function (fr) {
+                if (!fr.ok) return null;
+                return fr.json();
+            }).then(function (full) {
+                if (!full || !full.id) return;
+                for (var k = 0; k < allData.length; k++) { if (allData[k].id === id) { allData[k] = full; break; } }
+            }).catch(function () {}).finally(function () { delete _prefetching[id]; });
+        }
         async function startLesson(id) {
+            /* 即时反馈：先弹骨架屏，数据就绪后再填充 */
+            var _bodyEl0 = document.getElementById('lessonBody');
+            if (_bodyEl0) _bodyEl0.innerHTML = '<div class="flex flex-col items-center justify-center py-24 text-slate-400"><div class="text-4xl mb-4 animate-bounce">📖</div><div class="text-sm">' + tr("loading") + '</div></div>';
+            toggleModal('lessonModal');
+            var _lms0 = document.getElementById('lessonModal'); if (_lms0) _lms0.scrollTop = 0;
             var item = null, k, p;
             /* 优先找已含完整题库的条目（分享页注入的单课 / 已按需拉取过的） */
             var pools = [allData, (typeof BOOT !== "undefined" && BOOT.list) || []];
@@ -3044,7 +3069,11 @@ function twCourse(c) {
             activeCategory = item.category || "";
             activeSubcategory = item.subcategory || "";
             teacherMode = false;
-            await refreshStudentAdmin();
+            /* 不阻塞：后台刷新学员管理员状态，完成后更新教师按钮 */
+            refreshStudentAdmin().then(function() {
+                var tb = document.getElementById('teacherBtn');
+                if (tb) tb.style.display = canViewAnswers() ? '' : 'none';
+            });
             var prog = getMyProg();
             if (!prog[id] || !prog[id].completed) { prog[id] = { started: true, completed: false }; setMyProg(prog); }
             activeQuizzes = JSON.parse(item.quizzes_json || "[]");
@@ -3185,8 +3214,9 @@ function twCourse(c) {
                 else { bb.innerText = tr("backList"); bb.onclick = function() { location.reload(); }; }
             }
             document.getElementById('resultArea').classList.add('hidden');
-            toggleModal('lessonModal');
-            var lms = document.getElementById('lessonModal'); if (lms) lms.scrollTop = 0;
+            /* 弹窗已在开头打开，这里只确保可见并回到顶部 */
+            var lms = document.getElementById('lessonModal');
+            if (lms) { lms.classList.remove('hidden'); try { document.body.style.overflow = 'hidden'; } catch (e) {} lms.scrollTop = 0; }
             switchQTab('overview');
         }
 
