@@ -820,7 +820,7 @@ function renderHTML(results, categories, opts) {
         .verse-ref-book { display: inline-block; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; font-weight: 700; font-size: .72rem; padding: .12rem .6rem; border-radius: 9999px; white-space: nowrap; vertical-align: .05em; box-shadow: 0 1px 4px rgba(124,58,237,.35); }
         .verse-ref-icon { display: inline-block; background: linear-gradient(135deg,#f59e0b,#d97706); color: #fff; font-weight: 700; font-size: .72rem; padding: .12rem .5rem; border-radius: 9999px; white-space: nowrap; vertical-align: .05em; box-shadow: 0 1px 4px rgba(217,119,6,.35); margin-right: .3rem; }
         .verse-ref-num { display: inline-block; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: .72rem; padding: .12rem .6rem; border-radius: 9999px; white-space: nowrap; vertical-align: .05em; border: 1.5px solid #60a5fa; margin-left: .3rem; }
-        .verse-text { background: #fef3c7; border-bottom: 2px solid #f59e0b; border-radius: .2rem; padding: 0 .25rem; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+        .verse-text { background: #fef3c7; font-weight: 700; border-radius: .2rem; padding: 0 .25rem; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
     </style>
 </head>
 <body class="bg-[#f6f7fb] min-h-screen text-slate-900 pb-20">
@@ -3332,7 +3332,7 @@ function twCourse(c) {
             + 'footer{text-align:center;color:#94a3b8;font-size:12px;margin-top:24px;}'
             + '.empty{color:#94a3b8;text-align:center;padding:20px;}'
             + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:1.8em;}'
-            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-icon{display:inline-block;background:#d97706;color:#fff;font-weight:700;font-size:12px;padding:1px 7px;border-radius:9999px;white-space:nowrap;margin-right:4px;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
+            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-icon{display:inline-block;background:#d97706;color:#fff;font-weight:700;font-size:12px;padding:1px 7px;border-radius:9999px;white-space:nowrap;margin-right:4px;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;font-weight:700;border-radius:3px;padding:0 3px;}'
             + '@media print{body{background:#fff;}.wrap{max-width:none;padding:0;}.card{box-shadow:none;border:1px solid #e2e8f0;break-inside:avoid;}details.ans{break-inside:avoid;}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}';
         function expInline(t) {
             return String(t).replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
@@ -3573,7 +3573,7 @@ function twCourse(c) {
             + '.chapter{margin-bottom:10px;}.ch-title{font-weight:bold;}'
             + '.ch-num{display:inline-block;min-width:24px;height:24px;line-height:24px;text-align:center;background:#4f46e5;color:#fff;font-size:13px;font-weight:800;border-radius:7px;margin-right:8px;}'
             + '.md p{margin:0 0 8px;}.md ul{margin:0 0 8px;padding-left:20px;}'
-            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-icon{display:inline-block;background:#d97706;color:#fff;font-weight:700;font-size:12px;padding:1px 7px;border-radius:9999px;white-space:nowrap;margin-right:4px;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
+            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-icon{display:inline-block;background:#d97706;color:#fff;font-weight:700;font-size:12px;padding:1px 7px;border-radius:9999px;white-space:nowrap;margin-right:4px;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;font-weight:700;border-radius:3px;padding:0 3px;}'
             + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:28px;}'
             + '.answer-key{page-break-before:always;}.answer-key ol{margin:6px 0 12px;padding-left:24px;}.answer-key li{margin-bottom:6px;}';
         function buildAnswerKey(c) {
@@ -3626,7 +3626,7 @@ function twCourse(c) {
                 return '<tr><td>' + (i + 1) + '</td><td>' + esc(EXP_TYPE_PLAIN[t] || t) + '</td><td>' + hlVerse(esc(bracket + (q.q || ''))) + '</td><td>' + esc(q.o || '') + '</td><td>' + esc(expAnswer(q)) + '</td></tr>';
             }).join('');
             return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
-                + '<head><meta charset="utf-8"><style>.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-icon{display:inline-block;background:#d97706;color:#fff;font-weight:700;font-size:12px;padding:1px 7px;border-radius:9999px;white-space:nowrap;margin-right:4px;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}</style>'
+                + '<head><meta charset="utf-8"><style>.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-icon{display:inline-block;background:#d97706;color:#fff;font-weight:700;font-size:12px;padding:1px 7px;border-radius:9999px;white-space:nowrap;margin-right:4px;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;font-weight:700;border-radius:3px;padding:0 3px;}</style>'
                 + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>题库</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
                 + '</head><body>'
                 + guideHtml
@@ -3864,7 +3864,7 @@ function twCourse(c) {
             var segs = verseSegs(esc(text));
             var runs = segs.map(function(sg) {
                 var color = sg.k === 1 ? '7C3AED' : (sg.k === 2 ? 'B45309' : (sg.k === 3 ? '1D4ED8' : (sg.k === 4 ? 'D97706' : null)));
-                return pptxRun(sg.t, sz, sg.k === 1, color);
+                return pptxRun(sg.t, sz, (sg.k === 1 || sg.k === 2), color);
             });
             return '<a:p>' + runs.join('') + '</a:p>';
         }
