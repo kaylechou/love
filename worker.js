@@ -154,6 +154,7 @@ await db.prepare("CREATE TABLE IF NOT EXISTS students (username TEXT PRIMARY KEY
 try { await db.prepare("ALTER TABLE students ADD COLUMN is_admin INTEGER DEFAULT 0").run(); } catch (e) {}
 await db.prepare("CREATE TABLE IF NOT EXISTS wrongs (username TEXT, course_id TEXT, course_title TEXT, series TEXT, sub TEXT, qtype TEXT, qnum TEXT, question TEXT, user_answer TEXT, correct_answer TEXT, submitted_at TEXT)").run();
 await db.prepare("CREATE INDEX IF NOT EXISTS idx_wrongs_user ON wrongs(username, course_id)").run();
+await db.prepare("CREATE INDEX IF NOT EXISTS idx_progress_user ON progress(username, course_id)").run();
 /* 系列/子栏目：parent 为空=系列，非空=该系列下的子栏目；(parent, name) 联合主键 */
 await db.prepare("CREATE TABLE IF NOT EXISTS categories (parent TEXT DEFAULT '', name TEXT, description TEXT DEFAULT '', created_at TEXT DEFAULT '', PRIMARY KEY (parent, name))").run();
 try { await db.prepare("ALTER TABLE categories ADD COLUMN parent TEXT DEFAULT ''").run();} catch (e) {}
@@ -487,10 +488,10 @@ const now = new Date().toISOString();
 if (courseId || title) {
 await env.DB.prepare("DELETE FROM wrongs WHERE username=? AND (course_id=? OR course_title=?)").bind(username, courseId, title).run();
 }
-for (const it of items) {
-await env.DB.prepare("INSERT INTO wrongs (username, course_id, course_title, series, sub, qtype, qnum, question, user_answer, correct_answer, submitted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-.bind(username, courseId, title, it.series || "", it.sub || "", it.type || "", String(it.n || ""), it.q || "", it.u || "", it.expected || "", now).run();
-}
+await env.DB.batch(items.map(function(it) {
+return env.DB.prepare("INSERT INTO wrongs (username, course_id, course_title, series, sub, qtype, qnum, question, user_answer, correct_answer, submitted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+.bind(username, courseId, title, it.series || "", it.sub || "", it.type || "", String(it.n || ""), it.q || "", it.u || "", it.expected || "", now);
+}));
 return json({ success: true, count: items.length });
 }
 
@@ -762,7 +763,7 @@ function renderHTML(results, categories, opts) {
     <link rel="apple-touch-icon" href="/icon-180.png">
     <title>团契智学${isAdmin ? ' · 教师管理' : '系统'}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <style>
         .quiz-card { border: 2px solid #f1f5f9; border-radius: 1.5rem; padding: 1.5rem; background: white; margin-bottom: 1.5rem; transition: all 0.3s ease; }
         .correct-ans { border-color: #10b981 !important; background-color: #f0fdf4; }
@@ -970,7 +971,7 @@ function renderHTML(results, categories, opts) {
         <!-- 搜索框 -->
         <div class="relative mb-8">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">⌕</span>
-            <input id="searchInput" oninput="filterCourses()" data-i18n-ph="searchPh" placeholder="搜索课程..."
+            <input id="searchInput" oninput="debouncedFilter()" data-i18n-ph="searchPh" placeholder="搜索课程..."
                 class="w-full bg-white border border-slate-100 rounded-2xl py-3.5 pl-11 pr-4 text-sm shadow-sm outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition placeholder:text-slate-400">
         </div>
 
@@ -1930,7 +1931,6 @@ function twCourse(c) {
             return segs;
         }
         function stripMd(s) { return String(s || "").replace(/[#>*_~]/g, "").replace(/\\\\s+/g, " ").trim(); }
-        function shuffle(arr) { for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = arr[i]; arr[i] = arr[j]; arr[j] = t; } return arr; }
         function fmtTime(t) { if (!t) return ""; try { return new Date(t).toLocaleString("zh-CN", { hour12: false }).slice(0, 16); } catch(e) { return t; } }
         /* 字号调节：改根 font-size，Tailwind rem 单位全站跟随；localStorage 持久化 */
         var FONT_KEY = "TQ_FONT_V1";
@@ -2328,6 +2328,8 @@ function twCourse(c) {
         }
 
         /* 搜索过滤 */
+        var _filterT = null;
+        function debouncedFilter() { clearTimeout(_filterT); _filterT = setTimeout(filterCourses, 150); }
         function filterCourses() {
             var kw = document.getElementById('searchInput').value.trim().toLowerCase();
             var visible = 0;
@@ -2996,7 +2998,7 @@ function twCourse(c) {
             } catch (e) {}
             var overviewSec = '<section id="qsec-overview" class="qsec"><div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 space-y-5">'
                 + videoHtml
-                + (item.content ? '<div class="prose text-slate-600 bg-slate-50 p-6 rounded-2xl text-sm leading-relaxed max-w-none">' + hlVerse(marked.parse(item.content)) + '</div>' : '')
+                + (item.content ? '<div class="prose text-slate-600 bg-slate-50 p-6 rounded-2xl text-sm leading-relaxed max-w-none">' + hlVerse(typeof marked !== 'undefined' ? marked.parse(item.content) : esc(item.content).replace(/\\n/g, '<br>')) + '</div>' : '')
                 + guideCards
                 + '<div class="bg-amber-50 p-4 rounded-xl border border-amber-200/80 flex items-start gap-3"><div class="shrink-0">💡</div>'
                 + '<div class="text-xs text-amber-900 leading-relaxed whitespace-pre-line"><b>' + tr("quizGuideT") + '</b>' + (item.instructions ? esc(item.instructions) : (tf("defaultGuide", { summary: typeSummary || tr("multiTypes") }))) + '</div></div>'
