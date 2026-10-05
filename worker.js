@@ -834,7 +834,7 @@ function renderHTML(results, categories, opts) {
         <h1 class="text-[2rem] leading-tight font-black tracking-tight" data-i18n="myCourses">我的课程</h1>
         <p class="text-slate-400 mt-1 mb-6" data-i18n="heroSub">系统学习，稳步成长</p>
 
-        ${(!isAdmin && notice) ? '<div class="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm text-amber-800 flex gap-3"><span class="text-lg">📢</span><span>' + notice.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span></div>' : ''}
+        ${(!isAdmin && notice) ? '<div class="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm text-amber-800 flex gap-3"><span class="text-lg">📢</span><span id="noticeBarText">' + notice.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span></div>' : ''}
 
         ${!isAdmin ? `
         <!-- 统计卡片 -->
@@ -1644,6 +1644,11 @@ function applyI18n() {
         document.querySelectorAll('[data-i18n-ph]').forEach(function(el) { el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'))); });
         document.querySelectorAll('[data-i18n-title]').forEach(function(el) { el.setAttribute('title', t(el.getAttribute('data-i18n-title'))); });
         document.title = t('appName');
+        var nb = document.getElementById('noticeBarText');
+        if (nb) {
+            if (nb.dataset.orig === undefined) nb.dataset.orig = nb.textContent;
+            nb.textContent = (curLang() === 'tw') ? toTW(nb.dataset.orig) : nb.dataset.orig;
+        }
         var lb = document.getElementById('langBtn');
         if (lb) lb.innerHTML = '🌐 ' + langShort(curLang());
     } catch (e) {}
