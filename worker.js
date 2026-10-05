@@ -2759,6 +2759,21 @@ function twCourse(c) {
                 }
             });
             if (wrongs.length) saveWrongs(wrongs);
+            /* 答对的题从错题本移除 */
+            try {
+                var w2 = getWrong();
+                var arr2 = w2[name] || [];
+                var fixed = [];
+                res.details.forEach(function(d) {
+                    if (d.verdict === true) fixed.push({ cid: activeLessonId, q: d.q });
+                });
+                if (fixed.length && arr2.length) {
+                    w2[name] = arr2.filter(function(x) {
+                        return !fixed.some(function(f) { return f.cid === x.cid && f.q === x.q; });
+                    });
+                    setWrong(w2);
+                }
+            } catch (e) {}
             /* 错题同步到服务端，教师可在管理端查看（失败不影响本地） */
             try {
                 if (name && name !== tr("wbAnon")) {
