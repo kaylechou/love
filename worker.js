@@ -962,7 +962,7 @@ function renderHTML(results, categories, opts) {
         <div id="loadingState" class="text-center text-slate-400 py-16 text-sm">课程加载中…</div>
         <div id="emptyState" class="hidden text-center text-slate-400 py-16 text-sm" data-i18n="emptyResult">没有找到匹配的课程</div>
     </main>
-    ${!isAdmin ? '<footer class="max-w-6xl mx-auto px-5 mt-6 text-center"><a href="/admin" class="text-xs text-slate-300 hover:text-violet-500 transition">教师管理入口 →</a></footer>' : ''}
+    ${!isAdmin ? '<footer class="max-w-6xl mx-auto px-5 mt-6 text-center"><a href="/admin" data-i18n="adminEntry" class="text-xs text-slate-300 hover:text-violet-500 transition">教师管理入口 →</a></footer>' : ''}
 
     <!-- 答题 / 学习弹窗 -->
     <div id="lessonModal" class="hidden fixed inset-0 bg-white z-[80] overflow-y-auto">
@@ -1187,7 +1187,11 @@ reportT: '答题成绩与复习报告', reportSub: '· 综合测评', repAnswere
 repRating: '理解掌握评级', redoBtn: '↺ 重新作答', srcFrom: '课程来源：',
 prevType: '← 上一题型：', nextType: '下一题型：', viewReport: '查看成绩报告 →', qrefToggle: '📖 显示/隐藏参考答案',
 myCourses: '我的课程', heroSub: '系统学习，稳步成长', myScores: '📊 我的成绩', exportBtn: '📥 导出', clearBtn: '清空',
-scoreSummary: '共 {n} 条记录', scoreAvg: '，平均 {a} 分'
+scoreSummary: '共 {n} 条记录', scoreAvg: '，平均 {a} 分',
+expWrongT: '📥 导出错题本', wbExpSub: '{name} · 共{n}题', wbScopeOne: '（本课件）', wbScopeAll: '（全部课件）',
+adminEntry: '教师管理入口 →', teacherExit: '✓ 退出教师版', tchExpired: '登录已过期，请重新登录', tchPwPrompt: '请输入管理密码进入教师版：',
+tchPwWrong: '密码错误', tchAnsFail: '获取答案失败', tchAnsT: '📖 教师版答案：', tchOpenAns: '开放性答案',
+wbEmptyAlert: '错题本是空的', popupBlocked: '浏览器阻止了新窗口，请允许弹窗后重试'
 },
 en: {
 appName: 'Fellowship Study',
@@ -1332,7 +1336,11 @@ nextType: 'Next: ',
 viewReport: 'View Score Report →',
 qrefToggle: '📖 Show / Hide Reference',
 myCourses: 'My Courses', heroSub: 'Study systematically, grow steadily', myScores: '📊 My Scores', exportBtn: '📥 Export', clearBtn: 'Clear',
-scoreSummary: '{n} records', scoreAvg: ', avg {a}'
+scoreSummary: '{n} records', scoreAvg: ', avg {a}',
+expWrongT: '📥 Export Mistakes', wbExpSub: '{name} · {n} questions', wbScopeOne: ' (this lesson)', wbScopeAll: ' (all lessons)',
+adminEntry: 'Teacher Admin →', teacherExit: '✓ Exit Teacher View', tchExpired: 'Session expired, please log in again', tchPwPrompt: 'Enter admin password for teacher view:',
+tchPwWrong: 'Wrong password', tchAnsFail: 'Failed to load answers', tchAnsT: '📖 Teacher answer: ', tchOpenAns: 'Open-ended',
+wbEmptyAlert: 'The mistake book is empty', popupBlocked: 'Popup blocked. Please allow popups and retry.'
 },
 ja: {
 appName: 'フェローシップ学習',
@@ -1477,7 +1485,11 @@ nextType: '次の形式：',
 viewReport: '成績レポートを見る →',
 qrefToggle: '📖 参考表示 / 非表示',
 myCourses: 'マイコース', heroSub: '体系的に学び、着実に成長', myScores: '📊 マイ成績', exportBtn: '📥 エクスポート', clearBtn: 'クリア',
-scoreSummary: '{n}件の記録', scoreAvg: '、平均 {a} 点'
+scoreSummary: '{n}件の記録', scoreAvg: '、平均 {a} 点',
+expWrongT: '📥 間違いノートをエクスポート', wbExpSub: '{name} · {n}問', wbScopeOne: '（このレッスン）', wbScopeAll: '（全レッスン）',
+adminEntry: '教師管理入口 →', teacherExit: '✓ 教師モード終了', tchExpired: 'ログインの有効期限が切れました。再ログインしてください。', tchPwPrompt: '教師表示には管理パスワードを入力してください：',
+tchPwWrong: 'パスワードが正しくありません', tchAnsFail: '解答の取得に失敗しました', tchAnsT: '📖 教師用解答：', tchOpenAns: '記述式',
+wbEmptyAlert: '間違いノートは空です', popupBlocked: 'ポップアップがブロックされました。許可して再試行してください。'
 },
 ko: {
 appName: '펠로우십 학습',
@@ -1622,7 +1634,11 @@ nextType: '다음 유형: ',
 viewReport: '성적 리포트 보기 →',
 qrefToggle: '📖 참고 표시 / 숨기기',
 myCourses: '내 강의', heroSub: '체계적으로 학습하고 꾸준히 성장', myScores: '📊 내 성적', exportBtn: '📥 내보내기', clearBtn: '지우기',
-scoreSummary: '{n}개의 기록', scoreAvg: ', 평균 {a}점'
+scoreSummary: '{n}개의 기록', scoreAvg: ', 평균 {a}점',
+expWrongT: '📥 오답노트 내보내기', wbExpSub: '{name} · {n}문제', wbScopeOne: ' (이 레슨)', wbScopeAll: ' (전체 레슨)',
+adminEntry: '교사 관리 →', teacherExit: '✓ 교사 모드 종료', tchExpired: '로그인이 만료되었습니다. 다시 로그인해 주세요.', tchPwPrompt: '교사 보기를 위해 관리 비밀번호를 입력하세요:',
+tchPwWrong: '비밀번호가 틀렸습니다', tchAnsFail: '정답을 불러오지 못했습니다', tchAnsT: '📖 교사용 정답: ', tchOpenAns: '서술형',
+wbEmptyAlert: '오답노트가 비어 있습니다', popupBlocked: '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도해 주세요.'
 }
 };
 function t(k) {
@@ -1695,7 +1711,7 @@ function toTW(s) {
         for (var j = 0; j < p.length; j++) { var ch = p.charAt(j); out += M[ch] || ch; }
         parts[i] = out;
     }
-    return parts.join("");
+    return parts.join("").split("爲").join("為");
 }
 /* 课程对象转繁体（学员端展示用；管理端不调用，避免污染数据） */
 function twCourse(c) {
@@ -3558,7 +3574,7 @@ function twCourse(c) {
                 var btn = 'style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff"';
                 m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.5)" onclick="closeWrongExportMenu()"></div>'
                     + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:340px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
-                    + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 4px">📥 导出错题本</h3>'
+                    + '<h3 id="wrongExportTitle" style="font-weight:800;color:#1e293b;margin:0 0 4px">📥 导出错题本</h3>'
                     + '<p id="wrongExportSub" style="font-size:12px;color:#94a3b8;margin:0 0 16px"></p>'
                     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
                     + '<button data-fmt="html" onclick="doWrongExport(this.dataset.fmt)" ' + btn + '>📄<br>网页 HTML</button>'
@@ -3568,14 +3584,16 @@ function twCourse(c) {
                     + '<button data-fmt="pptx2" onclick="doWrongExport(this.dataset.fmt)" ' + btn + '>📽️<br>PPT 两页版<br><span style="font-size:11px;font-weight:400;color:#94a3b8">翻页揭示</span></button>'
                     + '</div>'
                     + '<button data-fmt="print" onclick="doWrongExport(this.dataset.fmt)" style="margin-top:8px;width:100%;border:1px solid #e2e8f0;border-radius:16px;padding:12px;font-size:14px;font-weight:700;color:#334155;background:#fff">🖨️ 打印 / 存为 PDF</button>'
-                    + '<button onclick="closeWrongExportMenu()" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">取消</button>'
+                    + '<button id="wrongExportCancel" onclick="closeWrongExportMenu()" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">取消</button>'
                     + '</div>';
                 document.body.appendChild(m);
             }
             var fc = window._wrongCourseId || null;
             var arr = getWrong()[wrongBookName()] || [];
             if (fc) arr = arr.filter(function(x) { return x.cid === fc; });
-            document.getElementById('wrongExportSub').innerText = wrongBookName() + ' · 共' + arr.length + '题' + (fc ? '（本课件）' : '（全部课件）');
+            document.getElementById('wrongExportTitle').innerText = t("expWrongT");
+            document.getElementById('wrongExportCancel').innerText = t("cancel");
+            document.getElementById('wrongExportSub').innerText = tf("wbExpSub", { name: wrongBookName(), n: arr.length }) + (fc ? t("wbScopeOne") : t("wbScopeAll"));
             m.style.display = 'flex';
         }
         function closeWrongExportMenu() {
@@ -3588,7 +3606,7 @@ function twCourse(c) {
             var arr = getWrong()[name] || [];
             var fc = window._wrongCourseId || null;
             if (fc) arr = arr.filter(function(x) { return x.cid === fc; });
-            if (!arr.length) { alert("错题本是空的"); return; }
+            if (!arr.length) { alert(t("wbEmptyAlert")); return; }
             var fn = safeFileName(name + '的错题本');
             var pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
             if (fmt === 'html') downloadHTML(fn + '.html', buildWrongHTML(name, arr));
@@ -3636,7 +3654,7 @@ function twCourse(c) {
         }
         function printWrongs(name, arr) {
             var w = window.open('', '_blank');
-            if (!w) { alert('浏览器阻止了新窗口，请允许弹窗后重试'); return; }
+            if (!w) { alert(t("popupBlocked")); return; }
             w.document.write(buildWrongHTML(name, arr));
             w.document.close();
             w.focus();
@@ -3874,7 +3892,7 @@ function twCourse(c) {
             if (teacherMode) {
                 teacherMode = false;
                 document.querySelectorAll('.tch-box').forEach(function(el) { el.remove(); });
-                document.getElementById('teacherBtn').innerText = '🔑 教师版查看答案';
+                document.getElementById('teacherBtn').innerText = t("teacherBtn");
                 return;
             }
             var ansUrl = '/api/answers?course_id=' + encodeURIComponent(activeLessonId || "");
@@ -3882,15 +3900,15 @@ function twCourse(c) {
             if (isStuAdmin) ansUrl += '&username=' + encodeURIComponent(progName()) + '&token=' + encodeURIComponent(studentToken());
             var r = await fetch(ansUrl);
             if (r.status === 403) {
-                if (isStuAdmin) { alert("登录已过期，请重新登录"); return; }
-                var p = prompt("请输入管理密码进入教师版：");
+                if (isStuAdmin) { alert(t("tchExpired")); return; }
+                var p = prompt(t("tchPwPrompt"));
                 if (!p) return;
                 var v = await fetch('/api/verify', { method: 'POST', body: JSON.stringify({ password: p }) });
                 var j = await v.json();
-                if (!j.ok) { alert("密码错误"); return; }
+                if (!j.ok) { alert(t("tchPwWrong")); return; }
                 r = await fetch(ansUrl);
             }
-            if (!r.ok) { alert("获取答案失败"); return; }
+            if (!r.ok) { alert(t("tchAnsFail")); return; }
             var qs = (await r.json()).quizzes || [];
             teacherMode = true;
             activeQuizzes.forEach(function(q, i) {
@@ -3898,11 +3916,11 @@ function twCourse(c) {
                 if (!card || card.querySelector('.tch-box')) return;
                 var div = document.createElement('div');
                 div.className = 'tch-box mt-4 pt-4 border-t border-dashed border-amber-300 text-sm';
-                div.innerHTML = '<span class="font-bold text-amber-700">📖 教师版答案：</span>'
-                    + '<span class="text-slate-700 font-bold">' + (esc((qs[i] || {}).a) || '开放性答案') + '</span>';
+                div.innerHTML = '<span class="font-bold text-amber-700">' + t("tchAnsT") + '</span>'
+                    + '<span class="text-slate-700 font-bold">' + (esc((qs[i] || {}).a) || t("tchOpenAns")) + '</span>';
                 card.appendChild(div);
             });
-            document.getElementById('teacherBtn').innerText = '✓ 退出教师版';
+            document.getElementById('teacherBtn').innerText = t("teacherExit");
         }
 
         /* 管理端：智能解析 / 题目行 / 保存 */
