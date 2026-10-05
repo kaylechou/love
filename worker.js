@@ -803,6 +803,8 @@ function renderHTML(results, categories, opts) {
         .qtab-report.qtab-active { color: #fde68a; border-bottom-color: #fbbf24; }
         /* 经文高亮：引用徽章（紫）与经文正文（琥珀）作区分 */
         .verse-ref { display: inline-block; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; font-weight: 700; font-size: .72rem; padding: .12rem .6rem; border-radius: 9999px; white-space: nowrap; vertical-align: .05em; box-shadow: 0 1px 4px rgba(124,58,237,.35); }
+        .verse-ref-book { display: inline-block; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; font-weight: 700; font-size: .72rem; padding: .12rem .6rem; border-radius: 9999px; white-space: nowrap; vertical-align: .05em; box-shadow: 0 1px 4px rgba(124,58,237,.35); }
+        .verse-ref-num { display: inline-block; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: .72rem; padding: .12rem .6rem; border-radius: 9999px; white-space: nowrap; vertical-align: .05em; border: 1.5px solid #60a5fa; margin-left: .3rem; }
         .verse-text { background: #fef3c7; border-bottom: 2px solid #f59e0b; border-radius: .2rem; padding: 0 .25rem; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
     </style>
 </head>
@@ -1833,33 +1835,78 @@ function twCourse(c) {
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
         var BIBLE_BOOKS_TW = null;
         function bibleBooks() { if (!BIBLE_BOOKS_TW) BIBLE_BOOKS_TW = BIBLE_BOOKS + '|' + toTW(BIBLE_BOOKS); return BIBLE_BOOKS_TW; }
-        var BIBLE_BOOKS = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|哥林多前书|哥林多后书|约翰一书|约翰二书|约翰三书|彼得前书|彼得后书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|传道书|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录|诗篇|箴言|雅歌';
+        var BIBLE_BOOKS = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|哥林多前书|哥林多后书|约翰一书|约翰二书|约翰三书|彼得前书|彼得后书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|传道书|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录|诗篇|箴言|雅歌|撒上|撒下|王上|王下|代上|代下|林前|林后|帖前|帖后|提前|提后|彼前|彼后|约壹|约贰|约叁|创|出|利|民|申|书|士|得|拉|尼|斯|伯|诗|箴|传|歌|赛|耶|哀|结|但|何|珥|摩|俄|拿|弥|鸿|哈|番|该|亚|玛|太|可|路|约|徒|罗|加|弗|腓|西|多|门|来|雅|犹|启';
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
+        /* 书名简称→全称（如太→马太福音），高亮徽章统一显示全称 */
+        var BOOK_FULL = null;
+        function bookFull(nm) {
+            if (!BOOK_FULL) {
+                BOOK_FULL = {};
+                var pairs = '撒上=撒母耳记上|撒下=撒母耳记下|王上=列王纪上|王下=列王纪下|代上=历代志上|代下=历代志下|林前=哥林多前书|林后=哥林多后书|帖前=帖撒罗尼迦前书|帖后=帖撒罗尼迦后书|提前=提摩太前书|提后=提摩太后书|彼前=彼得前书|彼后=彼得后书|约壹=约翰一书|约贰=约翰二书|约叁=约翰三书|创=创世记|出=出埃及记|利=利未记|民=民数记|申=申命记|书=约书亚记|士=士师记|得=路得记|拉=以斯拉记|尼=尼希米记|斯=以斯帖记|伯=约伯记|诗=诗篇|箴=箴言|传=传道书|歌=雅歌|赛=以赛亚书|耶=耶利米书|哀=耶利米哀歌|结=以西结书|但=但以理书|何=何西阿书|珥=约珥书|摩=阿摩司书|俄=俄巴底亚书|拿=约拿书|弥=弥迦书|鸿=那鸿书|哈=哈巴谷书|番=西番雅书|该=哈该书|亚=撒迦利亚书|玛=玛拉基书|太=马太福音|可=马可福音|路=路加福音|约=约翰福音|徒=使徒行传|罗=罗马书|加=加拉太书|弗=以弗所书|腓=腓立比书|西=歌罗西书|多=提多书|门=腓利门书|来=希伯来书|雅=雅各书|犹=犹大书|启=启示录'.split('|'), i, kv;
+                for (i = 0; i < pairs.length; i++) { kv = pairs[i].split('='); BOOK_FULL[kv[0]] = kv[1]; BOOK_FULL[toTW(kv[0])] = kv[1]; }
+            }
+            var f = BOOK_FULL[nm];
+            if (!f) return nm;
+            return curLang() === 'tw' ? toTW(f) : f;
+        }
         function hlVerse(s) {
             s = String(s == null ? "" : s);
             var B = bibleBooks();
             var JIE = (curLang() === 'tw') ? '節' : '节';
             var JIEP = '[节節]';
             var SP = ' *';
-            s = s.replace(new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP, 'g'), '<span class="verse-ref">《$1》$2章$3' + JIE + '</span>');
-            s = s.replace(new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP + SP + '[说說]' + SP + '[：:，,]' + SP + '([^<]*)', 'g'), '<span class="verse-ref">$1$2章$3' + JIE + '</span><span class="verse-text">$4</span>');
-            s = s.replace(new RegExp('(?<!">)(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP, 'g'), '<span class="verse-ref">$1$2章$3' + JIE + '</span>');
-            s = s.replace(new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)', 'g'), '<span class="verse-ref">$1$2:$3</span><span class="verse-text">$4</span>');
-            s = s.replace(new RegExp('(?<!">)(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)', 'g'), '<span class="verse-ref">$1$2:$3</span>');
+            /* 引用统一显示为"全称第N章M节"，书名与章节分开高亮 */
+            function vref(bk, ch, vs, ve) {
+                return '<span class="verse-ref-book">' + bookFull(bk) + '</span>'
+                    + '<span class="verse-ref-num">第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + JIE : '') + '</span>';
+            }
+            var DASH = '[\u2013\u2014\uFF0D-]';
+            var VP = new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)'
+                + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP + SP + '[说說]' + SP + '[：:，,]' + SP + '([^<]*)'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)'
+                + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章(?!' + SP + '[0-9])', 'g');
+            s = s.replace(VP, function (m) {
+                var a = arguments;
+                if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4]);
+                if (a[5] !== undefined) return vref(a[5], a[6], a[7], a[8]);
+                if (a[9] !== undefined) return vref(a[9], a[10], a[11], a[12]) + '<span class="verse-text">' + a[13] + '</span>';
+                if (a[14] !== undefined) return vref(a[14], a[15], a[16], a[17]);
+                if (a[18] !== undefined) return vref(a[18], a[19], a[20]);
+                if (a[21] !== undefined) return vref(a[21], a[22], a[23]) + '<span class="verse-text">' + a[24] + '</span>';
+                if (a[25] !== undefined) return vref(a[25], a[26], a[27]);
+                if (a[28] !== undefined) return vref(a[28], a[29], a[30]) + '<span class="verse-text">' + a[31] + '</span>';
+                if (a[32] !== undefined) return vref(a[32], a[33], a[34]);
+                if (a[35] !== undefined) return vref(a[35], a[36], a[37]);
+                if (a[38] !== undefined) return vref(a[38], a[39], a[40]);
+                return vref(a[41], a[42], null);
+            });
             return s;
         }
         /* verseSegs：将 hlVerse 输出切分为段 [{k:0普通|1引用|2经文, t:文本}]，供 PPT 多 run 渲染 */
+        /* verseSegs：将 hlVerse 输出切分为段 [{k:0普通|1书名|2经文|3章节, t:文本}]，供 PPT 多 run 渲染 */
         function verseSegs(s) {
             var html = hlVerse(s), segs = [], i = 0;
-            var R1 = '<span class="verse-ref">', R2 = '<span class="verse-text">', E = '</span>';
+            var tags = [['<span class="verse-ref-book">', 1], ['<span class="verse-ref-num">', 3],
+                        ['<span class="verse-ref">', 1], ['<span class="verse-text">', 2]];
+            var E = '</span>';
             while (i < html.length) {
-                var j1 = html.indexOf(R1, i), j2 = html.indexOf(R2, i), j = -1, k = 0, tag = '';
-                if (j1 >= 0 && (j2 < 0 || j1 < j2)) { j = j1; k = 1; tag = R1; }
-                else if (j2 >= 0) { j = j2; k = 2; tag = R2; }
-                if (j < 0) { segs.push({ k: 0, t: html.slice(i) }); break; }
-                if (j > i) segs.push({ k: 0, t: html.slice(i, j) });
-                var e = html.indexOf(E, j + tag.length);
-                segs.push({ k: k, t: html.slice(j + tag.length, e) });
+                var bj = -1, bk = 0, btag = '', ti, j;
+                for (ti = 0; ti < tags.length; ti++) {
+                    j = html.indexOf(tags[ti][0], i);
+                    if (j >= 0 && (bj < 0 || j < bj)) { bj = j; bk = tags[ti][1]; btag = tags[ti][0]; }
+                }
+                if (bj < 0) { segs.push({ k: 0, t: html.slice(i) }); break; }
+                if (bj > i) segs.push({ k: 0, t: html.slice(i, bj) });
+                var e = html.indexOf(E, bj + btag.length);
+                segs.push({ k: bk, t: html.slice(bj + btag.length, e) });
                 i = e + E.length;
             }
             return segs;
@@ -3235,7 +3282,7 @@ function twCourse(c) {
             + 'footer{text-align:center;color:#94a3b8;font-size:12px;margin-top:24px;}'
             + '.empty{color:#94a3b8;text-align:center;padding:20px;}'
             + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:1.8em;}'
-            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
+            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
             + '@media print{body{background:#fff;}.wrap{max-width:none;padding:0;}.card{box-shadow:none;border:1px solid #e2e8f0;break-inside:avoid;}details.ans{break-inside:avoid;}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}';
         function expInline(t) {
             return String(t).replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
@@ -3476,7 +3523,7 @@ function twCourse(c) {
             + '.chapter{margin-bottom:10px;}.ch-title{font-weight:bold;}'
             + '.ch-num{display:inline-block;min-width:24px;height:24px;line-height:24px;text-align:center;background:#4f46e5;color:#fff;font-size:13px;font-weight:800;border-radius:7px;margin-right:8px;}'
             + '.md p{margin:0 0 8px;}.md ul{margin:0 0 8px;padding-left:20px;}'
-            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
+            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
             + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:28px;}'
             + '.answer-key{page-break-before:always;}.answer-key ol{margin:6px 0 12px;padding-left:24px;}.answer-key li{margin-bottom:6px;}';
         function buildAnswerKey(c) {
@@ -3529,7 +3576,7 @@ function twCourse(c) {
                 return '<tr><td>' + (i + 1) + '</td><td>' + esc(EXP_TYPE_PLAIN[t] || t) + '</td><td>' + hlVerse(esc(bracket + (q.q || ''))) + '</td><td>' + esc(q.o || '') + '</td><td>' + esc(expAnswer(q)) + '</td></tr>';
             }).join('');
             return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
-                + '<head><meta charset="utf-8"><style>.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}</style>'
+                + '<head><meta charset="utf-8"><style>.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1px solid #60a5fa;margin-left:4px;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}</style>'
                 + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>题库</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
                 + '</head><body>'
                 + guideHtml
@@ -3766,7 +3813,7 @@ function twCourse(c) {
         function pptxRichPara(text, sz) {
             var segs = verseSegs(esc(text));
             var runs = segs.map(function(sg) {
-                var color = sg.k === 1 ? '7C3AED' : (sg.k === 2 ? 'B45309' : null);
+                var color = sg.k === 1 ? '7C3AED' : (sg.k === 2 ? 'B45309' : (sg.k === 3 ? '1D4ED8' : null));
                 return pptxRun(sg.t, sz, sg.k === 1, color);
             });
             return '<a:p>' + runs.join('') + '</a:p>';
