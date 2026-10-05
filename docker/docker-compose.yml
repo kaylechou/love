@@ -1,0 +1,17 @@
+services:
+  tuanqi:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: tuanqi-nas:latest
+    container_name: tuanqi
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # SQLite 数据库文件持久化（首次启动自动建表，无需导入）
+      - ./data:/data
+    environment:
+      - PORT=8080
+      - DB_PATH=/data/fellowship.db
+      - TZ=Asia/Shanghai
