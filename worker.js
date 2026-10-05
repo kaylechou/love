@@ -814,7 +814,7 @@ function renderHTML(results, categories, opts) {
         <div class="max-w-6xl mx-auto px-5 py-3 flex justify-between items-center">
             <div class="flex items-center gap-2.5 cursor-pointer" onclick="location.href=location.origin">
                 <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-lg shadow-md shadow-violet-200">📖</div>
-                <span class="font-black text-lg tracking-tight">团契智学</span>
+                <span class="font-black text-lg tracking-tight" data-i18n="appName">团契智学</span>
                 ${isAdmin ? '<span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">教师管理</span>' : ''}
             </div>
             <div class="flex gap-2">
@@ -822,7 +822,8 @@ function renderHTML(results, categories, opts) {
                     ? '<a href="/" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">学员端</a>'
                       + '<button onclick="exportSelected()" class="text-xs bg-emerald-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-emerald-200 hover:opacity-95 transition">📥 批量导出</button>'
                       + '<button onclick="openEditModal()" class="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-violet-200 hover:opacity-95 transition">+ 创建新课件</button>'
-                    : '<button onclick="openWrongBook()" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">📝 错题本</button>'
+                    : '<button onclick="openLangPanel()" id="langBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">🌐 简体</button>'
+                      + '<button onclick="openWrongBook()" data-i18n="wrongBook" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">📝 错题本</button>'
                       + '<button onclick="nameBtnClick()" id="nameBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">设置姓名</button>'}
             </div>
         </div>
@@ -830,8 +831,8 @@ function renderHTML(results, categories, opts) {
 
     <main class="max-w-6xl mx-auto px-5 pt-8">
         <!-- 标题区 -->
-        <h1 class="text-[2rem] leading-tight font-black tracking-tight">我的课程</h1>
-        <p class="text-slate-400 mt-1 mb-6">系统学习，稳步成长</p>
+        <h1 class="text-[2rem] leading-tight font-black tracking-tight" data-i18n="myCourses">我的课程</h1>
+        <p class="text-slate-400 mt-1 mb-6" data-i18n="heroSub">系统学习，稳步成长</p>
 
         ${(!isAdmin && notice) ? '<div class="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm text-amber-800 flex gap-3"><span class="text-lg">📢</span><span>' + notice.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span></div>' : ''}
 
@@ -842,35 +843,35 @@ function renderHTML(results, categories, opts) {
                 <div class="w-14 h-14 shrink-0 rounded-2xl bg-violet-500 flex items-center justify-center text-white text-2xl shadow-sm">📖</div>
                 <div>
                     <div id="statTotal" class="text-3xl font-black text-violet-600 leading-none">–</div>
-                    <div class="text-xs text-slate-500 mt-1.5">全部课程</div>
+                    <div class="text-xs text-slate-500 mt-1.5" data-i18n="statAll">全部课程</div>
                 </div>
             </div>
             <div class="bg-emerald-50 rounded-3xl p-5 flex items-center gap-4">
                 <div class="w-14 h-14 shrink-0 rounded-2xl bg-emerald-500 flex items-center justify-center text-white text-2xl shadow-sm">✓</div>
                 <div>
                     <div id="statDone" class="text-3xl font-black text-emerald-600 leading-none">0</div>
-                    <div class="text-xs text-slate-500 mt-1.5">已完成</div>
+                    <div class="text-xs text-slate-500 mt-1.5" data-i18n="statDone">已完成</div>
                 </div>
             </div>
             <div class="bg-amber-50 rounded-3xl p-5 flex items-center gap-4">
                 <div class="w-14 h-14 shrink-0 rounded-2xl bg-amber-500 flex items-center justify-center text-white text-2xl shadow-sm">◷</div>
                 <div>
                     <div id="statDoing" class="text-3xl font-black text-amber-600 leading-none">0</div>
-                    <div class="text-xs text-slate-500 mt-1.5">进行中</div>
+                    <div class="text-xs text-slate-500 mt-1.5" data-i18n="statDoing">进行中</div>
                 </div>
             </div>
             <div class="bg-rose-50 rounded-3xl p-5 flex items-center gap-4">
                 <div class="w-14 h-14 shrink-0 rounded-2xl bg-rose-500 flex items-center justify-center text-white text-2xl shadow-sm">★</div>
                 <div>
                     <div id="statAvg" class="text-3xl font-black text-rose-500 leading-none">--</div>
-                    <div class="text-xs text-slate-500 mt-1.5">平均分</div>
+                    <div class="text-xs text-slate-500 mt-1.5" data-i18n="statAvg">平均分</div>
                 </div>
             </div>
         </div>
 
         <!-- 我的成绩 -->
         <div id="myScoresCard" class="hidden bg-white rounded-3xl p-6 shadow-sm mb-6">
-            <h3 class="font-bold text-slate-800 mb-3">📊 我的成绩</h3>
+            <h3 class="font-bold text-slate-800 mb-3" data-i18n="myScores">📊 我的成绩</h3>
             <div id="myScoresAvg" class="text-xs text-slate-400 mb-2"></div>
             <ul id="myScoresList" class="space-y-2 max-h-64 overflow-y-auto"></ul>
         </div>
@@ -952,14 +953,14 @@ function renderHTML(results, categories, opts) {
         <!-- 搜索框 -->
         <div class="relative mb-8">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">⌕</span>
-            <input id="searchInput" oninput="filterCourses()" placeholder="搜索课程..."
+            <input id="searchInput" oninput="filterCourses()" data-i18n-ph="searchPh" placeholder="搜索课程..."
                 class="w-full bg-white border border-slate-100 rounded-2xl py-3.5 pl-11 pr-4 text-sm shadow-sm outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition placeholder:text-slate-400">
         </div>
 
         <!-- 课程分区（JS 按栏目渲染） -->
         <div id="courseSections"></div>
         <div id="loadingState" class="text-center text-slate-400 py-16 text-sm">课程加载中…</div>
-        <div id="emptyState" class="hidden text-center text-slate-400 py-16 text-sm">没有找到匹配的课程</div>
+        <div id="emptyState" class="hidden text-center text-slate-400 py-16 text-sm" data-i18n="emptyResult">没有找到匹配的课程</div>
     </main>
     ${!isAdmin ? '<footer class="max-w-6xl mx-auto px-5 mt-6 text-center"><a href="/admin" class="text-xs text-slate-300 hover:text-violet-500 transition">教师管理入口 →</a></footer>' : ''}
 
@@ -971,7 +972,7 @@ function renderHTML(results, categories, opts) {
             <div id="lessonBody" class="mt-10 space-y-4"></div>
             <div id="lessonFooter" class="mt-12 pt-10 border-t">
                 <div id="resultArea" class="hidden mt-8 space-y-4"></div>
-                <button id="backListBtn" onclick="location.reload()" class="mt-10 w-full text-slate-400 text-sm hover:underline">返回列表</button>
+                <button id="backListBtn" onclick="location.reload()" data-i18n="backList" class="mt-10 w-full text-slate-400 text-sm hover:underline">返回列表</button>
             </div>
         </div>
     </div>
@@ -981,10 +982,10 @@ function renderHTML(results, categories, opts) {
     <div id="wrongBookModal" class="hidden fixed inset-0 bg-slate-900/60 z-[90] flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
             <div class="p-6 border-b flex items-center justify-between">
-                <h2 id="wrongBookTitle" class="font-black text-lg">📝 我的错题本</h2>
+                <h2 id="wrongBookTitle" class="font-black text-lg" data-i18n="wbMyT">📝 我的错题本</h2>
                 <div class="flex gap-2">
-                    <button onclick="openWrongExportMenu()" class="text-xs bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold">📥 导出</button>
-                    <button onclick="clearWrongBook()" class="text-xs bg-red-50 text-red-500 px-4 py-2 rounded-xl font-bold">清空</button>
+                    <button onclick="openWrongExportMenu()" data-i18n="exportBtn" class="text-xs bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold">📥 导出</button>
+                    <button onclick="clearWrongBook()" data-i18n="clearBtn" class="text-xs bg-red-50 text-red-500 px-4 py-2 rounded-xl font-bold">清空</button>
                     <button onclick="toggleModal('wrongBookModal')" class="text-xs bg-slate-100 text-slate-500 px-4 py-2 rounded-xl font-bold">关闭</button>
                 </div>
             </div>
@@ -1130,6 +1131,598 @@ function renderHTML(results, categories, opts) {
         var PROG_KEY = "FELLOW_PROG_V1";
         var WRONG_KEY = "FELLOW_WRONG_V1";
         var BOOT = window.__BOOT__ || { shareMode: false, isAdmin: false, adminAuthed: false, list: [] };
+/* ===== 多语言 i18n（学员端）：简/繁/英/日/韩，默认简体；管理端保持简体 ===== */
+var LANG_KEY = 'TQ_LANG_V1';
+var LANGS = [['zh', '简体中文', '简体'], ['tw', '繁體中文', '繁體'], ['en', 'English', 'EN'], ['ja', '日本語', '日本語'], ['ko', '한국어', '한국어']];
+function curLang() { try { return localStorage.getItem(LANG_KEY) || 'zh'; } catch (e) { return 'zh'; } }
+function setLang(l) { try { localStorage.setItem(LANG_KEY, l); } catch (e) {} location.reload(); }
+function langShort(l) { for (var i = 0; i < LANGS.length; i++) if (LANGS[i][0] === l) return LANGS[i][2]; return l; }
+var I18N = {
+zh: {
+appName: '团契智学', wrongBook: '📝 错题本', setName: '设置姓名', langT: '选择语言', cancel: '取消',
+searchPh: '搜索课程...', statAll: '全部课程', statDone: '已完成', statDoing: '进行中', statAvg: '平均分',
+startLearning: '开始学习', videoBadge: '🎬 视频', copyLinkT: '复制分享链接', nLessons: '{n} 课', emptyResult: '没有找到匹配的课程',
+stDone: '已完成', stDoing: '进行中', stNot: '未开始',
+backList: '← 返回课程列表', backHome: '← 返回智学课程系统', studentIs: '学员：', changeBtn: '更换', loginReg: '登录 / 注册',
+tabGuide: '📚 课程导读', tabReport: '📊 成绩报告',
+tyVerse: '经文诵读', tyFill: '填空题', tySingle: '单项选择题', tyMulti: '多项选择题', tyJudge: '判断题', tyEssay: '问答与思辨',
+nQuestions: '{n}题', teacherBtn: '🔑 教师版查看答案', allAnswers: '📖 查看全套参考答案',
+watchVideo: '观看课程视频', videoMulti: '{n}个视频源，点击选择',
+modeChapters: '专题课件 · 分章互动版', modeQuiz: '互动答题 · 即时核对版',
+checkBtn: '核对答案', checking: '核对中…', fillActive: '请填写完所有{n}个空格以激活核对功能',
+needName: '请先在页面上方设置学员姓名，成绩将记在该姓名下。', notComplete: '还有未填写的内容，请填写完整后再核对。',
+checkFail: '核对失败，请检查网络后重试', fillDoneToast: '🎉 填写完成！现在可以核对答案了', progFill: '进度：已填写 {a}/{b}',
+vOk: '✓ 回答正确', vNg: '✗ 回答错误', vOpen: '○ 开放性答案，请对照参考自评',
+yourAns: '你的答案：', rightAns: '正确答案：', multiTag: '（多选）', coreVerse: '核心经文', essayPh: '输入你的回答...',
+repWait: '待核对', repHint: '全部填写完成后，点击「核对答案」即可在这里看到得分与掌握评级。',
+rateTop: '融会贯通', rateGood: '掌握良好', rateRetry: '需再复习', rateGo: '继续加油',
+repDone: '核对完成，成绩已上传；错题已自动加入错题本。如需重做，可点击「返回修改填写」或「重新作答」。',
+backEdit: '返回修改填写', scoreDone: '核对完成：{s}（成绩已上传）', scoreUnit: ' · 得分',
+loginT: '👤 学员登录', regT: '👤 学员注册',
+loginD: '请输入姓名与密码，成绩与错题本将记在此名下。', regD: '首次使用请设置登录密码，请牢记。',
+namePh: '学员姓名', pwPh: '密码（至少4位）', pw2Ph: '确认密码', doLogin: '登 录', doReg: '注 册',
+goReg: '首次使用？点此注册', goLogin: '已有账号？点此登录', forgotPw: '忘记密码？请联系老师重置',
+errName: '请输入姓名', errPw: '密码至少4位', errPw2: '两次输入的密码不一致',
+doing: '处理中…', opFail: '操作失败，请重试', netErr: '网络错误，请重试',
+logoutAsk: '退出当前学员（{name}）？\\n该姓名下的错题本与本地学习记录会保留，下次登记同一姓名可继续查看。',
+welcome: '欢迎 {name} 开启学习之旅！',
+wbT: '📝 错题本', wbMyT: '📝 我的错题本',
+wbEmptyC: '本课件暂无错题，答错的题目会自动收录在这里', wbEmpty: '错题本是空的，答错的题目会自动收录在这里',
+wbU: '你的答案：', wbE: '正确参考：', wbNA: '（未填）',
+wbClearC: '确定清空本课件的错题记录？', wbClearA: '确定清空错题本？', wbAnon: '匿名学员',
+vidEntry: '视频入口：', vidSimple: '精简显示', vidAll: '全部显示', vidToggle: '（点击切换）',
+vidWx: '需在微信中打开观看', vidWxT: '请在微信中打开',
+vidWxD1: '这个视频需要在微信内观看<br>点击下方按钮复制链接', vidCopy: '复制视频链接',
+vidWxD2: '复制后发送到微信任意聊天<br>点开链接即可观看',
+vidChoose: '选择视频源', vidChooseD: '请选择一个视频链接打开观看',
+fontT: '字体', fontS: '小', fontM: '标准', fontL: '较大', fontXL: '大', fontXXL: '特大',
+toDesk: '切换到桌面版', toMob: '切换到移动版', linkCopied: '链接已复制！',
+resetBtn: '重置', vidEntryT: '视频入口设置',
+vidSetD: '选择视频内容的显示方式，选一次即可记住', vidSimpleD: '部分视频入口将不显示，页面更简洁', vidAllD: '显示全部视频入口',
+vidLater: '稍后再说', fontZoomIn: '放大字体', fontZoomOut: '缩小字体', fontResetT: '恢复标准字号',
+courseWord: '课程', onlineLesson: '在线互动课件', secDefault: '本课内容', quizGuideT: '答题说明：',
+defaultGuide: '本课共{summary}。请按上方页签逐项作答，全部填写完成后点击底部「核对答案」查看判分与解析；错题会自动进入错题本，方便复习。',
+multiTypes: '多种题型', startQuiz: '开始答题 →',
+reportT: '答题成绩与复习报告', reportSub: '· 综合测评', repAnswered: '已答客观题', repObjScore: '客观题得分',
+repRating: '理解掌握评级', redoBtn: '↺ 重新作答', srcFrom: '课程来源：',
+prevType: '← 上一题型：', nextType: '下一题型：', viewReport: '查看成绩报告 →', qrefToggle: '📖 显示/隐藏参考答案',
+myCourses: '我的课程', heroSub: '系统学习，稳步成长', myScores: '📊 我的成绩', exportBtn: '📥 导出', clearBtn: '清空',
+scoreSummary: '共 {n} 条记录', scoreAvg: '，平均 {a} 分'
+},
+en: {
+appName: 'Fellowship Study',
+wrongBook: '📝 Wrong Answers',
+setName: 'Set Name',
+langT: 'Choose Language',
+cancel: 'Cancel',
+searchPh: 'Search courses...',
+statAll: 'Total Courses',
+statDone: 'Completed',
+statDoing: 'In Progress',
+statAvg: 'Avg Score',
+startLearning: 'Start Learning',
+videoBadge: '🎬 Video',
+copyLinkT: 'Copy share link',
+nLessons: '{n} lessons',
+emptyResult: 'No matching courses found',
+stDone: 'Completed',
+stDoing: 'In Progress',
+stNot: 'Not Started',
+backList: '← Back to Course List',
+backHome: '← Back to Fellowship Study',
+studentIs: 'Student: ',
+changeBtn: 'Change',
+loginReg: 'Login / Register',
+tabGuide: '📚 Course Guide',
+tabReport: '📊 Score Report',
+tyVerse: 'Scripture Reading',
+tyFill: 'Fill in the Blanks',
+tySingle: 'Single Choice',
+tyMulti: 'Multiple Choice',
+tyJudge: 'True / False',
+tyEssay: 'Q & A',
+nQuestions: '{n} questions',
+teacherBtn: '🔑 Teacher Answer View',
+allAnswers: '📖 View Full Answer Key',
+watchVideo: 'Watch Course Video',
+videoMulti: '{n} video sources — tap to choose',
+modeChapters: 'Thematic Course · Chapter Interactive',
+modeQuiz: 'Interactive Quiz · Instant Check',
+checkBtn: 'Check Answers',
+checking: 'Checking…',
+fillActive: 'Fill in all {n} blanks to activate checking',
+needName: 'Please set your student name at the top first. Scores will be recorded under that name.',
+notComplete: 'Some items are still blank. Please complete them before checking.',
+checkFail: 'Check failed. Please check your network and retry.',
+fillDoneToast: '🎉 All filled! You can check your answers now.',
+progFill: 'Progress: {a} / {b} filled',
+vOk: '✓ Correct',
+vNg: '✗ Incorrect',
+vOpen: '○ Open-ended — please self-review against the reference',
+yourAns: 'Your answer: ',
+rightAns: 'Correct answer: ',
+multiTag: '(Multiple)',
+coreVerse: 'Core Verse',
+essayPh: 'Type your answer...',
+repWait: 'Pending',
+repHint: 'Once everything is filled in, tap "Check Answers" to see your score and mastery rating here.',
+rateTop: 'Excellent',
+rateGood: 'Good',
+rateRetry: 'Needs Review',
+rateGo: 'Keep Going',
+repDone: 'Check complete. Score uploaded and mistakes added to your wrong-answer book. To redo, tap "Edit Answers" or "Retry".',
+backEdit: 'Edit Answers',
+scoreDone: 'Checked: {s} (score uploaded)',
+scoreUnit: ' · Score',
+loginT: '👤 Student Login',
+regT: '👤 Student Register',
+loginD: 'Enter your name and password. Scores and wrong answers are saved under this name.',
+regD: 'First time? Set a login password and remember it.',
+namePh: 'Student name',
+pwPh: 'Password (min 4 chars)',
+pw2Ph: 'Confirm password',
+doLogin: 'Login',
+doReg: 'Register',
+goReg: 'First time? Register here',
+goLogin: 'Have an account? Login here',
+forgotPw: 'Forgot password? Ask your teacher to reset it.',
+errName: 'Please enter your name',
+errPw: 'Password must be at least 4 characters',
+errPw2: 'The two passwords do not match',
+doing: 'Processing…',
+opFail: 'Operation failed. Please retry.',
+netErr: 'Network error. Please retry.',
+logoutAsk: 'Log out student ({name})?\\nWrong answers and local progress under this name will be kept.',
+welcome: 'Welcome, {name}! Begin your learning journey!',
+wbT: '📝 Wrong Answers',
+wbMyT: '📝 My Wrong Answers',
+wbEmptyC: 'No mistakes in this course yet. Wrong answers will be collected here automatically.',
+wbEmpty: 'Your wrong-answer book is empty. Mistakes will be collected here automatically.',
+wbU: 'Your answer: ',
+wbE: 'Correct answer: ',
+wbNA: '(blank)',
+wbClearC: 'Clear wrong answers for this course?',
+wbClearA: 'Clear the whole wrong-answer book?',
+wbAnon: 'Anonymous',
+vidEntry: 'Video source: ',
+vidSimple: 'Simple',
+vidAll: 'All',
+vidToggle: '(tap to switch)',
+vidWx: 'Open in WeChat to watch',
+vidWxT: 'Please open in WeChat',
+vidWxD1: 'This video must be watched inside WeChat.<br>Tap the button below to copy the link.',
+vidCopy: 'Copy Video Link',
+vidWxD2: 'After copying, send it to any WeChat chat<br>and open the link to watch.',
+vidChoose: 'Choose Video Source',
+vidChooseD: 'Pick a video link to watch',
+fontT: 'Font',
+fontS: 'S',
+fontM: 'M',
+fontL: 'L',
+fontXL: 'XL',
+fontXXL: 'XXL',
+toDesk: 'Switch to desktop view',
+toMob: 'Switch to mobile view',
+linkCopied: 'Link copied!',
+resetBtn: 'Reset',
+vidEntryT: 'Video Source Settings',
+vidSetD: 'Choose how video entries are displayed. Your choice will be remembered.',
+vidSimpleD: 'Some video entries will be hidden for a cleaner page',
+vidAllD: 'Show all video entries',
+vidLater: 'Later',
+fontZoomIn: 'Increase font size',
+fontZoomOut: 'Decrease font size',
+fontResetT: 'Reset to default size',
+courseWord: 'Course',
+onlineLesson: 'Interactive Lesson',
+secDefault: 'Lesson Content',
+quizGuideT: 'Instructions: ',
+defaultGuide: 'This lesson covers {summary}. Answer each tab above in order. When everything is filled in, tap "Check Answers" at the bottom to see your score and feedback. Mistakes are saved to your wrong-answer book for review.',
+multiTypes: 'various question types',
+startQuiz: 'Start Quiz →',
+reportT: 'Quiz Score & Review Report',
+reportSub: '· Overall Assessment',
+repAnswered: 'Objective Answered',
+repObjScore: 'Objective Score',
+repRating: 'Mastery Rating',
+redoBtn: '↺ Retry',
+srcFrom: 'Source: ',
+prevType: '← Previous: ',
+nextType: 'Next: ',
+viewReport: 'View Score Report →',
+qrefToggle: '📖 Show / Hide Reference',
+myCourses: 'My Courses', heroSub: 'Study systematically, grow steadily', myScores: '📊 My Scores', exportBtn: '📥 Export', clearBtn: 'Clear',
+scoreSummary: '{n} records', scoreAvg: ', avg {a}'
+},
+ja: {
+appName: 'フェローシップ学習',
+wrongBook: '📝 間違いノート',
+setName: '名前を設定',
+langT: '言語を選択',
+cancel: 'キャンセル',
+searchPh: 'コースを検索…',
+statAll: '全コース',
+statDone: '完了',
+statDoing: '学習中',
+statAvg: '平均点',
+startLearning: '学習開始',
+videoBadge: '🎬 動画',
+copyLinkT: '共有リンクをコピー',
+nLessons: '{n}課',
+emptyResult: '一致するコースがありません',
+stDone: '完了',
+stDoing: '進行中',
+stNot: '未開始',
+backList: '← コース一覧に戻る',
+backHome: '← 学習システムに戻る',
+studentIs: '学習者：',
+changeBtn: '変更',
+loginReg: 'ログイン / 登録',
+tabGuide: '📚 コースガイド',
+tabReport: '📊 成績レポート',
+tyVerse: '聖句朗読',
+tyFill: '空欄補充',
+tySingle: '単一選択',
+tyMulti: '複数選択',
+tyJudge: '正誤判定',
+tyEssay: '記述・思考',
+nQuestions: '{n}問',
+teacherBtn: '🔑 教師用解答表示',
+allAnswers: '📖 全解答を見る',
+watchVideo: 'コース動画を見る',
+videoMulti: '{n}件の動画ソース、タップして選択',
+modeChapters: '章別インタラクティブ版',
+modeQuiz: 'インタラクティブクイズ・即時採点版',
+checkBtn: '答え合わせ',
+checking: '採点中…',
+fillActive: '全{n}個の空欄を埋めると答え合わせできます',
+needName: '先にページ上部で学習者名を設定してください。成績はその名前で記録されます。',
+notComplete: '未入力の項目があります。すべて入力してから答え合わせしてください。',
+checkFail: '採点に失敗しました。ネットワークを確認して再試行してください。',
+fillDoneToast: '🎉 入力完了！答え合わせができます。',
+progFill: '進捗：{a} / {b} 入力済み',
+vOk: '✓ 正解',
+vNg: '✗ 不正解',
+vOpen: '○ 記述式 — 参考解答と照合してください',
+yourAns: 'あなたの答え：',
+rightAns: '正解：',
+multiTag: '（複数選択）',
+coreVerse: '中心聖句',
+essayPh: '答えを入力…',
+repWait: '未採点',
+repHint: 'すべて入力後、「答え合わせ」をタップすると得点と習熟度がここに表示されます。',
+rateTop: '完全習得',
+rateGood: '良好',
+rateRetry: '復習が必要',
+rateGo: '頑張ろう',
+repDone: '採点完了、成績をアップロード済み。間違いは間違いノートに追加されました。やり直す場合は「入力に戻る」または「再挑戦」をタップしてください。',
+backEdit: '入力に戻る',
+scoreDone: '採点完了：{s}（成績アップロード済み）',
+scoreUnit: ' · 得点',
+loginT: '👤 学習者ログイン',
+regT: '👤 学習者登録',
+loginD: '名前とパスワードを入力してください。成績と間違いノートはこの名前で記録されます。',
+regD: '初回利用時はログインパスワードを設定し、忘れないようにしてください。',
+namePh: '学習者名',
+pwPh: 'パスワード（4文字以上）',
+pw2Ph: 'パスワード確認',
+doLogin: 'ログイン',
+doReg: '登録',
+goReg: '初めての方？こちらで登録',
+goLogin: 'アカウントをお持ちの方？こちらでログイン',
+forgotPw: 'パスワードを忘れた方？先生にリセットを依頼してください。',
+errName: '名前を入力してください',
+errPw: 'パスワードは4文字以上',
+errPw2: 'パスワードが一致しません',
+doing: '処理中…',
+opFail: '操作に失敗しました。再試行してください。',
+netErr: 'ネットワークエラー。再試行してください。',
+logoutAsk: '学習者（{name}）からログアウトしますか？\\nこの名前の間違いノートと学習記録は保持されます。',
+welcome: 'ようこそ、{name}さん！学びの旅を始めましょう！',
+wbT: '📝 間違いノート',
+wbMyT: '📝 マイ間違いノート',
+wbEmptyC: 'このコースの間違いはまだありません。間違えた問題は自動でここに収録されます。',
+wbEmpty: '間違いノートは空です。間違えた問題は自動でここに収録されます。',
+wbU: 'あなたの答え：',
+wbE: '正解：',
+wbNA: '（未入力）',
+wbClearC: 'このコースの間違い記録をクリアしますか？',
+wbClearA: '間違いノートをすべてクリアしますか？',
+wbAnon: '匿名',
+vidEntry: '動画ソース：',
+vidSimple: 'シンプル表示',
+vidAll: '全表示',
+vidToggle: '（タップで切替）',
+vidWx: 'WeChatで開いて視聴',
+vidWxT: 'WeChatで開いてください',
+vidWxD1: 'この動画はWeChat内での視聴が必要です。<br>下のボタンでリンクをコピーしてください。',
+vidCopy: '動画リンクをコピー',
+vidWxD2: 'コピー後、WeChatの任意のチャットに送信し<br>リンクを開いて視聴してください。',
+vidChoose: '動画ソースを選択',
+vidChooseD: '視聴する動画リンクを選んでください',
+fontT: '文字サイズ',
+fontS: '小',
+fontM: '標準',
+fontL: '大',
+fontXL: '特大',
+fontXXL: '最大',
+toDesk: 'デスクトップ表示に切替',
+toMob: 'モバイル表示に切替',
+linkCopied: 'リンクをコピーしました！',
+resetBtn: 'リセット',
+vidEntryT: '動画ソース設定',
+vidSetD: '動画の表示方法を選択してください。選択は記憶されます。',
+vidSimpleD: '一部の動画を非表示にしてすっきり表示',
+vidAllD: 'すべての動画を表示',
+vidLater: '後で',
+fontZoomIn: '文字を大きく',
+fontZoomOut: '文字を小さく',
+fontResetT: '標準サイズに戻す',
+courseWord: 'コース',
+onlineLesson: 'インタラクティブ授業',
+secDefault: '本課の内容',
+quizGuideT: '解答の説明：',
+defaultGuide: 'この課は{summary}です。上のタブを順に解答し、すべて入力したら下部の「答え合わせ」で採点と解説を確認してください。間違いは復習用に間違いノートに保存されます。',
+multiTypes: '様々な問題形式',
+startQuiz: '解答開始 →',
+reportT: '解答成績と復習レポート',
+reportSub: '· 総合評価',
+repAnswered: '客観式解答済',
+repObjScore: '客観式得点',
+repRating: '理解度評価',
+redoBtn: '↺ やり直す',
+srcFrom: '出典：',
+prevType: '← 前の形式：',
+nextType: '次の形式：',
+viewReport: '成績レポートを見る →',
+qrefToggle: '📖 参考表示 / 非表示',
+myCourses: 'マイコース', heroSub: '体系的に学び、着実に成長', myScores: '📊 マイ成績', exportBtn: '📥 エクスポート', clearBtn: 'クリア',
+scoreSummary: '{n}件の記録', scoreAvg: '、平均 {a} 点'
+},
+ko: {
+appName: '펠로우십 학습',
+wrongBook: '📝 오답 노트',
+setName: '이름 설정',
+langT: '언어 선택',
+cancel: '취소',
+searchPh: '강의 검색…',
+statAll: '전체 강의',
+statDone: '완료',
+statDoing: '학습 중',
+statAvg: '평균 점수',
+startLearning: '학습 시작',
+videoBadge: '🎬 영상',
+copyLinkT: '공유 링크 복사',
+nLessons: '{n}강',
+emptyResult: '일치하는 강의가 없습니다',
+stDone: '완료',
+stDoing: '진행 중',
+stNot: '시작 전',
+backList: '← 강의 목록으로 돌아가기',
+backHome: '← 학습 시스템으로 돌아가기',
+studentIs: '학습자: ',
+changeBtn: '변경',
+loginReg: '로그인 / 회원가입',
+tabGuide: '📚 강의 안내',
+tabReport: '📊 성적 리포트',
+tyVerse: '성경 읽기',
+tyFill: '빈칸 채우기',
+tySingle: '단일 선택',
+tyMulti: '다중 선택',
+tyJudge: '참 / 거짓',
+tyEssay: '서술형',
+nQuestions: '{n}문제',
+teacherBtn: '🔑 교사용 정답 보기',
+allAnswers: '📖 전체 정답 보기',
+watchVideo: '강의 영상 보기',
+videoMulti: '{n}개의 영상 소스, 탭하여 선택',
+modeChapters: '챕터별 인터랙티브 버전',
+modeQuiz: '인터랙티브 퀴즈 · 즉시 채점 버전',
+checkBtn: '정답 확인',
+checking: '채점 중…',
+fillActive: '모든 {n}개의 빈칸을 채우면 정답 확인이 활성화됩니다',
+needName: '먼저 페이지 상단에서 학습자 이름을 설정해 주세요. 성적은 해당 이름으로 기록됩니다.',
+notComplete: '입력하지 않은 항목이 있습니다. 모두 입력한 후 정답을 확인해 주세요.',
+checkFail: '채점에 실패했습니다. 네트워크를 확인하고 다시 시도해 주세요.',
+fillDoneToast: '🎉 입력 완료! 이제 정답을 확인할 수 있습니다.',
+progFill: '진행: {a} / {b} 입력됨',
+vOk: '✓ 정답',
+vNg: '✗ 오답',
+vOpen: '○ 서술형 — 참고 정답과 대조해 주세요',
+yourAns: '내 답: ',
+rightAns: '정답: ',
+multiTag: '(다중 선택)',
+coreVerse: '핵심 성경구절',
+essayPh: '답을 입력…',
+repWait: '채점 대기',
+repHint: '모두 입력한 후 ‘정답 확인’을 탭하면 점수와 숙련도가 여기에 표시됩니다.',
+rateTop: '완벽 습득',
+rateGood: '양호',
+rateRetry: '복습 필요',
+rateGo: '계속 노력하세요',
+repDone: '채점 완료, 성적이 업로드되었습니다. 오답은 오답 노트에 추가되었습니다. 다시 하려면 ‘입력으로 돌아가기’ 또는 ‘다시 풀기’를 탭하세요.',
+backEdit: '입력으로 돌아가기',
+scoreDone: '채점 완료: {s} (성적 업로드됨)',
+scoreUnit: ' · 점수',
+loginT: '👤 학습자 로그인',
+regT: '👤 학습자 회원가입',
+loginD: '이름과 비밀번호를 입력해 주세요. 성적과 오답 노트는 이 이름으로 기록됩니다.',
+regD: '처음 이용 시 로그인 비밀번호를 설정하고 잊지 마세요.',
+namePh: '학습자 이름',
+pwPh: '비밀번호(4자 이상)',
+pw2Ph: '비밀번호 확인',
+doLogin: '로그인',
+doReg: '회원가입',
+goReg: '처음이신가요? 여기서 가입하세요',
+goLogin: '계정이 있으신가요? 여기서 로그인하세요',
+forgotPw: '비밀번호를 잊으셨나요? 선생님께 초기화를 요청하세요.',
+errName: '이름을 입력해 주세요',
+errPw: '비밀번호는 4자 이상이어야 합니다',
+errPw2: '비밀번호가 일치하지 않습니다',
+doing: '처리 중…',
+opFail: '작업에 실패했습니다. 다시 시도해 주세요.',
+netErr: '네트워크 오류. 다시 시도해 주세요.',
+logoutAsk: '학습자({name})에서 로그아웃하시겠습니까?\\n이 이름의 오답 노트와 학습 기록은 유지됩니다.',
+welcome: '환영합니다, {name}님! 학습 여정을 시작하세요!',
+wbT: '📝 오답 노트',
+wbMyT: '📝 나의 오답 노트',
+wbEmptyC: '이 강의의 오답이 아직 없습니다. 틀린 문제는 자동으로 여기에 수집됩니다.',
+wbEmpty: '오답 노트가 비어 있습니다. 틀린 문제는 자동으로 여기에 수집됩니다.',
+wbU: '내 답: ',
+wbE: '정답: ',
+wbNA: '(미입력)',
+wbClearC: '이 강의의 오답 기록을 지우시겠습니까?',
+wbClearA: '오답 노트를 모두 지우시겠습니까?',
+wbAnon: '익명',
+vidEntry: '영상 소스: ',
+vidSimple: '간단히 표시',
+vidAll: '모두 표시',
+vidToggle: '(탭하여 전환)',
+vidWx: '위챗에서 열어 시청',
+vidWxT: '위챗에서 열어 주세요',
+vidWxD1: '이 영상은 위챗 내에서 시청해야 합니다.<br>아래 버튼을 눌러 링크를 복사하세요.',
+vidCopy: '영상 링크 복사',
+vidWxD2: '복사 후 위챗 채팅에 붙여넣고<br>링크를 열어 시청하세요.',
+vidChoose: '영상 소스 선택',
+vidChooseD: '시청할 영상 링크를 선택하세요',
+fontT: '글꼴',
+fontS: '작게',
+fontM: '보통',
+fontL: '크게',
+fontXL: '아주 크게',
+fontXXL: '최대',
+toDesk: '데스크톱 보기로 전환',
+toMob: '모바일 보기로 전환',
+linkCopied: '링크가 복사되었습니다!',
+resetBtn: '초기화',
+vidEntryT: '영상 소스 설정',
+vidSetD: '영상 표시 방식을 선택하세요. 선택이 기억됩니다.',
+vidSimpleD: '일부 영상을 숨기고 간결하게 표시',
+vidAllD: '모든 영상 표시',
+vidLater: '나중에',
+fontZoomIn: '글자 키우기',
+fontZoomOut: '글자 줄이기',
+fontResetT: '기본 크기로 복원',
+courseWord: '강의',
+onlineLesson: '인터랙티브 강의',
+secDefault: '본 강의 내용',
+quizGuideT: '답안 안내: ',
+defaultGuide: '이 강의는 {summary}를 다룹니다. 위 탭을 순서대로 푸시고, 모두 입력한 후 하단의 ‘정답 확인’을 눌러 점수와 해설을 확인하세요. 오답은 복습을 위해 오답 노트에 저장됩니다.',
+multiTypes: '다양한 문제 유형',
+startQuiz: '문제 풀기 →',
+reportT: '문제 성적 및 복습 리포트',
+reportSub: '· 종합 평가',
+repAnswered: '객관식 응답',
+repObjScore: '객관식 점수',
+repRating: '이해도 평가',
+redoBtn: '↺ 다시 풀기',
+srcFrom: '출처: ',
+prevType: '← 이전 유형: ',
+nextType: '다음 유형: ',
+viewReport: '성적 리포트 보기 →',
+qrefToggle: '📖 참고 표시 / 숨기기',
+myCourses: '내 강의', heroSub: '체계적으로 학습하고 꾸준히 성장', myScores: '📊 내 성적', exportBtn: '📥 내보내기', clearBtn: '지우기',
+scoreSummary: '{n}개의 기록', scoreAvg: ', 평균 {a}점'
+}
+};
+function t(k) {
+    var L = curLang();
+    var d = I18N[L] || I18N.zh;
+    var s = (d[k] !== undefined) ? d[k] : ((I18N.zh[k] !== undefined) ? I18N.zh[k] : k);
+    return (L === 'tw') ? toTW(s) : s;
+}
+function tf(k, obj) {
+    var s = t(k);
+    for (var p in obj) { if (Object.prototype.hasOwnProperty.call(obj, p)) s = s.split('{' + p + '}').join(obj[p]); }
+    return s;
+}
+/* 静态 data-i18n 元素应用当前语言 */
+function applyI18n() {
+    try {
+        document.querySelectorAll('[data-i18n]').forEach(function(el) { el.textContent = t(el.getAttribute('data-i18n')); });
+        document.querySelectorAll('[data-i18n-html]').forEach(function(el) { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+        document.querySelectorAll('[data-i18n-ph]').forEach(function(el) { el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'))); });
+        document.querySelectorAll('[data-i18n-title]').forEach(function(el) { el.setAttribute('title', t(el.getAttribute('data-i18n-title'))); });
+        document.title = t('appName');
+        var lb = document.getElementById('langBtn');
+        if (lb) lb.innerHTML = '🌐 ' + langShort(curLang());
+    } catch (e) {}
+}
+function openLangPanel() {
+    var m = document.getElementById('langModal');
+    if (!m) {
+        m = document.createElement('div');
+        m.id = 'langModal';
+        m.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
+        m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.5)" data-close="1"></div>'
+            + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:320px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
+            + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 16px">' + t('langT') + '</h3>'
+            + '<div id="langList"></div>'
+            + '<button data-close="1" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">' + t('cancel') + '</button></div>';
+        m.querySelectorAll('[data-close]').forEach(function(x) { x.onclick = function() { m.style.display = 'none'; }; });
+        document.body.appendChild(m);
+    }
+    document.getElementById('langList').innerHTML = LANGS.map(function(L) {
+        var sel = curLang() === L[0];
+        return '<button data-lang="' + L[0] + '" style="width:100%;text-align:left;padding:12px 14px;border-radius:16px;margin-bottom:8px;font-size:14px;color:#334155;'
+            + (sel ? 'background:#ede9fe;border:2px solid #7c3aed;font-weight:800;' : 'background:#f8fafc;border:2px solid transparent;') + '">'
+            + (sel ? '✓ ' : '<span style="display:inline-block;width:18px"></span>') + L[1] + '</button>';
+    }).join('');
+    m.querySelectorAll('[data-lang]').forEach(function(b) { b.onclick = function() { setLang(b.getAttribute('data-lang')); }; });
+    m.style.display = 'flex';
+}
+/* 繁简转换（字表来源 OpenCC STCharacters，Apache-2.0） */
+var TWP = "㐷傌㐹㑶㐽偑㑇㑳㑈倲㑔㑯㑩儸㓥劏㓰劃㔉劚㖊噚㖞喎㘎㘚㚯㜄㛀媰㛣㜏㛤孋㟆㠏㟥嵾㡎幓㤘㥮㤽懤㥪慺㧏掆㧐㩳㧑撝㧟擓㧰擽㨫㩜㭎棡㭏椲㭤樢㭴樫㱩殰㱮殨㲿瀇㳔濧㳕灡㳠澾㳡濄㳽瀰㴋潚㶉鸂㶶燶㶽煱㺍獱㻅璯䀥䁻䁖瞜䂵碽䃅磾䅉稏䅟穇䇲筴䉤籔䌶䊷䌷紬䌸縳䌹絅䌺䋙䌻䋚䌼綐䌽綵䌾䋻䌿䋹䍀繿䍁繸䍠䍦䎬䎱䏝膞䓓薵䓕薳䓖藭䓨罃䗖螮䙌䙡䙓襬䜣訢䜤鿁䜧䜀䜩讌䝙貙䞍䝼䞐賰䟢躎䥺釾䥽鏺䥾䥱䦂䥇䦃鐯䦅鐥䦆钁䦶䦛䦷䦟䩄靦䯄騧䯅䯀䲝䱽䲟鮣䲠鰆䲡鰌䲢鰧䲣䱷䴓鳾䴔鵁䴕鴷䴖鶄䴗鶪䴘鷉䴙鸊䶮龑万萬与與丑醜专專业業丛叢东東丝絲丢丟两兩严嚴丧喪个個丰豐临臨为爲丽麗举舉么麼义義乌烏乐樂乔喬习習乡鄉书書买買乱亂争爭于於亏虧云雲亘亙亚亞产產亩畝亲親亵褻亸嚲亿億仅僅仆僕从從仑侖仓倉仪儀们們价價众衆优優伙夥会會伛傴伞傘伟偉传傳伡俥伣俔伤傷伥倀伦倫伧傖伪僞伫佇体體余餘佣傭佥僉侠俠侣侶侥僥侦偵侧側侨僑侩儈侪儕侬儂侭儘俣俁俦儔俨儼俩倆俪儷俫倈俭儉债債倾傾偬傯偻僂偾僨偿償傤儎傥儻傧儐储儲傩儺儿兒兑兌兖兗党黨兰蘭关關兴興兹茲养養兽獸冁囅内內冈岡册冊写寫军軍农農冯馮冲衝决決况況冻凍净淨凄悽准準凉涼减減凑湊凛凜几幾凤鳳凫鳧凭憑凯凱凶兇击擊凿鑿刍芻划劃刘劉则則刚剛创創删刪别別刬剗刭剄刹剎刽劊刾㓨刿劌剀剴剂劑剐剮剑劍剥剝剧劇劝勸办辦务務劢勱动動励勵劲勁劳勞势勢勋勳勚勩匀勻匦匭匮匱区區医醫华華协協单單卖賣占佔卢盧卤滷卧臥卫衛却卻卺巹厂廠厅廳历歷厉厲压壓厌厭厍厙厐龎厕廁厘釐厢廂厣厴厦廈厨廚厩廄厮廝县縣叁叄参參叆靉叇靆双雙发發变變叙敘叠疊台臺叶葉号號叹嘆叽嘰吁籲吃喫后後吓嚇吕呂吗嗎吨噸听聽启啓吴吳呐吶呒嘸呓囈呕嘔呖嚦呗唄员員呙咼呛嗆呜嗚咏詠咙嚨咛嚀咝噝咤吒咨諮咸鹹响響哑啞哒噠哓嘵哔嗶哕噦哗譁哙噲哜嚌哝噥哟喲唇脣唛嘜唝嗊唠嘮唡啢唢嗩唤喚啧嘖啬嗇啭囀啮齧啯嘓啰囉啴嘽啸嘯喷噴喽嘍喾嚳嗫囁嗳噯嘘噓嘤嚶嘱囑噜嚕嚣囂团團园園囱囪围圍囵圇国國图圖圆圓圣聖圹壙场場坏壞块塊坚堅坛壇坜壢坝壩坞塢坟墳坠墜垄壟垅壠垆壚垒壘垦墾垩堊垫墊垭埡垯墶垱壋垲塏垴堖埘塒埙壎埚堝堑塹堕墮塆壪墙牆壮壯声聲壳殼壶壺壸壼处處备備复復够夠头頭夸誇夹夾夺奪奁奩奂奐奋奮奖獎奥奧妆妝妇婦妈媽妩嫵妪嫗妫嬀姗姍姹奼娄婁娅婭娆嬈娇嬌娈孌娱娛娲媧娴嫺婳嫿婴嬰婵嬋婶嬸媪媼媭嬃嫒嬡嫔嬪嫱嬙嬷嬤孙孫学學孪孿宁寧宝寶实實宠寵审審宪憲宫宮宽寬宾賓寝寢对對寻尋导導寿壽将將尔爾尘塵尝嘗尧堯尴尷尸屍尽盡层層屃屓屉屜届屆属屬屡屢屦屨屿嶼岁歲岂豈岖嶇岗崗岘峴岚嵐岛島岩巖岭嶺岳嶽岽崬岿巋峃嶨峄嶧峡峽峣嶢峤嶠峥崢峦巒峰峯崂嶗崃崍崄嶮崭嶄嵘嶸嵚嶔嵝嶁巅巔巩鞏巯巰币幣帅帥师師帏幃帐帳帘簾帜幟带帶帧幀帮幫帱幬帻幘帼幗幂冪干幹并並广廣庄莊庆慶床牀庐廬庑廡库庫应應庙廟庞龐废廢庼廎廪廩开開异異弃棄弑弒张張弥彌弪弳弯彎弹彈强強归歸当當录錄彟彠彦彥彨彲彻徹征徵径徑徕徠忆憶忏懺忧憂忾愾怀懷态態怂慫怃憮怄慪怅悵怆愴怜憐总總怼懟怿懌恋戀恒恆恳懇恶惡恸慟恹懨恺愷恻惻恼惱恽惲悦悅悫愨悬懸悭慳悮悞悯憫惊驚惧懼惨慘惩懲惫憊惬愜惭慚惮憚惯慣愠慍愤憤愦憒愿願慑懾慭憖懑懣懒懶懔懍戆戇戋戔戏戲戗戧战戰戬戩戯戱户戶扑撲执執扩擴扪捫扫掃扬揚扰擾抚撫抛拋抟摶抠摳抡掄抢搶护護报報担擔拟擬拢攏拣揀拥擁拦攔拧擰拨撥择擇挂掛挚摯挛攣挜掗挝撾挞撻挟挾挠撓挡擋挢撟挣掙挤擠挥揮挦撏捝挩捞撈损損捡撿换換捣搗据據掳擄掴摑掷擲掸撣掺摻掼摜揽攬揾搵揿撳搀攙搁擱搂摟搄揯搅攪携攜摄攝摅攄摆擺摇搖摈擯摊攤撄攖撑撐撵攆撷擷撸擼撺攛擜㩵擞擻攒攢敌敵敚敓敛斂敩斆数數斋齋斓斕斗鬥斩斬断斷无無旧舊时時旷曠旸暘昙曇昵暱昼晝昽曨显顯晋晉晒曬晓曉晔曄晕暈晖暉暂暫暧曖术術朴樸机機杀殺杂雜权權杠槓条條来來杨楊杩榪杰傑极極构構枞樅枢樞枣棗枥櫪枧梘枨棖枪槍枫楓枭梟柜櫃柠檸柽檉栀梔栅柵标標栈棧栉櫛栊櫳栋棟栌櫨栎櫟栏欄树樹栖棲样樣栾欒桠椏桡橈桢楨档檔桤榿桥橋桦樺桧檜桨槳桩樁桪樳梦夢梼檮梾棶梿槤检檢棁梲棂欞椁槨椝槼椟櫝椠槧椢槶椤欏椫樿椭橢椮槮楼樓榄欖榅榲榇櫬榈櫚榉櫸榝樧槚檟槛檻槟檳槠櫧横橫樯檣樱櫻橥櫫橱櫥橹櫓橼櫞檩檁欢歡欤歟欧歐歼殲殁歿殇殤残殘殒殞殓殮殚殫殡殯殴毆毁毀毂轂毕畢毙斃毡氈毵毿氇氌气氣氢氫氩氬氲氳汇匯汉漢汤湯汹洶沄澐沟溝没沒沣灃沤漚沥瀝沦淪沧滄沨渢沩潙沪滬泞濘泪淚泶澩泷瀧泸瀘泺濼泻瀉泼潑泽澤泾涇洁潔洒灑洼窪浃浹浅淺浆漿浇澆浈湞浉溮浊濁测測浍澮济濟浏瀏浐滻浑渾浒滸浓濃浔潯浕濜涂塗涌湧涚涗涛濤涝澇涞淶涟漣涠潿涡渦涢溳涣渙涤滌润潤涧澗涨漲涩澀淀澱渊淵渌淥渍漬渎瀆渐漸渑澠渔漁渖瀋渗滲温溫游遊湾灣湿溼溁濚溃潰溅濺溆漵溇漊滗潷滚滾滞滯滟灩滠灄满滿滢瀅滤濾滥濫滦灤滨濱滩灘滪澦潆瀠潇瀟潋瀲潍濰潜潛潴瀦澛瀂澜瀾濑瀨濒瀕灏灝灭滅灯燈灵靈灶竈灾災灿燦炀煬炉爐炖燉炜煒炝熗点點炼煉炽熾烁爍烂爛烃烴烛燭烟煙烦煩烧燒烨燁烩燴烫燙烬燼热熱焕煥焖燜焘燾煴熅熏燻爱愛爷爺牍牘牦犛牵牽牺犧犊犢状狀犷獷犸獁犹猶狈狽狝獮狞獰独獨狭狹狮獅狯獪狰猙狱獄狲猻猃獫猎獵猕獼猡玀猪豬猫貓猬蝟献獻獭獺玑璣玙璵玚瑒玛瑪玮瑋环環现現玱瑲玺璽珐琺珑瓏珰璫珲琿琎璡琏璉琐瑣琼瓊瑶瑤瑷璦瑸璸璎瓔瓒瓚瓮甕瓯甌电電画畫畅暢畴疇疖癤疗療疟瘧疠癘疡瘍疬癧疭瘲疮瘡疯瘋疱皰疴痾痈癰痉痙痒癢痖瘂痨癆痪瘓痫癇痴癡瘅癉瘆瘮瘗瘞瘘瘻瘪癟瘫癱瘾癮瘿癭癞癩癣癬癫癲皂皁皑皚皱皺皲皸盏盞盐鹽监監盖蓋盗盜盘盤眍瞘眦眥眬矓睁睜睐睞睑瞼瞆瞶瞒瞞瞩矚矫矯矶磯矾礬矿礦砀碭码碼砖磚砗硨砚硯砜碸砺礪砻礱砾礫础礎硁硜硕碩硖硤硗磽硙磑硚礄确確硵磠碍礙碛磧碜磣碱鹼礼禮祃禡祎禕祢禰祯禎祷禱祸禍禀稟禄祿禅禪离離秃禿秆稈种種秘祕积積称稱秽穢秾穠稆穭税稅稣穌稳穩穑穡穞穭穷窮窃竊窍竅窎窵窑窯窜竄窝窩窥窺窦竇窭窶竖豎竞競笃篤笋筍笔筆笕筧笺箋笼籠笾籩筑築筚篳筛篩筜簹筝箏筹籌筼篔签籤筿篠简簡箓籙箦簀箧篋箨籜箩籮箪簞箫簫篑簣篓簍篮籃篯籛篱籬簖籪籁籟籴糴类類籼秈粜糶粝糲粤粵粪糞粮糧粽糉糁糝糇餱糍餈紧緊絷縶緼縕縆緪纟糹纠糾纡紆红紅纣紂纤纖纥紇约約级級纨紈纩纊纪紀纫紉纬緯纭紜纮紘纯純纰紕纱紗纲綱纳納纴紝纵縱纶綸纷紛纸紙纹紋纺紡纻紵纼紖纽紐纾紓线線绀紺绁紲绂紱练練组組绅紳细細织織终終绉縐绊絆绋紼绌絀绍紹绎繹经經绐紿绑綁绒絨结結绔絝绕繞绖絰绗絎绘繪给給绚絢绛絳络絡绝絕绞絞统統绠綆绡綃绢絹绣繡绤綌绥綏绦絛继繼绨綈绩績绪緒绫綾绬緓续續绮綺绯緋绰綽绱鞝绲緄绳繩维維绵綿绶綬绷繃绸綢绹綯绺綹绻綣综綜绽綻绾綰绿綠缀綴缁緇缂緙缃緗缄緘缅緬缆纜缇緹缈緲缉緝缊縕缋繢缌緦缍綞缎緞缏緶缐線缑緱缒縋缓緩缔締缕縷编編缗緡缘緣缙縉缚縛缛縟缜縝缝縫缞縗缟縞缠纏缡縭缢縊缣縑缤繽缥縹缦縵缧縲缨纓缩縮缪繆缫繅缬纈缭繚缮繕缯繒缰繮缱繾缲繰缳繯缴繳缵纘罂罌网網罗羅罚罰罢罷罴羆羁羈羟羥羡羨群羣翘翹翙翽翚翬耢耮耧耬耸聳耻恥聂聶聋聾职職聍聹联聯聩聵聪聰肃肅肠腸肤膚肮骯肴餚肾腎肿腫胀脹胁脅胆膽胜勝胧朧胨腖胪臚胫脛胶膠脉脈脍膾脏髒脐臍脑腦脓膿脔臠脚腳脱脫脶腡脸臉腊臘腌醃腘膕腭齶腻膩腼靦腽膃腾騰膑臏膻羶臜臢舆輿舣艤舰艦舱艙舻艫艰艱艳豔艺藝节節芈羋芗薌芜蕪芦蘆苁蓯苇葦苈藶苋莧苌萇苍蒼苎苧苏蘇苧薴苹蘋范範茎莖茏蘢茑蔦茔塋茕煢茧繭荆荊荐薦荙薘荚莢荛蕘荜蓽荝萴荞蕎荟薈荠薺荡蕩荣榮荤葷荥滎荦犖荧熒荨蕁荩藎荪蓀荫蔭荬蕒荭葒荮葤药藥莅蒞莱萊莲蓮莳蒔莴萵莶薟获獲莸蕕莹瑩莺鶯莼蓴萚蘀萝蘿萤螢营營萦縈萧蕭萨薩葱蔥蒀蒕蒇蕆蒉蕢蒋蔣蒌蔞蒏醟蓝藍蓟薊蓠蘺蓣蕷蓥鎣蓦驀蔂虆蔷薔蔹蘞蔺藺蔼藹蕰薀蕲蘄蕴蘊薮藪藓蘚藴蘊蘖櫱虏虜虑慮虚虛虫蟲虬虯虮蟣虱蝨虽雖虾蝦虿蠆蚀蝕蚁蟻蚂螞蚃蠁蚕蠶蚝蠔蚬蜆蛊蠱蛎蠣蛏蟶蛮蠻蛰蟄蛱蛺蛲蟯蛳螄蛴蠐蜕蛻蜗蝸蜡蠟蝇蠅蝈蟈蝉蟬蝎蠍蝼螻蝾蠑螀螿螨蟎蟏蠨衅釁衔銜补補衬襯衮袞袄襖袅嫋袆褘袜襪袭襲袯襏装裝裆襠裈褌裢褳裣襝裤褲裥襉褛褸褴襤襕襴见見观觀觃覎规規觅覓视視觇覘览覽觉覺觊覬觋覡觌覿觍覥觎覦觏覯觐覲觑覷觞觴触觸觯觶訚誾詟讋誉譽誊謄讠訁计計订訂讣訃认認讥譏讦訐讧訌讨討让讓讪訕讫訖讬託训訓议議讯訊记記讱訒讲講讳諱讴謳讵詎讶訝讷訥许許讹訛论論讻訩讼訟讽諷设設访訪诀訣证證诂詁诃訶评評诅詛识識诇詗诈詐诉訴诊診诋詆诌謅词詞诎詘诏詔诐詖译譯诒詒诓誆诔誄试試诖詿诗詩诘詰诙詼诚誠诛誅诜詵话話诞誕诟詬诠詮诡詭询詢诣詣诤諍该該详詳诧詫诨諢诩詡诪譸诫誡诬誣语語诮誚误誤诰誥诱誘诲誨诳誑说說诵誦诶誒请請诸諸诹諏诺諾读讀诼諑诽誹课課诿諉谀諛谁誰谂諗调調谄諂谅諒谆諄谇誶谈談谉讅谊誼谋謀谌諶谍諜谎謊谏諫谐諧谑謔谒謁谓謂谔諤谕諭谖諼谗讒谘諮谙諳谚諺谛諦谜謎谝諞谞諝谟謨谠讜谡謖谢謝谣謠谤謗谥諡谦謙谧謐谨謹谩謾谪謫谫譾谬謬谭譚谮譖谯譙谰讕谱譜谲譎谳讞谴譴谵譫谶讖豮豶贝貝贞貞负負贠貟贡貢财財责責贤賢败敗账賬货貨质質贩販贪貪贫貧贬貶购購贮貯贯貫贰貳贱賤贲賁贳貰贴貼贵貴贶貺贷貸贸貿费費贺賀贻貽贼賊贽贄贾賈贿賄赀貲赁賃赂賂赃贓资資赅賅赆贐赇賕赈賑赉賚赊賒赋賦赌賭赍齎赎贖赏賞赐賜赑贔赒賙赓賡赔賠赕賧赖賴赗賵赘贅赙賻赚賺赛賽赜賾赝贗赞贊赟贇赠贈赡贍赢贏赣贛赪赬赵趙赶趕趋趨趱趲趸躉跃躍跄蹌跖蹠跞躒践踐跶躂跷蹺跸蹕跹躚跻躋踌躊踪蹤踬躓踯躑蹑躡蹒蹣蹰躕蹿躥躏躪躜躦躯軀輼轀车車轧軋轨軌轩軒轪軑轫軔转轉轭軛轮輪软軟轰轟轱軲轲軻轳轤轴軸轵軹轶軼轷軤轸軫轹轢轺軺轻輕轼軾载載轾輊轿轎辀輈辁輇辂輅较較辄輒辅輔辆輛辇輦辈輩辉輝辊輥辋輞辌輬辍輟辎輜辏輳辐輻辑輯辒轀输輸辔轡辕轅辖轄辗輾辘轆辙轍辚轔辞辭辟闢辩辯辫辮边邊辽遼达達迁遷过過迈邁运運还還这這进進远遠违違连連迟遲迩邇迳逕迹跡适適选選逊遜递遞逦邐逻邏遗遺遥遙邓鄧邝鄺邬鄔邮郵邹鄒邺鄴邻鄰郁鬱郏郟郐鄶郑鄭郓鄆郦酈郧鄖郸鄲酂酇酝醞酦醱酱醬酽釅酾釃酿釀醖醞采採释釋里裏鉴鑑銮鑾錾鏨钅釒钆釓钇釔针針钉釘钊釗钋釙钌釕钍釷钎釺钏釧钐釤钑鈒钒釩钓釣钔鍆钕釹钖鍚钗釵钘鈃钙鈣钚鈈钛鈦钜鉅钝鈍钞鈔钟鍾钠鈉钡鋇钢鋼钣鈑钤鈐钥鑰钦欽钧鈞钨鎢钩鉤钪鈧钫鈁钬鈥钭鈄钮鈕钯鈀钰鈺钱錢钲鉦钳鉗钴鈷钵鉢钶鈳钷鉕钸鈽钹鈸钺鉞钻鑽钼鉬钽鉭钾鉀钿鈿铀鈾铁鐵铂鉑铃鈴铄鑠铅鉛铆鉚铇鉋铈鈰铉鉉铊鉈铋鉍铌鈮铍鈹铎鐸铏鉶铐銬铑銠铒鉺铓鋩铔錏铕銪铖鋮铗鋏铘鋣铙鐃铚銍铛鐺铜銅铝鋁铞銱铟銦铠鎧铡鍘铢銖铣銑铤鋌铥銩铦銛铧鏵铨銓铩鎩铪鉿铫銚铬鉻铭銘铮錚铯銫铰鉸铱銥铲鏟铳銃铴鐋铵銨银銀铷銣铸鑄铹鐒铺鋪铻鋙铼錸铽鋱链鏈铿鏗销銷锁鎖锂鋰锃鋥锄鋤锅鍋锆鋯锇鋨锈鏽锉銼锊鋝锋鋒锌鋅锍鋶锎鐦锏鐧锐銳锑銻锒鋃锓鋟锔鋦锕錒锖錆锗鍺锘鍩错錯锚錨锛錛锜錡锝鍀锞錁锟錕锠錩锡錫锢錮锣鑼锤錘锥錐锦錦锧鑕锨鍁锩錈锪鍃锫錇锬錟锭錠键鍵锯鋸锰錳锱錙锲鍥锳鍈锴鍇锵鏘锶鍶锷鍔锸鍤锹鍬锺鍾锻鍛锼鎪锽鍠锾鍰锿鎄镀鍍镁鎂镂鏤镃鎡镄鐨镅鎇镆鏌镇鎮镈鎛镉鎘镊鑷镋钂镌鐫镍鎳镎鎿镏鎦镐鎬镑鎊镒鎰镓鎵镔鑌镕鎔镖鏢镗鏜镘鏝镙鏍镚鏰镛鏞镜鏡镝鏑镞鏃镟鏇镠鏐镡鐔镢钁镣鐐镤鏷镥鑥镦鐓镧鑭镨鐠镩鑹镪鏹镫鐙镬鑊镭鐳镮鐶镯鐲镰鐮镱鐿镲鑔镳鑣镴鑞镵鑱镶鑲长長门門闩閂闪閃闫閆闬閈闭閉问問闯闖闰閏闱闈闲閒闳閎间間闵閔闶閌闷悶闸閘闹鬧闺閨闻聞闼闥闽閩闾閭闿闓阀閥阁閣阂閡阃閫阄鬮阅閱阆閬阇闍阈閾阉閹阊閶阋鬩阌閿阍閽阎閻阏閼阐闡阑闌阒闃阓闠阔闊阕闋阖闔阗闐阘闒阙闕阚闞阛闤队隊阳陽阴陰阵陣阶階际際陆陸陇隴陈陳陉陘陕陝陦隯陧隉陨隕险險随隨隐隱隶隸隽雋难難雇僱雏雛雠讎雳靂雾霧霁霽霉黴霡霢霭靄靓靚靔靝静靜靥靨鞑韃鞒鞽鞯韉鞲韝韦韋韧韌韨韍韩韓韪韙韫韞韬韜韵韻页頁顶頂顷頃顸頇项項顺順须須顼頊顽頑顾顧顿頓颀頎颁頒颂頌颃頏预預颅顱领領颇頗颈頸颉頡颊頰颋頲颌頜颍潁颎熲颏頦颐頤频頻颒頮颓頹颔頷颕頴颖穎颗顆题題颙顒颚顎颛顓颜顏额額颞顳颟顢颠顛颡顙颢顥颣纇颤顫颥顬颦顰颧顴风風飏颺飐颭飑颮飒颯飓颶飔颸飕颼飖颻飗飀飘飄飙飆飚飈飞飛飨饗餍饜饣飠饤飣饥飢饦飥饧餳饨飩饩餼饪飪饫飫饬飭饭飯饮飲饯餞饰飾饱飽饲飼饳飿饴飴饵餌饶饒饷餉饸餄饹餎饺餃饻餏饼餅饽餑饾餖饿餓馀餘馁餒馂餕馃餜馄餛馅餡馆館馇餷馈饋馉餶馊餿馋饞馌饁馍饃馎餺馏餾馐饈馑饉馒饅馓饊馔饌馕饢马馬驭馭驮馱驯馴驰馳驱驅驲馹驳駁驴驢驵駔驶駛驷駟驸駙驹駒驺騶驻駐驼駝驽駑驾駕驿驛骀駘骁驍骂罵骃駰骄驕骅驊骆駱骇駭骈駢骉驫骊驪骋騁验驗骍騂骎駸骏駿骐騏骑騎骒騍骓騅骔騌骕驌骖驂骗騙骘騭骙騤骚騷骛騖骜驁骝騮骞騫骟騸骠驃骡騾骢驄骣驏骤驟骥驥骦驦骧驤髅髏髋髖髌髕鬓鬢鬶鬹魇魘魉魎鱼魚鱽魛鱾魢鱿魷鲀魨鲁魯鲂魴鲃䰾鲄魺鲅鮁鲆鮃鲇鮎鲈鱸鲉鮋鲊鮓鲋鮒鲌鮊鲍鮑鲎鱟鲏鮍鲐鮐鲑鮭鲒鮚鲓鮳鲔鮪鲕鮞鲖鮦鲗鰂鲘鮜鲙鱠鲚鱭鲛鮫鲜鮮鲝鮺鲞鯗鲟鱘鲠鯁鲡鱺鲢鰱鲣鰹鲤鯉鲥鰣鲦鰷鲧鯀鲨鯊鲩鯇鲪鮶鲫鯽鲬鯒鲭鯖鲮鯪鲯鯕鲰鯫鲱鯡鲲鯤鲳鯧鲴鯝鲵鯢鲶鯰鲷鯛鲸鯨鲹鰺鲺鯴鲻鯔鲼鱝鲽鰈鲾鰏鲿鱨鳀鯷鳁鰮鳂鰃鳃鰓鳄鱷鳅鰍鳆鰒鳇鰉鳈鰁鳉鱂鳊鯿鳋鰠鳌鰲鳍鰭鳎鰨鳏鰥鳐鰩鳑鰟鳒鰜鳓鰳鳔鰾鳕鱈鳖鱉鳗鰻鳘鰵鳙鱅鳚䲁鳛鰼鳜鱖鳝鱔鳞鱗鳟鱒鳠鱯鳡鱤鳢鱧鳣鱣鳤䲘鸟鳥鸠鳩鸡雞鸢鳶鸣鳴鸤鳲鸥鷗鸦鴉鸧鶬鸨鴇鸩鴆鸪鴣鸫鶇鸬鸕鸭鴨鸮鴞鸯鴦鸰鴒鸱鴟鸲鴝鸳鴛鸴鷽鸵鴕鸶鷥鸷鷙鸸鴯鸹鴰鸺鵂鸻鴴鸼鵃鸽鴿鸾鸞鸿鴻鹀鵐鹁鵓鹂鸝鹃鵑鹄鵠鹅鵝鹆鵒鹇鷳鹈鵜鹉鵡鹊鵲鹋鶓鹌鵪鹍鵾鹎鵯鹏鵬鹐鵮鹑鶉鹒鶊鹓鵷鹔鷫鹕鶘鹖鶡鹗鶚鹘鶻鹙鶖鹚鷀鹛鶥鹜鶩鹝鷊鹞鷂鹟鶲鹠鶹鹡鶺鹢鷁鹣鶼鹤鶴鹥鷖鹦鸚鹧鷓鹨鷚鹩鷯鹪鷦鹫鷲鹬鷸鹭鷺鹮䴉鹯鸇鹰鷹鹱鸌鹲鸏鹳鸛鹴鸘鹾鹺麦麥麸麩麹麴麺麪麽麼黄黃黉黌黡黶黩黷黪黲黾黽鼋黿鼌鼂鼍鼉鼹鼴齐齊齑齏齿齒龀齔龁齕龂齗龃齟龄齡龅齙龆齠龇齜龈齦龉齬龊齪龋齲龌齷龙龍龚龔龛龕龟龜鿎䃮鿏䥑鿒鿓鿔鎶";
+var TW_MAP = null;
+function twMap() {
+    if (!TW_MAP) {
+        TW_MAP = {};
+        for (var i = 0; i + 1 < TWP.length; i += 2) TW_MAP[TWP.charAt(i)] = TWP.charAt(i + 1);
+    }
+    return TW_MAP;
+}
+function toTW(s) {
+    s = String(s == null ? "" : s);
+    var M = twMap();
+    var parts = s.split(/(https?:\\/\\/[^\\s<>"']+)/g);
+    for (var i = 0; i < parts.length; i += 2) {
+        var p = parts[i], out = "";
+        for (var j = 0; j < p.length; j++) { var ch = p.charAt(j); out += M[ch] || ch; }
+        parts[i] = out;
+    }
+    return parts.join("");
+}
+/* 课程对象转繁体（学员端展示用；管理端不调用，避免污染数据） */
+function twCourse(c) {
+    if (!c || c._twc) return c;
+    var nc = {};
+    for (var k in c) { if (Object.prototype.hasOwnProperty.call(c, k)) nc[k] = c[k]; }
+    ["title", "content", "category", "subcategory", "instructions"].forEach(function(k) { if (nc[k]) nc[k] = toTW(nc[k]); });
+    if (nc.video_url) {
+        nc.video_url = String(nc.video_url).split("\\n").map(function(line) {
+            var p = line.indexOf("|");
+            if (p > 0) return toTW(line.slice(0, p)) + line.slice(p);
+            return line;
+        }).join("\\n");
+    }
+    try {
+        var g = JSON.parse(nc.guide_json || "[]");
+        g.forEach(function(ch) {
+            if (ch.title) ch.title = toTW(ch.title);
+            if (Array.isArray(ch.points)) ch.points = ch.points.map(function(x) { return toTW(x); });
+        });
+        nc.guide_json = JSON.stringify(g);
+    } catch (e) {}
+    try {
+        var qs = JSON.parse(nc.quizzes_json || "[]");
+        qs.forEach(function(q) {
+            ["q", "o", "h", "s"].forEach(function(k) { if (q[k]) q[k] = toTW(q[k]); });
+        });
+        nc.quizzes_json = JSON.stringify(qs);
+    } catch (e) {}
+    nc._twc = 1;
+    return nc;
+}
 
         /* 学习进度（存浏览器本地） */
         function getProg() { try { return JSON.parse(localStorage.getItem(PROG_KEY) || "{}"); } catch(e) { return {}; } }
@@ -1164,7 +1757,7 @@ function renderHTML(results, categories, opts) {
         function getWrong() { try { return JSON.parse(localStorage.getItem(WRONG_KEY) || "{}"); } catch(e) { return {}; } }
         function setWrong(w) { try { localStorage.setItem(WRONG_KEY, JSON.stringify(w)); } catch(e) {} }
         function saveWrongs(items) {
-            var name = localStorage.getItem(USER_KEY) || "匿名学员";
+            var name = localStorage.getItem(USER_KEY) || t("wbAnon");
             var w = getWrong();
             var arr = w[name] || [];
             items.forEach(function(it) {
@@ -1176,30 +1769,30 @@ function renderHTML(results, categories, opts) {
         }
         function openWrongBook(courseId) {
             window._wrongCourseId = courseId || null;
-            var name = localStorage.getItem(USER_KEY) || "匿名学员";
+            var name = localStorage.getItem(USER_KEY) || t("wbAnon");
             var all = (getWrong()[name] || []);
             var arr = courseId ? all.filter(function(x) { return x.cid === courseId; }) : all;
             var titleEl = document.getElementById('wrongBookTitle');
-            if (titleEl) titleEl.innerText = courseId ? ('📝 错题本' + (arr.length && arr[0].title ? ' · ' + arr[0].title : '')) : '📝 我的错题本';
+            if (titleEl) titleEl.innerText = courseId ? (t("wbT") + (arr.length && arr[0].title ? ' · ' + arr[0].title : '')) : t("wbMyT");
             var list = document.getElementById('wrongBookList');
             if (!arr.length) {
-                list.innerHTML = '<div class="text-center text-slate-400 text-sm py-10">' + (courseId ? '本课件暂无错题，答错的题目会自动收录在这里' : '错题本是空的，答错的题目会自动收录在这里') + '</div>';
+                list.innerHTML = '<div class="text-center text-slate-400 text-sm py-10">' + (courseId ? t("wbEmptyC") : t("wbEmpty")) + '</div>';
             } else {
                 list.innerHTML = arr.map(function(x) {
                     return '<div class="border border-slate-100 rounded-2xl p-4">'
                         + '<div class="text-[11px] text-violet-500 font-bold mb-1">' + esc([x.series, x.sub, x.title].filter(function(s) { return s; }).join(' · ') || '') + '</div>'
                         + '<div class="text-[11px] text-indigo-500 font-bold mb-1">' + esc(wrongTypeNum(x)) + '</div>'
                         + '<div class="text-sm font-bold text-slate-800 mb-2">' + esc(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')) + '</div>'
-                        + '<div class="text-xs text-slate-500">你的答案：' + esc(x.u || '（未填）') + '</div>'
-                        + '<div class="text-xs text-emerald-600 font-bold mt-1">正确参考：' + esc(x.expected || '') + '</div></div>';
+                        + '<div class="text-xs text-slate-500">' + t("wbU") + esc(x.u || t("wbNA")) + '</div>'
+                        + '<div class="text-xs text-emerald-600 font-bold mt-1">' + t("wbE") + esc(x.expected || '') + '</div></div>';
                 }).join('');
             }
             toggleModal('wrongBookModal');
         }
         function clearWrongBook() {
             var fc = window._wrongCourseId || null;
-            if (!confirm(fc ? "确定清空本课件的错题记录？" : "确定清空错题本？")) return;
-            var name = localStorage.getItem(USER_KEY) || "匿名学员";
+            if (!confirm(fc ? t("wbClearC") : t("wbClearA"))) return;
+            var name = localStorage.getItem(USER_KEY) || t("wbAnon");
             var w = getWrong();
             if (fc) w[name] = (w[name] || []).filter(function(x) { return x.cid !== fc; });
             else w[name] = [];
@@ -1217,15 +1810,19 @@ function renderHTML(results, categories, opts) {
             return s;
         }
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
+        var BIBLE_BOOKS_TW = null;
+        function bibleBooks() { if (!BIBLE_BOOKS_TW) BIBLE_BOOKS_TW = BIBLE_BOOKS + '|' + toTW(BIBLE_BOOKS); return BIBLE_BOOKS_TW; }
         var BIBLE_BOOKS = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|哥林多前书|哥林多后书|约翰一书|约翰二书|约翰三书|彼得前书|彼得后书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|传道书|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录|诗篇|箴言|雅歌';
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
         function hlVerse(s) {
             s = String(s == null ? "" : s);
-            var B = BIBLE_BOOKS;
+            var B = bibleBooks();
+            var JIE = (curLang() === 'tw') ? '節' : '节';
+            var JIEP = '[节節]';
             var SP = ' *';
-            s = s.replace(new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '节', 'g'), '<span class="verse-ref">《$1》$2章$3节</span>');
-            s = s.replace(new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '节' + SP + '说' + SP + '[：:，,]' + SP + '([^<]*)', 'g'), '<span class="verse-ref">$1$2章$3节</span><span class="verse-text">$4</span>');
-            s = s.replace(new RegExp('(?<!">)(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '节', 'g'), '<span class="verse-ref">$1$2章$3节</span>');
+            s = s.replace(new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP, 'g'), '<span class="verse-ref">《$1》$2章$3' + JIE + '</span>');
+            s = s.replace(new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP + SP + '[说說]' + SP + '[：:，,]' + SP + '([^<]*)', 'g'), '<span class="verse-ref">$1$2章$3' + JIE + '</span><span class="verse-text">$4</span>');
+            s = s.replace(new RegExp('(?<!">)(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP, 'g'), '<span class="verse-ref">$1$2章$3' + JIE + '</span>');
             s = s.replace(new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)', 'g'), '<span class="verse-ref">$1$2:$3</span><span class="verse-text">$4</span>');
             s = s.replace(new RegExp('(?<!">)(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)', 'g'), '<span class="verse-ref">$1$2:$3</span>');
             return s;
@@ -1252,7 +1849,7 @@ function renderHTML(results, categories, opts) {
         /* 字号调节：改根 font-size，Tailwind rem 单位全站跟随；localStorage 持久化 */
         var FONT_KEY = "TQ_FONT_V1";
         var FONT_SCALES = [0.85, 1, 1.15, 1.3, 1.5];
-        var FONT_LABELS = ["小", "标准", "较大", "大", "特大"];
+        var FONT_LABELS = [t("fontS"), t("fontM"), t("fontL"), t("fontXL"), t("fontXXL")];
         var FONT_DEFAULT = 2;
         function getFontIdx() { var i = parseInt(localStorage.getItem(FONT_KEY) || String(FONT_DEFAULT), 10); if (isNaN(i)) i = FONT_DEFAULT; return Math.min(4, Math.max(0, i)); }
         function applyFontScale() {
@@ -1286,6 +1883,7 @@ function renderHTML(results, categories, opts) {
                     else if (/\\.(mp4|webm|m4v|ogg)(\\?|#|$)/i.test(url)) label = "视频直链";
                     else label = d || "视频链接";
                 }
+                if (curLang() === "tw" && !BOOT.isAdmin) label = toTW(label);
                 if (!isVideoBlocked(url)) out.push({ label: label, url: url });
             });
             return out;
@@ -1297,7 +1895,7 @@ function renderHTML(results, categories, opts) {
             var m = document.getElementById("videoChoiceModal");
             if (!m) return;
             document.getElementById("videoChoiceList").innerHTML = videos.map(function (v, i) {
-                var wxTip = (isWeComUrl(v.url) && !isWeChat()) ? '<span class="block text-xs text-emerald-600 mt-0.5">需在微信中打开观看</span>' : '';
+                var wxTip = (isWeComUrl(v.url) && !isWeChat()) ? '<span class="block text-xs text-emerald-600 mt-0.5">' + t("vidWx") + '</span>' : '';
                 return '<button data-vi="' + i + '" onclick="openVideoByIdx(this)" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition active:scale-95 flex items-center gap-3">'
                     + '<span class="text-2xl">\u25b6\ufe0f</span><span><span class="block font-bold text-slate-800">' + esc(v.label) + '</span><span class="block text-xs text-slate-400 truncate max-w-[220px]">' + esc(v.url) + '</span>' + wxTip + '</span></button>';
             }).join("");
@@ -1375,7 +1973,7 @@ function renderHTML(results, categories, opts) {
             if (b) {
                 var env = getVideoNetEnv() || "cn";
                 b.innerHTML = "🎬";
-                b.title = "视频入口：" + (env === "cn" ? "精简显示" : "全部显示") + "（点击切换）";
+                b.title = t("vidEntry") + (env === "cn" ? t("vidSimple") : t("vidAll")) + t("vidToggle");
                 b.style.opacity = env === "cn" ? ".55" : "1";
             }
         }
@@ -1403,7 +2001,7 @@ function renderHTML(results, categories, opts) {
             }
             if (btn) {
                 btn.innerHTML = mode === "desktop" ? "📱" : "🖥️";
-                btn.title = mode === "desktop" ? "切换到移动版" : "切换到桌面版";
+                btn.title = mode === "desktop" ? t("toMob") : t("toDesk");
             }
         }
         function toggleViewMode() {
@@ -1426,6 +2024,11 @@ function renderHTML(results, categories, opts) {
             var dataP = needFetch ? fetch(BOOT.isAdmin ? '/api/data' : '/api/data?brief=1').then(function(r) { return r.json(); }) : null;
             var catP = fetch('/api/categories').then(function(r) { return r.json(); }).catch(function() { return []; });
             allData = dataP ? await dataP : BOOT.list;
+            /* 繁体模式（学员端）：课程内容转繁体展示，不改数据库 */
+            if (curLang() === 'tw' && !BOOT.isAdmin) {
+                allData = allData.map(twCourse);
+                if (BOOT.list && BOOT.list.length) BOOT.list = BOOT.list.map(twCourse);
+            }
             try {
                 var cj = await catP;
                 catRows = Array.isArray(cj) ? cj : [];
@@ -1435,6 +2038,16 @@ function renderHTML(results, categories, opts) {
                     (s.subs || []).forEach(function(x) { sd[x.name] = x.description || ""; });
                     catInfo[s.name] = { description: s.description || "", subDesc: sd };
                 });
+                if (curLang() === 'tw' && !BOOT.isAdmin) {
+                    var _ci2 = {};
+                    Object.keys(catInfo).forEach(function(k) {
+                        var ci = catInfo[k];
+                        if (ci.description) ci.description = toTW(ci.description);
+                        Object.keys(ci.subDesc || {}).forEach(function(sk) { ci.subDesc[sk] = toTW(ci.subDesc[sk] || ''); });
+                        _ci2[toTW(k)] = ci;
+                    });
+                    catInfo = _ci2;
+                }
             } catch (e) {}
             var list = (BOOT.list && BOOT.list.length) ? BOOT.list : (BOOT.shareMode ? [] : allData);
             renderSections(list);
@@ -1457,6 +2070,7 @@ function renderHTML(results, categories, opts) {
             }
             if (sid && allData.length > 0) startLesson(sid);
             try { var _w = sessionStorage.getItem('TQ_WELCOME'); if (_w) { sessionStorage.removeItem('TQ_WELCOME'); showWelcomeToast(_w); } } catch (e) {}
+            applyI18n();
         }
         window.onload = load;
 
@@ -1464,16 +2078,16 @@ function renderHTML(results, categories, opts) {
         function statusBadge(id) {
             var p = getMyProg()[id] || {};
             if (p.completed)
-                return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 flex items-center justify-center text-[9px]">✓</span>已完成</span>';
+                return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 flex items-center justify-center text-[9px]">✓</span>' + t("stDone") + '</span>';
             if (p.started)
-                return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-amber-500"></span>进行中</span>';
-            return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300"></span>未开始</span>';
+                return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-amber-500"></span>' + t("stDoing") + '</span>';
+            return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300"></span>' + t("stNot") + '</span>';
         }
 
         /* 课程卡片（新 UI） */
         function courseCard(c, idx) {
             var desc = stripMd(c.content).slice(0, 44) + "…";
-            var shareBtn = '<button data-id="' + c.id + '" onclick="copyShareLink(this.dataset.id)" title="复制分享链接" class="text-slate-300 hover:text-violet-600 transition">🔗</button>';
+            var shareBtn = '<button data-id="' + c.id + '" onclick="copyShareLink(this.dataset.id)" title="' + t("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition">🔗</button>';
             var adminBtns = "";
             if (BOOT.isAdmin) {
                 adminBtns = '<button data-id="' + c.id + '" onclick="editCourse(this.dataset.id)" title="编辑" class="text-slate-300 hover:text-violet-600 transition">🖊️</button>'
@@ -1483,8 +2097,8 @@ function renderHTML(results, categories, opts) {
                     + '<button data-id="' + c.id + '" onclick="deleteCourse(this.dataset.id)" title="删除" class="text-slate-300 hover:text-red-500 transition">🗑️</button>';
             }
             var cardBtns = '<div class="flex items-center gap-3 text-[15px]">' + shareBtn + adminBtns + '</div>';
-            var videoBadge = parseVideoUrls(c.video_url).length ? ' <span class="video-badge text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full align-middle">🎬 视频</span>' : '';
-            var goText = '开始学习';
+            var videoBadge = parseVideoUrls(c.video_url).length ? ' <span class="video-badge text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full align-middle">' + t("videoBadge") + '</span>' : '';
+            var goText = t("startLearning");
             return '<div class="course-card bg-white rounded-[1.75rem] border border-slate-100 shadow-sm p-6 flex flex-col gap-4 hover:shadow-lg hover:-translate-y-0.5 transition"'
                 + ' data-search="' + esc(c.title + " " + c.content + " " + (c.subcategory || "")).toLowerCase() + '"'
                 + ' style="animation-delay:' + Math.min(idx * 40, 600) + 'ms">'
@@ -1545,7 +2159,7 @@ function renderHTML(results, categories, opts) {
                             + '<button data-tkey="' + esc(kKey) + '" data-tbody="' + kBody + '" data-tchev="' + kChev + '" onclick="toggleTree(this)" class="flex items-center gap-2 mb-3 group">'
                             + '<span id="' + kChev + '" class="text-xs text-violet-500 w-4 text-center">' + (kCollapsed ? "▶" : "▼") + '</span>'
                             + '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁 ' + esc(sk) + '</span>'
-                            + '<span class="text-xs text-slate-400">' + subgroups[sk].length + ' 课</span></button>'
+                            + '<span class="text-xs text-slate-400">' + tf("nLessons", { n: subgroups[sk].length }) + '</span></button>'
                             + (sd ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + esc(stripMd(sd)) + '</p>' : '')
                             + '<div id="' + kBody + '" class="' + (kCollapsed ? "hidden" : "") + '">' + gridHtml + '</div></div>';
                     } else {
@@ -1557,7 +2171,7 @@ function renderHTML(results, categories, opts) {
                     + '<span id="' + sChev + '" class="text-sm text-violet-500 w-5 text-center">' + (sCollapsed ? "▶" : "▼") + '</span>'
                     + '<span class="w-1.5 h-7 bg-violet-500 rounded-full"></span>'
                     + '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + esc(cat) + '</h2>'
-                    + '<span class="text-sm text-slate-400">' + groups[cat].length + ' 课</span></button>'
+                    + '<span class="text-sm text-slate-400">' + tf("nLessons", { n: groups[cat].length }) + '</span></button>'
                     + (info.description ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + esc(info.description) + '</p>' : '')
                     + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + ' mt-2">' + bodyHtml + '</div></div>';
             });
@@ -1618,7 +2232,7 @@ function renderHTML(results, categories, opts) {
             if (!card) return;
             if (!rows.length) { card.classList.add('hidden'); return; }
             card.classList.remove('hidden');
-            document.getElementById('myScoresAvg').innerText = '共 ' + rows.length + ' 条记录' + (avg != null ? '，平均 ' + avg + ' 分' : '');
+            document.getElementById('myScoresAvg').innerText = tf("scoreSummary", { n: rows.length }) + (avg != null ? tf("scoreAvg", { a: avg }) : '');
             document.getElementById('myScoresList').innerHTML = rows.map(function(s) {
                 return '<li class="flex items-center justify-between text-sm border-b border-slate-50 pb-2">'
                     + '<span class="text-slate-600">' + esc(s.course_title || s.course_id) + '</span>'
@@ -1663,13 +2277,13 @@ function renderHTML(results, categories, opts) {
             var nm = "";
             try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
             var nb = document.getElementById("nameBtn");
-            if (nb) nb.innerText = nm || "设置姓名";
+            if (nb) nb.innerText = nm || t("setName");
         }
         function nameBtnClick() {
             var nm = "";
             try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
             if (!nm) { login(); return; }
-            if (confirm("退出当前学员（" + nm + "）？\\n该姓名下的错题本与本地学习记录会保留，下次登记同一姓名可继续查看。")) {
+            if (confirm(tf("logoutAsk", { name: nm }))) {
                 try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); localStorage.removeItem(STUDENT_ADMIN_KEY); } catch (e) {}
                 location.reload();
             }
@@ -1708,15 +2322,15 @@ function renderHTML(results, categories, opts) {
                 var inp = 'style="width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box"';
                 m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.6)"></div>'
                     + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:340px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
-                    + '<h3 id="authTitle" style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:17px">👤 学员登录</h3>'
-                    + '<p id="authDesc" style="font-size:12px;color:#94a3b8;margin:0 0 14px">请输入姓名与密码，成绩与错题本将记在此名下。</p>'
-                    + '<input id="authName" placeholder="学员姓名" ' + inp + '>'
-                    + '<input id="authPw" type="password" placeholder="密码（至少4位）" ' + inp + '>'
-                    + '<input id="authPw2" type="password" placeholder="确认密码" ' + inp + ' style="display:none;width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box">'
+                    + '<h3 id="authTitle" style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:17px">' + t("loginT") + '</h3>'
+                    + '<p id="authDesc" style="font-size:12px;color:#94a3b8;margin:0 0 14px">' + t("loginD") + '</p>'
+                    + '<input id="authName" placeholder="' + t("namePh") + '" ' + inp + '>'
+                    + '<input id="authPw" type="password" placeholder="' + t("pwPh") + '" ' + inp + '>'
+                    + '<input id="authPw2" type="password" placeholder="' + t("pw2Ph") + '" ' + inp + ' style="display:none;width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box">'
                     + '<div id="authErr" style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px"></div>'
-                    + '<button id="authOk" onclick="submitAuth()" style="width:100%;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;margin-bottom:8px">登 录</button>'
-                    + '<button id="authSwitch" onclick="toggleAuthMode()" style="width:100%;background:none;border:none;color:#4f46e5;font-size:12px;padding:6px">首次使用？点此注册</button>'
-                    + '<p style="font-size:11px;color:#94a3b8;margin:6px 0 0">忘记密码？请联系老师重置</p>'
+                    + '<button id="authOk" onclick="submitAuth()" style="width:100%;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;margin-bottom:8px">' + t("doLogin") + '</button>'
+                    + '<button id="authSwitch" onclick="toggleAuthMode()" style="width:100%;background:none;border:none;color:#4f46e5;font-size:12px;padding:6px">' + t("goReg") + '</button>'
+                    + '<p style="font-size:11px;color:#94a3b8;margin:6px 0 0">' + t("forgotPw") + '</p>'
                     + '</div>';
                 document.body.appendChild(m);
                 ['authName','authPw','authPw2'].forEach(function(id) {
@@ -1733,10 +2347,10 @@ function renderHTML(results, categories, opts) {
         function setAuthMode(mode) {
             window._authMode = mode;
             var isReg = (mode === 'register');
-            document.getElementById('authTitle').innerText = isReg ? '👤 学员注册' : '👤 学员登录';
-            document.getElementById('authDesc').innerText = isReg ? '首次使用请设置登录密码，请牢记。' : '请输入姓名与密码，成绩与错题本将记在此名下。';
-            document.getElementById('authOk').innerText = isReg ? '注 册' : '登 录';
-            document.getElementById('authSwitch').innerText = isReg ? '已有账号？点此登录' : '首次使用？点此注册';
+            document.getElementById('authTitle').innerText = isReg ? t("regT") : t("loginT");
+            document.getElementById('authDesc').innerText = isReg ? t("regD") : t("loginD");
+            document.getElementById('authOk').innerText = isReg ? t("doReg") : t("doLogin");
+            document.getElementById('authSwitch').innerText = isReg ? t("goLogin") : t("goReg");
             document.getElementById('authPw2').style.display = isReg ? '' : 'none';
             hideAuthErr();
         }
@@ -1747,18 +2361,18 @@ function renderHTML(results, categories, opts) {
             var name = (document.getElementById('authName').value || "").trim();
             var pw = document.getElementById('authPw').value || "";
             var mode = window._authMode || 'login';
-            if (!name) { showAuthErr('请输入姓名'); return; }
-            if (pw.length < 4) { showAuthErr('密码至少4位'); return; }
+            if (!name) { showAuthErr(t("errName")); return; }
+            if (pw.length < 4) { showAuthErr(t("errPw")); return; }
             if (mode === 'register') {
                 var pw2 = document.getElementById('authPw2').value || "";
-                if (pw !== pw2) { showAuthErr('两次输入的密码不一致'); return; }
+                if (pw !== pw2) { showAuthErr(t("errPw2")); return; }
             }
             var btn = document.getElementById('authOk');
-            btn.disabled = true; btn.innerText = '处理中…';
+            btn.disabled = true; btn.innerText = t("doing");
             try {
                 var r = await fetch('/api/student/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name, password: pw, mode: mode }) });
                 var j = await r.json();
-                if (!j.success) { showAuthErr(j.error || '操作失败，请重试'); return; }
+                if (!j.success) { showAuthErr(j.error || t("opFail")); return; }
                 try { localStorage.setItem(USER_KEY, name); localStorage.setItem(STUDENT_TOKEN_KEY, j.token || ""); localStorage.setItem(STUDENT_ADMIN_KEY, j.is_admin ? "1" : "0"); } catch (e) {}
                 document.getElementById('authPw').value = '';
                 document.getElementById('authPw2').value = '';
@@ -1771,7 +2385,7 @@ function renderHTML(results, categories, opts) {
                 var t = window._pendingQTab; window._pendingQTab = null;
                 if (t) switchQTab(t);
             } catch (e) {
-                showAuthErr('网络错误，请重试');
+                showAuthErr(t("netErr"));
             } finally {
                 btn.disabled = false;
                 setAuthMode(window._authMode || 'login');
@@ -1796,8 +2410,7 @@ function renderHTML(results, categories, opts) {
             div.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(15,10,40,.45);backdrop-filter:blur(4px);animation:tqWelcomeFade .4s ease 2.6s forwards;cursor:pointer';
             div.innerHTML = '<div style="text-align:center;padding:36px 52px;background:linear-gradient(135deg,#7c3aed,#4f46e5);border-radius:24px;color:#fff;animation:tqWelcomeIn .55s cubic-bezier(.2,1.4,.4,1),tqWelcomeGlow 2s ease-in-out infinite;max-width:86vw">'
                 + '<div style="font-size:46px;margin-bottom:12px">🎉</div>'
-                + '<div style="font-size:22px;font-weight:800;margin-bottom:8px">欢迎 ' + esc(name) + '</div>'
-                + '<div style="font-size:15px;opacity:.92">开启学习之旅！</div></div>';
+                + '<div style="font-size:22px;font-weight:800;margin-bottom:8px">' + tf("welcome", { name: esc(name) }) + '</div></div>';
             div.onclick = function() { div.remove(); };
             setTimeout(function() { if (div.parentNode) div.remove(); }, 3100);
             document.body.appendChild(div);
@@ -1805,19 +2418,19 @@ function renderHTML(results, categories, opts) {
         /* 分享页姓名条：与主站共用同一本地姓名，成绩自动记在其名下 */
         function shareNameHTML() {
             var sn0 = (localStorage.getItem(USER_KEY) || "").trim();
-            if (sn0) return '<span class="text-slate-600">学员：<b class="text-slate-800">' + esc(sn0) + '</b></span>'
-                + '<button onclick="shareRename()" class="text-xs text-violet-600 underline">更换</button>';
-            return '<button onclick="openShareAuth()" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-xl font-bold">登录 / 注册</button>';
+            if (sn0) return '<span class="text-slate-600">' + t("studentIs") + '<b class="text-slate-800">' + esc(sn0) + '</b></span>'
+                + '<button onclick="shareRename()" class="text-xs text-violet-600 underline">' + t("changeBtn") + '</button>';
+            return '<button onclick="openShareAuth()" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-xl font-bold">' + t("loginReg") + '</button>';
         }
         function shareRename() {
             try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); localStorage.removeItem(STUDENT_ADMIN_KEY); } catch(e) {}
             document.getElementById("shareNameBox").innerHTML = shareNameHTML();
-            var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = "设置姓名";
+            var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = t("setName");
         }
 
         function copyShareLink(id) {
             var url = window.location.origin + "/" + id;
-            navigator.clipboard.writeText(url).then(function() { alert("链接已复制！"); });
+            navigator.clipboard.writeText(url).then(function() { alert(t("linkCopied")); });
         }
 
         /* ===== 统一智能渲染：章节自动分组 + 题型自动识别（填空内嵌/问答文本框/单选药丸乱序/经文卡片）+ 填完核对 ===== */
@@ -1845,7 +2458,7 @@ function renderHTML(results, categories, opts) {
                 var vq = Object.assign({}, q);
                 vq.q = stripVerseTag(q.q);
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
-                    + '<p class="mb-3"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || '核心经文')) + '</span></p>'
+                    + '<p class="mb-3"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || t("coreVerse"))) + '</span></p>'
                     + '<div class="text-slate-800"><span class="verse-text">' + studyPara(vq, i) + '</span></div>' + verdict + '</div></div>';
             }
             if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') {
@@ -1866,12 +2479,12 @@ function renderHTML(results, categories, opts) {
                     var val = t.charAt(0);
                     return '<label class="sopt" data-val="' + esc(val) + '"><input type="' + (isMulti ? 'checkbox' : 'radio') + '" name="u-' + i + '" value="' + esc(val) + '" class="hidden"><span>' + esc(t) + '</span></label>';
                 }).join('');
-                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(rawQ)) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">（多选）</span>' : '') + '</p>'
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(rawQ)) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">' + t("multiTag") + '</span>' : '') + '</p>'
                     + '<div class="flex flex-wrap gap-2 mt-3">' + pills + '</div>' + verdict + '</div>';
             }
             if (q.type === 'essay') {
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(q.q)) + '</p>'
-                    + '<textarea id="u-' + i + '" class="quiz-input w-full p-4 border rounded-2xl bg-slate-50 h-28 mt-3" placeholder="输入你的回答..."></textarea>' + verdict + '</div>';
+                    + '<textarea id="u-' + i + '" class="quiz-input w-full p-4 border rounded-2xl bg-slate-50 h-28 mt-3" placeholder="' + t("essayPh") + '"></textarea>' + verdict + '</div>';
             }
             return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + studyPara(q, i) + '</p>' + verdict + '</div>';
         }
@@ -1914,24 +2527,24 @@ function renderHTML(results, categories, opts) {
             var bar = document.getElementById('progress-bar');
             if (!bar) return;
             var p = studyProgress();
-            bar.innerText = '进度：已填写 ' + p.filled + ' / ' + p.total;
+            bar.innerText = tf("progFill", { a: p.filled, b: p.total });
             if (studyRevealed) return;
             var btn = document.getElementById('studySubmit'), hint = document.getElementById('studyHint');
             if (!btn || !hint) return;
             if (p.total > 0 && p.filled === p.total) {
                 btn.disabled = false;
-                hint.innerText = '🎉 填写完成！现在可以核对答案了';
+                hint.innerText = t("fillDoneToast");
                 hint.className = 'mt-4 text-emerald-600 text-sm italic';
             } else {
                 btn.disabled = true;
-                hint.innerText = '请填写完所有 ' + p.total + ' 个空格以激活核对功能';
+                hint.innerText = tf("fillActive", { n: p.total });
                 hint.className = 'mt-4 text-rose-500 text-sm italic';
             }
         }
         function studySubmitBtn() { if (studyRevealed) toggleStudyEdit(); else submitStudy(); }
         async function submitStudy() {
             if (BOOT.shareMode && !(localStorage.getItem(USER_KEY) || "").trim()) {
-                alert("请先在页面上方设置学员姓名，成绩将记在该姓名下。");
+                alert(t("needName"));
                 var sni = document.getElementById("shareNameInput"); if (sni) sni.focus();
                 return;
             }
@@ -1964,10 +2577,10 @@ function renderHTML(results, categories, opts) {
                 }
                 answers.push({ i: v, u: u });
             }
-            if (!ok) { alert('还有未填写的内容，请填写完整后再核对。'); return; }
+            if (!ok) { alert(t("notComplete")); return; }
             var btn = document.getElementById('studySubmit');
-            btn.disabled = true; btn.innerText = '核对中…';
-            var name = localStorage.getItem(USER_KEY) || '匿名学员';
+            btn.disabled = true; btn.innerText = t("checking");
+            var name = localStorage.getItem(USER_KEY) || t("wbAnon");
             try {
                 var r = await fetch('/api/submit', {
                     method: 'POST',
@@ -1977,8 +2590,8 @@ function renderHTML(results, categories, opts) {
                 if (!r.ok || !res.details) throw 0;
                 renderStudyGraded(res);
             } catch (e) {
-                alert('核对失败，请检查网络后重试');
-                btn.disabled = false; btn.innerText = '核对答案';
+                alert(t("checkFail"));
+                btn.disabled = false; btn.innerText = t("checkBtn");
             }
         }
         /* 按选项值取选项完整文字（用于答案对比显示） */
@@ -2029,8 +2642,8 @@ function renderHTML(results, categories, opts) {
                 var vEl = document.getElementById('verdict-' + d.i);
                 if (vEl) {
                     vEl.classList.remove('hidden');
-                    if (d.verdict === null) vEl.innerHTML = '<span class="text-amber-600">○ 开放性答案，请对照参考自评</span>';
-                    else vEl.innerHTML = d.verdict ? '<span class="text-emerald-600">✓ 回答正确</span>' : '<span class="text-red-500">✗ 回答错误</span>';
+                    if (d.verdict === null) vEl.innerHTML = '<span class="text-amber-600">' + t("vOpen") + '</span>';
+                    else vEl.innerHTML = d.verdict ? '<span class="text-emerald-600">' + t("vOk") + '</span>' : '<span class="text-red-500">' + t("vNg") + '</span>';
                 }
                 /* 整理“你的答案 / 正确答案”文字（按题型） */
                 var userAnsText = uv.join(' / '), correctText = d.expected || '';
@@ -2045,14 +2658,14 @@ function renderHTML(results, categories, opts) {
                 }
                 if (q.type === 'essay' && d.expected && vEl) {
                     vEl.insertAdjacentHTML('afterend',
-                        '<div class="qref-wrap mt-2"><button onclick="toggleQRef(' + d.i + ')" class="text-xs font-bold text-indigo-600 hover:underline">📖 显示/隐藏参考答案</button>'
+                        '<div class="qref-wrap mt-2"><button onclick="toggleQRef(' + d.i + ')" class="text-xs font-bold text-indigo-600 hover:underline">' + t("qrefToggle") + '</button>'
                         + '<div id="qref-' + d.i + '" class="hidden mt-2 text-sm rounded-xl bg-indigo-50 border border-indigo-100 p-3 text-slate-700 text-left">' + esc(d.expected) + '</div></div>');
                 }
                 if (d.verdict === false) {
                     if (vEl) vEl.insertAdjacentHTML('afterend',
                         '<div class="ans-compare mt-2 text-sm rounded-xl bg-red-50 border border-red-100 p-3 space-y-1 text-left">'
-                        + '<div><span class="font-bold text-red-500">你的答案：</span><span class="text-slate-700">' + esc(userAnsText || '（未填）') + '</span></div>'
-                        + '<div><span class="font-bold text-emerald-600">正确答案：</span><span class="text-slate-700">' + esc(correctText || '') + '</span></div></div>');
+                        + '<div><span class="font-bold text-red-500">' + t("yourAns") + '</span><span class="text-slate-700">' + esc(userAnsText || t("wbNA")) + '</span></div>'
+                        + '<div><span class="font-bold text-emerald-600">' + t("rightAns") + '</span><span class="text-slate-700">' + esc(correctText || '') + '</span></div></div>');
                     var qn = card ? (card.getAttribute('data-qnum') || '') : '';
                     wrongs.push({ cid: activeLessonId, title: activeCourseTitle, series: activeCategory, sub: activeSubcategory, q: q.q || '', type: q.type || '', n: qn, u: userAnsText, expected: correctText, ts: Date.now() });
                 }
@@ -2060,7 +2673,7 @@ function renderHTML(results, categories, opts) {
             if (wrongs.length) saveWrongs(wrongs);
             /* 错题同步到服务端，教师可在管理端查看（失败不影响本地） */
             try {
-                if (name && name !== "匿名学员") {
+                if (name && name !== t("wbAnon")) {
                     fetch('/api/wrongs/save', { method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, wrongs: wrongs,
                             token: (function(){ try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch(e) { return ""; } })() }) });
@@ -2073,10 +2686,10 @@ function renderHTML(results, categories, opts) {
             }
             var btn = document.getElementById('studySubmit'), hint = document.getElementById('studyHint');
             var p = studyProgress();
-            if (btn) { btn.disabled = false; btn.innerText = '返回修改填写'; btn.classList.remove('bg-slate-800', 'hover:bg-slate-900'); btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700'); }
-            if (hint) { hint.innerText = '核对完成：' + res.score + ' / ' + res.gradable + '（成绩已上传）'; hint.className = 'mt-4 text-slate-500 text-sm'; }
+            if (btn) { btn.disabled = false; btn.innerText = t("backEdit"); btn.classList.remove('bg-slate-800', 'hover:bg-slate-900'); btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700'); }
+            if (hint) { hint.innerText = tf("scoreDone", { s: res.score + ' / ' + res.gradable }); hint.className = 'mt-4 text-slate-500 text-sm'; }
             var bar = document.getElementById('progress-bar');
-            if (bar) bar.innerText = '进度：已填写 ' + p.total + ' / ' + p.total + ' · 得分 ' + res.score + ' / ' + res.gradable;
+            if (bar) bar.innerText = tf("progFill", { a: p.total, b: p.total }) + t("scoreUnit") + ' ' + res.score + ' / ' + res.gradable;
             if (!BOOT.isAdmin) refreshStats();
             var qc = document.getElementById('quizContainer');
             if (qc && qc.scrollIntoView) qc.scrollIntoView();
@@ -2092,7 +2705,7 @@ function renderHTML(results, categories, opts) {
             document.querySelectorAll('#quizContainer .qref-wrap').forEach(function(el) { el.remove(); });
             lastGradeRes = null;
             var btn = document.getElementById('studySubmit');
-            if (btn) { btn.innerText = '核对答案'; btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700'); btn.classList.add('bg-slate-800', 'hover:bg-slate-900'); }
+            if (btn) { btn.innerText = t("checkBtn"); btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700'); btn.classList.add('bg-slate-800', 'hover:bg-slate-900'); }
             updateStudyBar();
             updateQReport();
         }
@@ -2129,20 +2742,20 @@ function renderHTML(results, categories, opts) {
             p.innerText = ans + ' / ' + tot;
             if (!lastGradeRes) {
                 if (s) s.innerText = '--';
-                if (r) { r.innerText = '待核对'; r.className = 'text-xl md:text-2xl font-bold text-slate-400'; }
-                if (h) h.innerText = '全部填写完成后，点击「核对答案」即可在这里看到得分与掌握评级。';
-                if (act) { act.innerText = '核对答案'; act.className = 'bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
+                if (r) { r.innerText = t("repWait"); r.className = 'text-xl md:text-2xl font-bold text-slate-400'; }
+                if (h) h.innerText = t("repHint");
+                if (act) { act.innerText = t("checkBtn"); act.className = 'bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
                 return;
             }
             var sc = lastGradeRes.score, gr = lastGradeRes.gradable;
             if (s) s.innerText = sc + ' / ' + gr;
-            var pct = gr > 0 ? sc / gr * 100 : 0, rating = '继续加油', cls = 'text-xl md:text-2xl font-bold text-slate-400';
-            if (pct >= 80) { rating = '融会贯通'; cls = 'text-xl md:text-2xl font-bold text-emerald-600'; }
-            else if (pct >= 60) { rating = '掌握良好'; cls = 'text-xl md:text-2xl font-bold text-indigo-600'; }
-            else if (ans > 0) { rating = '需再复习'; cls = 'text-xl md:text-2xl font-bold text-amber-500'; }
+            var pct = gr > 0 ? sc / gr * 100 : 0, rating = t("rateGo"), cls = 'text-xl md:text-2xl font-bold text-slate-400';
+            if (pct >= 80) { rating = t("rateTop"); cls = 'text-xl md:text-2xl font-bold text-emerald-600'; }
+            else if (pct >= 60) { rating = t("rateGood"); cls = 'text-xl md:text-2xl font-bold text-indigo-600'; }
+            else if (ans > 0) { rating = t("rateRetry"); cls = 'text-xl md:text-2xl font-bold text-amber-500'; }
             if (r) { r.innerText = rating; r.className = cls; }
-            if (h) h.innerText = '核对完成，成绩已上传；错题已自动加入错题本。如需重做，可点击「返回修改填写」或「重新作答」。';
-            if (act) { act.innerText = '返回修改填写'; act.className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
+            if (h) h.innerText = t("repDone");
+            if (act) { act.innerText = t("backEdit"); act.className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
         }
 
         async function startLesson(id) {
@@ -2168,6 +2781,7 @@ function renderHTML(results, categories, opts) {
                 }
             }
             if (!item || item.quizzes_json === undefined) return;
+            if (curLang() === 'tw' && !BOOT.isAdmin) item = twCourse(item);
             activeLessonId = id;
             activeCourseTitle = item.title;
             activeCategory = item.category || "";
@@ -2184,10 +2798,10 @@ function renderHTML(results, categories, opts) {
                 videoHtml = '<div id="lessonVideoWrap" class="rounded-3xl overflow-hidden bg-black mb-8"><video src="' + esc(vids[0].url) + '" controls playsinline preload="metadata" class="w-full max-h-[60vh]"></video></div>';
             } else if (vids.length >= 1) {
                 window._curVids = vids;
-                var sub = vids.length > 1 ? "共" + vids.length + "个视频源，点击选择" : esc(vids[0].label);
+                var sub = vids.length > 1 ? tf("videoMulti", { n: vids.length }) : esc(vids[0].label);
                 videoHtml = '<div id="lessonVideoWrap"><a href="javascript:void(0)" onclick="openVideoChoice(window._curVids)" class="block rounded-3xl mb-8 p-8 text-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white no-underline">'
                     + '<div class="text-5xl mb-3">▶️</div>'
-                    + '<div class="font-black text-lg mb-1">观看课程视频</div>'
+                    + '<div class="font-black text-lg mb-1">' + t("watchVideo") + '</div>'
                     + '<div class="text-slate-400 text-xs">' + sub + '</div></a></div>';
             }
             studyRevealed = false;
@@ -2196,54 +2810,54 @@ function renderHTML(results, categories, opts) {
             /* 统一智能页头：有章节→分章课件版，无章节→互动答题版，均带实时进度 */
             var hasSections = activeQuizzes.some(function(q) { return (q.s || "").trim() !== ""; });
             var totalUnits = countUnits();
-            var subTitle = hasSections ? '专题课件 · 分章互动版' : '互动答题 · 即时核对版';
+            var subTitle = hasSections ? t("modeChapters") : t("modeQuiz");
             var shareBar = '';
             if (BOOT.shareMode) {
                 shareBar = '<div class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 text-left">'
-                    + '<a href="/" class="text-sm font-bold text-violet-700 hover:underline">← 返回智学课程系统</a>'
+                    + '<a href="/" class="text-sm font-bold text-violet-700 hover:underline">' + t("backHome") + '</a>'
                     + '<div id="shareNameBox" class="flex items-center gap-2 text-sm">' + shareNameHTML() + '</div></div>';
             } else {
                 shareBar = '<div class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 text-left">'
-                    + '<a href="javascript:void(0)" onclick="closeLessonModal()" class="text-sm font-bold text-violet-700 hover:underline">← 返回课程列表</a>'
+                    + '<a href="javascript:void(0)" onclick="closeLessonModal()" class="text-sm font-bold text-violet-700 hover:underline">' + t("backList") + '</a>'
                     + '<div class="flex items-center gap-2 text-sm">' + shareNameHTML() + '</div></div>';
             }
             /* ===== 分 Tab 互动课件：导读 / 按题型分页 / 成绩报告（参考互动课件 UI） ===== */
             lastGradeRes = null;
             var typeTabs = [
-                { t: 'verse', label: '经文诵读', icon: '📖' },
-                { t: 'fill', label: '填空题', icon: '✏️' },
-                { t: 'single', label: '单项选择题', icon: '🔘' },
-                { t: 'multiple', label: '多项选择题', icon: '☑️' },
-                { t: 'judge', label: '判断题', icon: '⚖️' },
-                { t: 'essay', label: '问答与思辨', icon: '💬' }
+                { t: 'verse', label: t('tyVerse'), icon: '📖' },
+                { t: 'fill', label: t('tyFill'), icon: '✏️' },
+                { t: 'single', label: t('tySingle'), icon: '🔘' },
+                { t: 'multiple', label: t('tyMulti'), icon: '☑️' },
+                { t: 'judge', label: t('tyJudge'), icon: '⚖️' },
+                { t: 'essay', label: t('tyEssay'), icon: '💬' }
             ].filter(function (mt) { return activeQuizzes.some(function (q) { return q.type === mt.t; }); });
-            var CN_NUM = ['一', '二', '三', '四', '五', '六'];
+            var CN_NUM = (curLang() === 'zh' || curLang() === 'tw') ? ['一', '二', '三', '四', '五', '六'] : ['1', '2', '3', '4', '5', '6'];
             typeTabs.forEach(function (mt, ti) {
                 mt.num = CN_NUM[ti] || '';
                 mt.count = activeQuizzes.filter(function (q) { return q.type === mt.t; }).length;
             });
-            var tabBtns = '<button id="qtab-overview" onclick="switchQTab(\\'overview\\')" class="qtab-btn qtab-active">📚 课程导读</button>'
+            var tabBtns = '<button id="qtab-overview" onclick="switchQTab(\\'overview\\')" class="qtab-btn qtab-active">' + t("tabGuide") + '</button>'
                 + typeTabs.map(function (mt) {
-                    return '<button id="qtab-' + mt.t + '" onclick="switchQTab(\\'' + mt.t + '\\')" class="qtab-btn">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + '<span class="qtab-count">' + mt.count + '题</span></button>';
+                    return '<button id="qtab-' + mt.t + '" onclick="switchQTab(\\'' + mt.t + '\\')" class="qtab-btn">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + '<span class="qtab-count">' + tf("nQuestions", { n: mt.count }) + '</span></button>';
                 }).join('')
-                + '<button id="qtab-report" onclick="switchQTab(\\'report\\')" class="qtab-btn qtab-report">📊 成绩报告</button>';
-            var teacherTopBtn = '<button id="teacherBtn" onclick="teacherUnlock()" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-amber-200 border border-amber-500/30 transition">🔑 教师版查看答案</button>';
+                + '<button id="qtab-report" onclick="switchQTab(\\'report\\')" class="qtab-btn qtab-report">' + t("tabReport") + '</button>';
+            var teacherTopBtn = '<button id="teacherBtn" onclick="teacherUnlock()" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-amber-200 border border-amber-500/30 transition">' + t("teacherBtn") + '</button>';
             document.getElementById('lessonHeader').innerHTML = shareBar
                 + '<div class="sticky top-0 z-40 -mx-3 md:-mx-6 px-3 md:px-6 pt-4 pb-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 shadow-md">'
                 + '<div class="w-full max-w-6xl mx-auto"><div class="flex items-start justify-between gap-3">'
                 + '<div class="min-w-0"><div class="flex items-center gap-2 text-[11px] font-semibold text-indigo-300 uppercase tracking-wider mb-1">'
-                + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(item.category || '课程') + '</span>'
+                + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(item.category || t("courseWord")) + '</span>'
                 + (item.subcategory ? '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(item.subcategory) + '</span>' : '')
-                + '<span class="shrink-0">在线互动课件</span></div>'
+                + '<span class="shrink-0">' + t("onlineLesson") + '</span></div>'
                 + '<h1 class="text-xl md:text-2xl font-bold text-indigo-50 leading-snug">' + esc(item.title) + '</h1>'
                 + '<p class="text-indigo-300/80 text-xs mt-1">' + subTitle + '</p></div>'
-                + (canViewAnswers() ? teacherTopBtn : '<button onclick="openWrongBook(activeLessonId)" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-indigo-900/80 hover:bg-indigo-800 text-indigo-100 border border-indigo-700/50 transition">📝 错题本</button>')
+                + (canViewAnswers() ? teacherTopBtn : '<button onclick="openWrongBook(activeLessonId)" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-indigo-900/80 hover:bg-indigo-800 text-indigo-100 border border-indigo-700/50 transition">' + t("wrongBook") + '</button>')
                 + '</div>'
-                + '<div id="progress-bar" class="text-xs mt-2 text-indigo-200 font-medium">进度：已填写 0 / ' + totalUnits + '</div>'
+                + '<div id="progress-bar" class="text-xs mt-2 text-indigo-200 font-medium">' + tf("progFill", { a: 0, b: totalUnits }) + '</div>'
                 + '<nav class="flex gap-1 overflow-x-auto mt-1.5">' + tabBtns + '</nav>'
                 + '</div></div>';
             /* 导读页：视频 / 课程内容 / 答题说明 / 开始答题 */
-            var typeSummary = typeTabs.map(function (mt) { return (mt.num ? mt.num + '、' : '') + mt.label + mt.count + '题'; }).join('、');
+            var typeSummary = typeTabs.map(function (mt) { return (mt.num ? mt.num + '、' : '') + mt.label + tf("nQuestions", { n: mt.count }); }).join('、');
             var firstTab = typeTabs.length ? typeTabs[0].t : 'report';
             /* 课程导览卡片（思维导图式）：管理端按章节一条条录入的小结 */
             var guideCards = '';
@@ -2269,8 +2883,8 @@ function renderHTML(results, categories, opts) {
                 + (item.content ? '<div class="prose text-slate-600 bg-slate-50 p-6 rounded-2xl text-sm leading-relaxed max-w-none">' + marked.parse(item.content) + '</div>' : '')
                 + guideCards
                 + '<div class="bg-amber-50 p-4 rounded-xl border border-amber-200/80 flex items-start gap-3"><div class="shrink-0">💡</div>'
-                + '<div class="text-xs text-amber-900 leading-relaxed whitespace-pre-line"><b>答题说明：</b>' + (item.instructions ? esc(item.instructions) : ('本课共' + esc(typeSummary || '多种题型') + '。请按上方页签逐项作答，全部填写完成后点击底部「核对答案」查看判分与解析；错题会自动进入错题本，方便复习。')) + '</div></div>'
-                + '<div class="flex justify-end"><button onclick="switchQTab(\\'' + firstTab + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition">开始答题 →</button></div>'
+                + '<div class="text-xs text-amber-900 leading-relaxed whitespace-pre-line"><b>' + t("quizGuideT") + '</b>' + (item.instructions ? esc(item.instructions) : (tf("defaultGuide", { summary: typeSummary || t("multiTypes") }))) + '</div></div>'
+                + '<div class="flex justify-end"><button onclick="switchQTab(\\'' + firstTab + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition">' + t("startQuiz") + '</button></div>'
                 + '</div></section>';
             /* 按题型分页：有章节则组内再按章节徽章分组 */
             function qCardWrap(q, i, n) {
@@ -2281,12 +2895,12 @@ function renderHTML(results, categories, opts) {
                 var qnum = 0;
                 if (hasSections) {
                     var secs = [], secMap = {};
-                    activeQuizzes.forEach(function (q) { var s = (q.s || '').trim() || '本课内容'; if (!secMap[s]) { secMap[s] = true; secs.push(s); } });
+                    activeQuizzes.forEach(function (q) { var s = (q.s || '').trim() || t("secDefault"); if (!secMap[s]) { secMap[s] = true; secs.push(s); } });
                     secs.forEach(function (s, si) {
                         var inner = '';
                         activeQuizzes.forEach(function (q, i) {
                             if (q.type !== mt.t) return;
-                            if (((q.s || '').trim() || '本课内容') !== s) return;
+                            if (((q.s || '').trim() || t("secDefault")) !== s) return;
                             if (q.type !== 'verse') { qnum++; }
                             inner += qCardWrap(q, i, qnum);
                         });
@@ -2305,14 +2919,14 @@ function renderHTML(results, categories, opts) {
                     secHtml = '<div class="space-y-4">' + flat + '</div>';
                 }
                 var prevBtn = ti > 0
-                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti - 1].t + '\\')" class="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95">← 上一题型：' + typeTabs[ti - 1].label + '</button>'
+                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti - 1].t + '\\')" class="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95">' + t("prevType") + typeTabs[ti - 1].label + '</button>'
                     : '<span></span>';
                 var nextBtn = ti < typeTabs.length - 1
-                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti + 1].t + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">下一题型：' + typeTabs[ti + 1].label + ' →</button>'
-                    : '<button onclick="switchQTab(\\'report\\')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">查看成绩报告 →</button>';
+                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti + 1].t + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + t("nextType") + typeTabs[ti + 1].label + ' →</button>'
+                    : '<button onclick="switchQTab(\\'report\\')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + t("viewReport") + '</button>';
                 return '<section id="qsec-' + mt.t + '" class="qsec hidden">'
                     + '<div class="flex items-center gap-2 mb-4"><span class="w-2 h-6 bg-indigo-600 rounded-full"></span>'
-                    + '<h2 class="text-xl font-bold text-slate-900">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + ' <span class="text-sm font-normal text-slate-400">(共' + mt.count + '题)</span></h2></div>'
+                    + '<h2 class="text-xl font-bold text-slate-900">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + ' <span class="text-sm font-normal text-slate-400">(' + tf("nQuestions", { n: mt.count }) + ')</span></h2></div>'
                     + secHtml
                     + '<div class="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-slate-200 mb-24">' + prevBtn + nextBtn + '</div>'
                     + '</section>';
@@ -2320,25 +2934,25 @@ function renderHTML(results, categories, opts) {
             /* 成绩报告页 */
             var reportSec = '<section id="qsec-report" class="qsec hidden"><div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 text-center space-y-6">'
                 + '<div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto text-3xl">🎓</div>'
-                + '<div><h2 class="text-2xl font-bold text-slate-900">答题成绩与复习报告</h2><p class="text-xs text-slate-500 mt-1">' + esc(item.title) + ' · 综合测评</p></div>'
+                + '<div><h2 class="text-2xl font-bold text-slate-900">' + t("reportT") + '</h2><p class="text-xs text-slate-500 mt-1">' + esc(item.title) + t("reportSub") + '</p></div>'
                 + '<div class="grid grid-cols-3 gap-3 max-w-3xl mx-auto">'
-                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">已答客观题</div><div class="text-xl md:text-2xl font-bold text-indigo-600" id="qr-progress">0 / 0</div></div>'
-                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">客观题得分</div><div class="text-xl md:text-2xl font-bold text-emerald-600" id="qr-score">--</div></div>'
-                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">理解掌握评级</div><div class="text-xl md:text-2xl font-bold text-slate-400" id="qr-rating">待核对</div></div>'
+                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + t("repAnswered") + '</div><div class="text-xl md:text-2xl font-bold text-indigo-600" id="qr-progress">0 / 0</div></div>'
+                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + t("repObjScore") + '</div><div class="text-xl md:text-2xl font-bold text-emerald-600" id="qr-score">--</div></div>'
+                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + t("repRating") + '</div><div class="text-xl md:text-2xl font-bold text-slate-400" id="qr-rating">' + t("repWait") + '</div></div>'
                 + '</div>'
                 + '<p id="qr-hint" class="text-xs text-slate-500 max-w-3xl mx-auto leading-relaxed"></p>'
                 + '<div class="flex flex-wrap justify-center gap-3">'
-                + '<button id="qr-action" onclick="studySubmitBtn()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">核对答案</button>'
-                + '<button onclick="toggleStudyEdit();switchQTab(\\'overview\\')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs font-bold transition">↺ 重新作答</button>'
-                + (canViewAnswers() ? '<button onclick="teacherUnlock()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">📖 查看全套参考答案</button>' : '')
+                + '<button id="qr-action" onclick="studySubmitBtn()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">' + t("checkBtn") + '</button>'
+                + '<button onclick="toggleStudyEdit();switchQTab(\\'overview\\')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs font-bold transition">' + t("redoBtn") + '</button>'
+                + (canViewAnswers() ? '<button onclick="teacherUnlock()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">' + t("allAnswers") + '</button>' : '')
                 + '</div></div></section>';
             var bodyHtml = '<div id="quizContainer" class="space-y-6">' + overviewSec + typeSecs + reportSec + '</div>'
                 + '<div class="sticky bottom-0 z-40 mt-6 -mx-3 md:-mx-6 px-3 md:px-6 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">'
                 + '<div class="w-full max-w-6xl mx-auto bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 flex items-center justify-between gap-3">'
-                + '<p id="studyHint" class="text-rose-500 text-xs italic">请填写完所有空格以激活核对功能</p>'
+                + '<p id="studyHint" class="text-rose-500 text-xs italic">' + tf("fillActive", { n: totalUnits }) + '</p>'
                 + '<button id="studySubmit" disabled onclick="studySubmitBtn()" class="shrink-0 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold py-2.5 px-6 rounded-xl shadow transition active:scale-95 text-sm">核对答案</button>'
                 + '</div></div>'
-                + '<footer class="text-center mt-6 text-slate-400 text-xs">课程来源：' + esc(item.category) + (item.subcategory ? ' · ' + esc(item.subcategory) : '') + ' · ' + esc(item.title) + '</footer>';
+                + '<footer class="text-center mt-6 text-slate-400 text-xs">' + t("srcFrom") + esc(item.category) + (item.subcategory ? ' · ' + esc(item.subcategory) : '') + ' · ' + esc(item.title) + '</footer>';
             var bodyEl = document.getElementById('lessonBody');
             bodyEl.innerHTML = bodyHtml;
 
@@ -2348,8 +2962,8 @@ function renderHTML(results, categories, opts) {
 
             var bb = document.getElementById('backListBtn');
             if (bb) {
-                if (BOOT.shareMode) { bb.innerText = '← 返回智学课程系统'; bb.onclick = function() { location.href = '/'; }; }
-                else { bb.innerText = '返回列表'; bb.onclick = function() { location.reload(); }; }
+                if (BOOT.shareMode) { bb.innerText = t("backHome"); bb.onclick = function() { location.href = '/'; }; }
+                else { bb.innerText = t("backList"); bb.onclick = function() { location.reload(); }; }
             }
             document.getElementById('resultArea').classList.add('hidden');
             toggleModal('lessonModal');
@@ -2443,7 +3057,7 @@ function renderHTML(results, categories, opts) {
                         + (typeLine ? '<div class="text-[11px] text-indigo-500 font-bold mb-1">' + esc(typeLine) + '</div>' : '')
                         + '<div class="text-sm text-slate-800 font-medium mb-2">' + esc(x.question) + '</div>'
                         + '<div class="text-xs mb-1"><span class="text-red-500 font-bold">学员答案：</span><span class="text-slate-600">' + esc(x.user_answer) + '</span></div>'
-                        + '<div class="text-xs"><span class="text-emerald-600 font-bold">正确答案：</span><span class="text-slate-600">' + esc(x.correct_answer) + '</span></div>'
+                        + '<div class="text-xs"><span class="text-emerald-600 font-bold">' + t("rightAns") + '</span><span class="text-slate-600">' + esc(x.correct_answer) + '</span></div>'
                         + '</div>';
                 }).join('');
                 return '<div class="font-bold text-slate-700 text-sm mt-4 mb-2">📖 ' + esc(k) + '（' + groups[k].length + '题）</div>' + items;
@@ -2691,7 +3305,7 @@ function renderHTML(results, categories, opts) {
                             if (ce > 0 && ce < 12) rawQ = rawQ.slice(ce + 1);
                         }
                         /* 经文出处徽章（与网页端一致，q.o 如"《约翰福音》3章16节"） */
-                        vref = '<div class="verse-ref-line"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || '核心经文')) + '</span></div>';
+                        vref = '<div class="verse-ref-line"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || t("coreVerse"))) + '</span></div>';
                     }
                     var qtext = expInline(hlVerse(esc(rawQ)));
                     var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
@@ -2928,7 +3542,7 @@ function renderHTML(results, categories, opts) {
         function wrongBookName() {
             var nm = "";
             try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
-            return nm || "匿名学员";
+            return nm || t("wbAnon");
         }
         function openWrongExportMenu() {
             var m = document.getElementById('wrongExportModal');
@@ -2985,8 +3599,8 @@ function renderHTML(results, categories, opts) {
                 return '<section class="card"><h2>第' + (i + 1) + '题 <span style="font-size:13px;color:#6366f1;">' + esc(wrongTypeNum(x)) + '</span></h2>'
                     + (wrongMeta(x) ? '<p style="font-size:12px;color:#94a3b8;margin:-8px 0 10px;">' + esc(wrongMeta(x)) + '</p>' : '')
                     + '<div class="md"><p>' + esc(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')) + '</p>'
-                    + '<p>你的答案：<b style="color:#dc2626;">' + esc(x.u || '（未填）') + '</b></p>'
-                    + '<p>正确答案：<b style="color:#059669;">' + esc(x.expected || '') + '</b></p></div></section>';
+                    + '<p>' + t("wbU") + '<b style="color:#dc2626;">' + esc(x.u || t("wbNA")) + '</b></p>'
+                    + '<p>' + t("rightAns") + '<b style="color:#059669;">' + esc(x.expected || '') + '</b></p></div></section>';
             }).join('');
             return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
                 + '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -3031,7 +3645,7 @@ function renderHTML(results, categories, opts) {
                 var qParas = [pptxPara('【' + (WRONG_TYPE_LABEL[x.type] || x.type || '') + (x.n ? ' · 第' + x.n + '题' : '') + '】', 1800, true, '4F81BD')];
                 if (wrongMeta(x)) qParas.push(pptxPara(wrongMeta(x), 1600, false, '64748B'));
                 qParas.push(pptxPara(String(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')), 1800, false));
-                qParas.push(pptxPara('你的答案：' + (x.u || '（未填）'), 1800, false, 'C0504D'));
+                qParas.push(pptxPara(t("wbU") + (x.u || t("wbNA")), 1800, false, 'C0504D'));
                 var ansParas = [pptxPara('【正确答案】', 1800, true, '047857'), pptxPara(String(x.expected || ''), 2000, false, '047857')];
                 if (single) {
                     slides.push({ t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)], b: qParas, a: ansParas });
@@ -3716,55 +4330,55 @@ function renderHTML(results, categories, opts) {
     <!-- 字号调节：全站可见 -->
     <div id="fontFab">
         <div id="fontPanel" class="hidden">
-            <button onclick="fontStep(1)" title="放大字体">A＋</button>
+            <button onclick="fontStep(1)" data-i18n-title="fontZoomIn" title="放大字体">A＋</button>
             <div id="fontLevelLabel" class="text-xs font-bold text-slate-600 px-1">标准</div>
-            <button onclick="fontStep(-1)" title="缩小字体">A－</button>
-            <button onclick="fontReset()" title="恢复标准字号" class="font-reset-btn">重置</button>
+            <button onclick="fontStep(-1)" data-i18n-title="fontZoomOut" title="缩小字体">A－</button>
+            <button onclick="fontReset()" data-i18n-title="fontResetT" title="恢复标准字号" class="font-reset-btn" data-i18n="resetBtn">重置</button>
         </div>
-        <button id="videoToggleBtn" onclick="openNetEnvModal()" title="视频入口设置">🎬</button>
-        <button id="fontFabBtn" onclick="toggleFontPanel()" title="调整字体大小">字体</button>
+        <button id="videoToggleBtn" onclick="openNetEnvModal()" data-i18n-title="vidEntryT" title="视频入口设置">🎬</button>
+        <button id="fontFabBtn" onclick="toggleFontPanel()" data-i18n-title="fontT" title="调整字体大小" data-i18n="fontT">字体</button>
     </div>
     <div id="netEnvModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6" style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px);">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center">
             <div class="text-3xl mb-2">🎬</div>
-            <h3 class="text-lg font-black text-slate-900 mb-1">视频入口设置</h3>
-            <p class="text-xs text-slate-500 mb-5">选择视频内容的显示方式，选一次即可记住</p>
+            <h3 class="text-lg font-black text-slate-900 mb-1" data-i18n="vidEntryT">视频入口设置</h3>
+            <p class="text-xs text-slate-500 mb-5" data-i18n="vidSetD">选择视频内容的显示方式，选一次即可记住</p>
             <div class="space-y-3">
                 <button data-env="cn" onclick="setVideoNetEnv('cn')" class="netenv-opt w-full p-4 rounded-2xl border-2 text-left transition active:scale-95">
-                    <div class="text-base font-black">精简显示</div>
-                    <div class="text-xs text-slate-500 mt-1">部分视频入口将不显示，页面更简洁</div>
+                    <div class="text-base font-black" data-i18n="vidSimple">精简显示</div>
+                    <div class="text-xs text-slate-500 mt-1" data-i18n="vidSimpleD">部分视频入口将不显示，页面更简洁</div>
                 </button>
                 <button data-env="intl" onclick="setVideoNetEnv('intl')" class="netenv-opt w-full p-4 rounded-2xl border-2 text-left transition active:scale-95">
-                    <div class="text-base font-black">全部显示</div>
-                    <div class="text-xs text-slate-500 mt-1">显示全部视频入口</div>
+                    <div class="text-base font-black" data-i18n="vidAll">全部显示</div>
+                    <div class="text-xs text-slate-500 mt-1" data-i18n="vidAllD">显示全部视频入口</div>
                 </button>
             </div>
-            <button onclick="setVideoNetEnv('cn', true)" class="mt-4 text-xs text-slate-400 hover:underline">稍后再说</button>
+            <button onclick="setVideoNetEnv('cn', true)" class="mt-4 text-xs text-slate-400 hover:underline" data-i18n="vidLater">稍后再说</button>
         </div>
     </div>
     <div id="videoChoiceModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6" style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px);">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6">
             <div class="text-center mb-4">
                 <div class="text-3xl mb-2">🎬</div>
-                <h3 class="text-lg font-black text-slate-900">选择视频源</h3>
-                <p class="text-xs text-slate-500 mt-1">请选择一个视频链接打开观看</p>
+                <h3 class="text-lg font-black text-slate-900" data-i18n="vidChoose">选择视频源</h3>
+                <p class="text-xs text-slate-500 mt-1" data-i18n="vidChooseD">请选择一个视频链接打开观看</p>
             </div>
             <div id="videoChoiceList" class="space-y-3"></div>
-            <button onclick="document.getElementById('videoChoiceModal').classList.add('hidden')" class="mt-4 w-full text-xs text-slate-400 hover:underline text-center">取消</button>
+            <button onclick="document.getElementById('videoChoiceModal').classList.add('hidden')" data-i18n="cancel" class="mt-4 w-full text-xs text-slate-400 hover:underline text-center">取消</button>
         </div>
     </div>
     <div id="wechatTipModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6" style="background:rgba(15,23,42,.55);backdrop-filter:blur(4px);">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center">
             <div class="text-3xl mb-2">📱</div>
-            <h3 class="text-lg font-black text-slate-900 mb-1">请在微信中打开</h3>
-            <p class="text-xs text-slate-500 mb-5">这个视频需要在微信内观看<br>点击下方按钮复制链接</p>
-            <button onclick="copyWecomLink()" class="w-full p-3 rounded-2xl bg-indigo-600 text-white font-bold text-sm active:scale-95 transition">复制视频链接</button>
-            <p class="text-xs text-slate-400 mt-3">复制后发送到微信任意聊天<br>点开链接即可观看</p>
-            <button onclick="document.getElementById('wechatTipModal').classList.add('hidden')" class="mt-4 text-xs text-slate-400 hover:underline">取消</button>
+            <h3 class="text-lg font-black text-slate-900 mb-1" data-i18n="vidWxT">请在微信中打开</h3>
+            <p class="text-xs text-slate-500 mb-5" data-i18n-html="vidWxD1">这个视频需要在微信内观看<br>点击下方按钮复制链接</p>
+            <button onclick="copyWecomLink()" class="w-full p-3 rounded-2xl bg-indigo-600 text-white font-bold text-sm active:scale-95 transition" data-i18n="vidCopy">复制视频链接</button>
+            <p class="text-xs text-slate-400 mt-3" data-i18n-html="vidWxD2">复制后发送到微信任意聊天<br>点开链接即可观看</p>
+            <button onclick="document.getElementById('wechatTipModal').classList.add('hidden')" data-i18n="cancel" class="mt-4 text-xs text-slate-400 hover:underline">取消</button>
         </div>
     </div>
     <div id="viewModeFab">
-        <button id="viewModeBtn" onclick="toggleViewMode()" title="切换到桌面版">🖥️</button>
+        <button id="viewModeBtn" onclick="toggleViewMode()" data-i18n-title="toDesk" title="切换到桌面版">🖥️</button>
     </div>
 <script>
 /* PWA：注册 Service Worker（满足 Android WebAPK 可安装性；iOS 用添加到主屏幕） */
