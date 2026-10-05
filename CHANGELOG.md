@@ -1,3 +1,11 @@
+# 2026-10-05 第 87 次部署：第九轮优化
+- progress 表加 (username, course_id) 索引
+- 错题同步改 batch（N 次往返降为 1 次）
+- marked 锁定 12.0.0 + CDN 故障降级
+- 搜索框 150ms 防抖
+- 删除 shuffle 死代码
+- 回归：线上 4 段内联脚本全过 node --check
+
 # 2026-10-05 第 86 次部署：第七轮审计修复
 - 管理端新增"退出登录"按钮（/api/admin/logout 清除 Cookie）
 - 回归：线上验证通过
