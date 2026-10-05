@@ -609,7 +609,7 @@ return json({ quizzes: qs});
 if (pathname === "/api/verify" && request.method === "POST") {
 if (authed) return json({ ok: true});
 const b = await request.json().catch(() => ({}));
-const ok = (await sha256hex(String(b.password || ""))) === await getPwHash(env);
+const ok = (await sha256hex(String(b.password || "").trim())) === await getPwHash(env);
 if (!ok) return json({ ok: false});
 const resp = json({ ok: true});
 resp.headers.set("Set-Cookie", adminCookie(await adminToken(env)));
@@ -620,9 +620,9 @@ return resp;
 if (pathname === "/api/change-password" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
 const b = await request.json().catch(() => ({}));
-const oldOk = (await sha256hex(String(b.oldPassword || ""))) === await getPwHash(env);
+const oldOk = (await sha256hex(String(b.oldPassword || "").trim())) === await getPwHash(env);
 if (!oldOk) return json({ ok: false, error: "原密码错误"}, 400);
-const np = String(b.newPassword || "");
+const np = String(b.newPassword || "").trim();
 if (np.length < 6) return json({ ok: false, error: "新密码至少 6 位"}, 400);
 await setSetting(env, "admin_pw_hash", await sha256hex(np));
 const resp = json({ ok: true});
@@ -644,7 +644,7 @@ return json({ ok: true});
 if (pathname === "/api/admin/recover-password" && request.method === "POST") {
 const b = await request.json().catch(() => ({}));
 const code = String(b.recoveryCode || "").trim();
-const np = String(b.newPassword || "");
+const np = String(b.newPassword || "").trim();
 const saved = await getSetting(env, "admin_recovery_hash");
 if (!saved || !code || (await sha256hex("tq-recovery:" + code)) !== saved) return json({ ok: false, error: "恢复码错误"}, 401);
 if (np.length < 6) return json({ ok: false, error: "新密码至少 6 位"}, 400);
@@ -1681,6 +1681,7 @@ function openLangPanel() {
         m.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
         m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.5)" data-close="1"></div>'
             + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:320px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
+            + '<button data-close="1" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1">×</button>'
             + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 16px">' + tr('langT') + '</h3>'
             + '<div id="langList"></div>'
             + '<button data-close="1" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">' + tr('cancel') + '</button></div>';
@@ -1753,7 +1754,7 @@ function twCourse(c) {
         function getProg() { try { return JSON.parse(localStorage.getItem(PROG_KEY) || "{}"); } catch(e) { return {}; } }
         function setProg(p) { localStorage.setItem(PROG_KEY, JSON.stringify(p)); }
         /* 学习进度按姓名隔离；未登录视为空；老格式（顶层为课程id）自动迁移到当前姓名下 */
-        function progName() { try { return (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) { return ""; } }
+        function progName() { try { return progName(); } catch (e) { return ""; } }
         function getMyProg() {
             var nm = progName();
             var all = getProg();
@@ -1782,7 +1783,7 @@ function twCourse(c) {
         function getWrong() { try { return JSON.parse(localStorage.getItem(WRONG_KEY) || "{}"); } catch(e) { return {}; } }
         function setWrong(w) { try { localStorage.setItem(WRONG_KEY, JSON.stringify(w)); } catch(e) {} }
         function saveWrongs(items) {
-            var name = localStorage.getItem(USER_KEY) || tr("wbAnon");
+            var name = progName() || tr("wbAnon");
             var w = getWrong();
             var arr = w[name] || [];
             items.forEach(function(it) {
@@ -1794,7 +1795,7 @@ function twCourse(c) {
         }
         function openWrongBook(courseId) {
             window._wrongCourseId = courseId || null;
-            var name = localStorage.getItem(USER_KEY) || tr("wbAnon");
+            var name = progName() || tr("wbAnon");
             var all = (getWrong()[name] || []);
             var arr = courseId ? all.filter(function(x) { return x.cid === courseId; }) : all;
             var titleEl = document.getElementById('wrongBookTitle');
@@ -1817,7 +1818,7 @@ function twCourse(c) {
         function clearWrongBook() {
             var fc = window._wrongCourseId || null;
             if (!confirm(fc ? tr("wbClearC") : tr("wbClearA"))) return;
-            var name = localStorage.getItem(USER_KEY) || tr("wbAnon");
+            var name = progName() || tr("wbAnon");
             var w = getWrong();
             if (fc) w[name] = (w[name] || []).filter(function(x) { return x.cid !== fc; });
             else w[name] = [];
@@ -1845,7 +1846,7 @@ function twCourse(c) {
             if (!BOOK_FULL) {
                 BOOK_FULL = {};
                 var pairs = '撒上=撒母耳记上|撒下=撒母耳记下|王上=列王纪上|王下=列王纪下|代上=历代志上|代下=历代志下|林前=哥林多前书|林后=哥林多后书|帖前=帖撒罗尼迦前书|帖后=帖撒罗尼迦后书|提前=提摩太前书|提后=提摩太后书|彼前=彼得前书|彼后=彼得后书|约壹=约翰一书|约贰=约翰二书|约叁=约翰三书|创=创世记|出=出埃及记|利=利未记|民=民数记|申=申命记|书=约书亚记|士=士师记|得=路得记|拉=以斯拉记|尼=尼希米记|斯=以斯帖记|伯=约伯记|诗=诗篇|箴=箴言|传=传道书|歌=雅歌|赛=以赛亚书|耶=耶利米书|哀=耶利米哀歌|结=以西结书|但=但以理书|何=何西阿书|珥=约珥书|摩=阿摩司书|俄=俄巴底亚书|拿=约拿书|弥=弥迦书|鸿=那鸿书|哈=哈巴谷书|番=西番雅书|该=哈该书|亚=撒迦利亚书|玛=玛拉基书|太=马太福音|可=马可福音|路=路加福音|约=约翰福音|徒=使徒行传|罗=罗马书|加=加拉太书|弗=以弗所书|腓=腓立比书|西=歌罗西书|多=提多书|门=腓利门书|来=希伯来书|雅=雅各书|犹=犹大书|启=启示录'.split('|'), i, kv;
-                for (i = 0; i < pairs.length; i++) { kv = pairs[i].split('='); BOOK_FULL[kv[0]] = kv[1]; BOOK_FULL[toTW(kv[0])] = kv[1]; }
+                for (var i = 0; i < pairs.length; i++) { var kv = pairs[i].split('='); BOOK_FULL[kv[0]] = kv[1]; BOOK_FULL[toTW(kv[0])] = kv[1]; }
             }
             var f = BOOK_FULL[nm];
             if (!f) return nm;
@@ -1922,7 +1923,7 @@ function twCourse(c) {
         var FONT_SCALES = [0.85, 1, 1.15, 1.3, 1.5];
         var FONT_LABELS = [tr("fontS"), tr("fontM"), tr("fontL"), tr("fontXL"), tr("fontXXL")];
         var FONT_DEFAULT = 2;
-        function getFontIdx() { var i = parseInt(localStorage.getItem(FONT_KEY) || String(FONT_DEFAULT), 10); if (isNaN(i)) i = FONT_DEFAULT; return Math.min(4, Math.max(0, i)); }
+        function getFontIdx() { var v = String(FONT_DEFAULT); try { v = localStorage.getItem(FONT_KEY) || v; } catch (e) {} var i = parseInt(v, 10); if (isNaN(i)) i = FONT_DEFAULT; return Math.min(4, Math.max(0, i)); }
         function applyFontScale() {
             var i = getFontIdx();
             document.documentElement.style.fontSize = (16 * FONT_SCALES[i]) + "px";
@@ -2269,7 +2270,7 @@ function twCourse(c) {
 
         /* 用服务端成绩刷新统计 + 我的成绩 */
         async function refreshStats() {
-            var name = localStorage.getItem(USER_KEY);
+            var name = progName();
             if (!name || !document.getElementById('statTotal')) return;
             try {
                 var r = await fetch('/api/scores?username=' + encodeURIComponent(name));
@@ -2356,13 +2357,13 @@ function twCourse(c) {
         /* 姓名按钮：未登记则登录，已登记则确认后登出（本地错题本按姓名保留） */
         function syncNameBtn() {
             var nm = "";
-            try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
+            try { nm = progName(); } catch (e) {}
             var nb = document.getElementById("nameBtn");
             if (nb) nb.innerText = nm || tr("setName");
         }
         function nameBtnClick() {
             var nm = "";
-            try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
+            try { nm = progName(); } catch (e) {}
             if (!nm) { login(); return; }
             if (confirm(tf("logoutAsk", { name: nm }))) {
                 try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); localStorage.removeItem(STUDENT_ADMIN_KEY); } catch (e) {}
@@ -2372,7 +2373,7 @@ function twCourse(c) {
         /* 答题前必须输入姓名：无姓名时弹窗阻断，登记后继续 */
         function requireNameForQuiz(tab) {
             var nm = "";
-            try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
+            try { nm = progName(); } catch (e) {}
             if (nm) return true;
             openAuthModal('login', tab, false);
             return false;
@@ -2380,7 +2381,7 @@ function twCourse(c) {
         var STUDENT_TOKEN_KEY = "TQ_STUDENT_TOKEN_V1";
         var STUDENT_ADMIN_KEY = "TQ_STUDENT_ADMIN_V1";
         function studentToken() { try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch (e) { return ""; } }
-        function studentIsAdmin() { try { return !!((localStorage.getItem(USER_KEY) || "").trim()) && localStorage.getItem(STUDENT_ADMIN_KEY) === "1"; } catch (e) { return false; } }
+        function studentIsAdmin() { try { return !!(progName()) && localStorage.getItem(STUDENT_ADMIN_KEY) === "1"; } catch (e) { return false; } }
         function canViewAnswers() { return BOOT.isAdmin || studentIsAdmin(); }
         async function refreshStudentAdmin() {
             if (BOOT.isAdmin || !progName() || !studentToken()) return;
@@ -2422,7 +2423,7 @@ function twCourse(c) {
             }
             setAuthMode(mode === 'register' ? 'register' : 'login');
             var nm = document.getElementById('authName');
-            if (nm && !nm.value) { try { nm.value = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {} }
+            if (nm && !nm.value) { try { nm.value = progName(); } catch (e) {} }
             m.style.display = 'flex';
             setTimeout(function() { var el = document.getElementById(window._authMode === 'login' ? 'authPw' : 'authName'); if (el) el.focus(); }, 60);
         }
@@ -2499,7 +2500,7 @@ function twCourse(c) {
         }
         /* 分享页姓名条：与主站共用同一本地姓名，成绩自动记在其名下 */
         function shareNameHTML() {
-            var sn0 = (localStorage.getItem(USER_KEY) || "").trim();
+            var sn0 = progName();
             if (sn0) return '<span class="text-slate-600">' + tr("studentIs") + '<b class="text-slate-800">' + esc(sn0) + '</b></span>'
                 + '<button onclick="shareRename()" class="text-xs text-violet-600 underline">' + tr("changeBtn") + '</button>';
             return '<button onclick="openShareAuth()" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-xl font-bold">' + tr("loginReg") + '</button>';
@@ -2625,12 +2626,12 @@ function twCourse(c) {
         }
         function studySubmitBtn() { if (studyRevealed) toggleStudyEdit(); else submitStudy(); }
         async function submitStudy() {
-            if (BOOT.shareMode && !(localStorage.getItem(USER_KEY) || "").trim()) {
+            if (BOOT.shareMode && !progName()) {
                 alert(tr("needName"));
                 var sni = document.getElementById("shareNameInput"); if (sni) sni.focus();
                 return;
             }
-            if (!(localStorage.getItem(USER_KEY) || "").trim()) { openAuthModal('login', null, false); return; }
+            if (!progName()) { openAuthModal('login', null, false); return; }
             var answers = [], ok = true;
             for (var v = 0; v < activeQuizzes.length; v++) {
                 var qv = activeQuizzes[v], u = '';
@@ -2662,7 +2663,7 @@ function twCourse(c) {
             if (!ok) { alert(tr("notComplete")); return; }
             var btn = document.getElementById('studySubmit');
             btn.disabled = true; btn.innerText = tr("checking");
-            var name = localStorage.getItem(USER_KEY) || tr("wbAnon");
+            var name = progName() || tr("wbAnon");
             try {
                 var r = await fetch('/api/submit', {
                     method: 'POST',
@@ -3056,7 +3057,7 @@ function twCourse(c) {
         /* 按姓名查询成绩（管理端） */
         async function queryScores() {
             var nameInput = document.getElementById('scoreQueryName');
-            var name = (nameInput.value || "").trim() || (localStorage.getItem(USER_KEY) || "").trim();
+            var name = (nameInput.value || "").trim() || progName();
             if (!name) { alert("请输入学员姓名"); return; }
             nameInput.value = name;
             var list = document.getElementById('scoreList');
@@ -3623,7 +3624,7 @@ function twCourse(c) {
         }
         function wrongBookName() {
             var nm = "";
-            try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
+            try { nm = progName(); } catch (e) {}
             return nm || tr("wbAnon");
         }
         function openWrongExportMenu() {
@@ -4402,7 +4403,7 @@ function twCourse(c) {
         applyViewMode();
         document.addEventListener("DOMContentLoaded", applyFontScale);
         window.addEventListener("resize", function() { try { if (localStorage.getItem(VIEW_MODE_KEY) === "desktop") applyViewMode(); } catch (e) {} }); /* 浮钮HTML在script之后，等DOM就绪再刷标签 */
-        var sn = localStorage.getItem(USER_KEY);
+        var sn = progName();
         syncNameBtn();
         syncVideoBtn();
         
