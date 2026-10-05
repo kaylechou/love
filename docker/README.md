@@ -65,3 +65,5 @@ bash docker/sync-from-github.sh
 - 定时任务（cron 自动备份 GitHub）需另行用 NAS 计划任务实现
 - 推送通知等 Cloudflare 专属能力不可用（本项目未使用）
 - 其余功能（课程、测验、成绩、错题本、多语言、导出）完全一致
+
+<!-- ghcr: 镜像发布到 ghcr.io/kaylechou/love -->
