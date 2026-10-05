@@ -259,7 +259,11 @@ return json({ success: true});
 if (pathname === "/api/delete" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
 const b = await request.json();
-await env.DB.prepare("DELETE FROM courses WHERE id =?").bind(b.id).run();
+await env.DB.batch([
+env.DB.prepare("DELETE FROM courses WHERE id =?").bind(b.id),
+env.DB.prepare("DELETE FROM progress WHERE course_id=?").bind(b.id),
+env.DB.prepare("DELETE FROM wrongs WHERE course_id=?").bind(b.id),
+]);
 return json({ success: true});
 }
 
@@ -562,6 +566,8 @@ const b = await request.json().catch(() => ({}));
 const username = ((b.username || "") + "").trim();
 if (!username) return json({ error: "缺少姓名" }, 400);
 await env.DB.prepare("UPDATE students SET is_admin = ? WHERE username = ?").bind(b.is_admin ? 1 : 0, username).run();
+const ch = await env.DB.prepare("SELECT changes() AS c").first();
+if (!ch || !ch.c) return json({ error: "学员不存在" }, 404);
 return json({ success: true });
 }
 
@@ -4240,7 +4246,7 @@ function twCourse(c) {
             }
             sel.value = item.subcategory || "";
             sel.onchange();
-            document.getElementById('quizList').innerHTML = ""; JSON.parse(item.quizzes_json || "[]").forEach(function(q) { addQuizRow(q); });
+            document.getElementById('quizList').innerHTML = ""; var qz = []; try { qz = JSON.parse(item.quizzes_json || "[]"); } catch (e) { alert("题库数据损坏，已用空题库打开"); } qz.forEach(function(q) { addQuizRow(q); });
             try { var _gd = JSON.parse(item.guide_json || "[]"); guideData = (Array.isArray(_gd) ? _gd : []).map(function(g) { return { title: g.title || "", points: Array.isArray(g.points) ? g.points.slice() : [] }; }); } catch (e) { guideData = []; }
             initGuideEditor(); renderGuideEditor(); document.getElementById('quizJson').value = ""; initQuizMode(); setQuizMode('visual'); document.getElementById('guideJson').value = ""; initGuideMode(); setGuideMode('visual'); toggleModal('editModal');
         }
