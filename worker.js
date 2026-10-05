@@ -2093,7 +2093,7 @@ function twCourse(c) {
         async function load() {
             /* 首屏数据服务端已注入 BOOT.list（学员端为精简版），无需再请求 /api/data；分类并行拉取 */
             var needFetch = BOOT.isAdmin || !(BOOT.list && BOOT.list.length);
-            var dataP = needFetch ? fetch(BOOT.isAdmin ? '/api/data' : '/api/data?brief=1').then(function(r) { return r.json(); }) : null;
+            var dataP = needFetch ? fetch(BOOT.isAdmin ? '/api/data' : '/api/data?brief=1').then(function(r) { return r.json(); }).catch(function() { return []; }) : null;
             var catP = fetch('/api/categories').then(function(r) { return r.json(); }).catch(function() { return []; });
             allData = dataP ? await dataP : BOOT.list;
             /* 繁体模式（学员端）：课程内容转繁体展示，不改数据库 */
