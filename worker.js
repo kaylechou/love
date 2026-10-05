@@ -814,7 +814,7 @@ function renderHTML(results, categories, opts) {
 
     <!-- 顶栏 -->
     <header class="bg-white/90 backdrop-blur sticky top-0 z-50 border-b border-slate-100">
-        <div class="max-w-6xl mx-auto px-5 py-3 flex justify-between items-center">
+        <div class="max-w-7xl mx-auto px-5 py-3 flex justify-between items-center">
             <div class="flex items-center gap-2.5 cursor-pointer" onclick="location.href=location.origin">
                 <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-lg shadow-md shadow-violet-200">📖</div>
                 <span class="font-black text-lg tracking-tight" data-i18n="appName">团契智学</span>
@@ -832,7 +832,7 @@ function renderHTML(results, categories, opts) {
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-5 pt-8">
+    <main class="max-w-7xl mx-auto px-5 pt-8">
         <!-- 标题区 -->
         <h1 class="text-[2rem] leading-tight font-black tracking-tight" data-i18n="myCourses">我的课程</h1>
         <p class="text-slate-400 mt-1 mb-6" data-i18n="heroSub">系统学习，稳步成长</p>
@@ -965,11 +965,11 @@ function renderHTML(results, categories, opts) {
         <div id="loadingState" class="text-center text-slate-400 py-16 text-sm">课程加载中…</div>
         <div id="emptyState" class="hidden text-center text-slate-400 py-16 text-sm" data-i18n="emptyResult">没有找到匹配的课程</div>
     </main>
-    ${!isAdmin ? '<footer class="max-w-6xl mx-auto px-5 mt-6 text-center"><a href="/admin" data-i18n="adminEntry" class="text-xs text-slate-300 hover:text-violet-500 transition">教师管理入口 →</a></footer>' : ''}
+    ${!isAdmin ? '<footer class="max-w-7xl mx-auto px-5 mt-6 text-center"><a href="/admin" data-i18n="adminEntry" class="text-xs text-slate-300 hover:text-violet-500 transition">教师管理入口 →</a></footer>' : ''}
 
     <!-- 答题 / 学习弹窗 -->
     <div id="lessonModal" class="hidden fixed inset-0 bg-white z-[80] overflow-y-auto">
-        <div class="w-full max-w-6xl mx-auto px-3 md:px-6 py-6 pb-32">
+        <div class="w-full max-w-7xl mx-auto px-3 md:px-6 py-6 pb-32">
             <div id="lessonHeader"></div>
             <div id="studyProg" class="hidden mt-4 text-sm font-bold text-violet-600"></div>
             <div id="lessonBody" class="mt-10 space-y-4"></div>
@@ -1000,7 +1000,7 @@ function renderHTML(results, categories, opts) {
     ${isAdmin ? `
     <!-- 编辑弹窗 -->
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/95 z-[70] flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col md:flex-row overflow-hidden shadow-2xl">
+        <div class="bg-white rounded-3xl w-full max-w-7xl h-[90vh] flex flex-col md:flex-row overflow-hidden shadow-2xl">
             <div class="w-full md:w-1/3 p-6 border-r overflow-y-auto space-y-4 bg-slate-50">
                 <h2 class="font-black text-indigo-900 text-xs">内容录入</h2>
                 <textarea id="importText" class="w-full h-40 border p-3 rounded-xl text-xs" placeholder="粘贴题目...（## 开头表示章节名；填空题含 ____ 会自动识别为填空）"></textarea>
@@ -2340,8 +2340,17 @@ function twCourse(c) {
             }
         }
 
-        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
-        function closeLessonModal() { document.getElementById('lessonModal').classList.add('hidden'); }
+        function toggleModal(id) {
+            var el = document.getElementById(id);
+            el.classList.toggle('hidden');
+            if (id === 'lessonModal') {
+                try { document.body.style.overflow = el.classList.contains('hidden') ? '' : 'hidden'; } catch (e) {}
+            }
+        }
+        function closeLessonModal() {
+            document.getElementById('lessonModal').classList.add('hidden');
+            try { document.body.style.overflow = ''; } catch (e) {}
+        }
         function login() { openAuthModal('login', null, true); }
         /* 姓名按钮：未登记则登录，已登记则确认后登出（本地错题本按姓名保留） */
         function syncNameBtn() {
@@ -2915,7 +2924,7 @@ function twCourse(c) {
             var teacherTopBtn = '<button id="teacherBtn" onclick="teacherUnlock()" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-amber-200 border border-amber-500/30 transition">' + t("teacherBtn") + '</button>';
             document.getElementById('lessonHeader').innerHTML = shareBar
                 + '<div class="sticky top-0 z-40 -mx-3 md:-mx-6 px-3 md:px-6 pt-4 pb-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 shadow-md">'
-                + '<div class="w-full max-w-6xl mx-auto"><div class="flex items-start justify-between gap-3">'
+                + '<div class="w-full max-w-7xl mx-auto"><div class="flex items-start justify-between gap-3">'
                 + '<div class="min-w-0"><div class="flex items-center gap-2 text-[11px] font-semibold text-indigo-300 uppercase tracking-wider mb-1">'
                 + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(item.category || t("courseWord")) + '</span>'
                 + (item.subcategory ? '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(item.subcategory) + '</span>' : '')
@@ -3019,7 +3028,7 @@ function twCourse(c) {
                 + '</div></div></section>';
             var bodyHtml = '<div id="quizContainer" class="space-y-6">' + overviewSec + typeSecs + reportSec + '</div>'
                 + '<div class="sticky bottom-0 z-40 mt-6 -mx-3 md:-mx-6 px-3 md:px-6 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">'
-                + '<div class="w-full max-w-6xl mx-auto bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 flex items-center justify-between gap-3">'
+                + '<div class="w-full max-w-7xl mx-auto bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 flex items-center justify-between gap-3">'
                 + '<p id="studyHint" class="text-rose-500 text-xs italic">' + tf("fillActive", { n: totalUnits }) + '</p>'
                 + '<button id="studySubmit" disabled onclick="studySubmitBtn()" class="shrink-0 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold py-2.5 px-6 rounded-xl shadow transition active:scale-95 text-sm">' + t("checkBtn") + '</button>'
                 + '</div></div>'
