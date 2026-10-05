@@ -1162,7 +1162,7 @@ rateTop: '融会贯通', rateGood: '掌握良好', rateRetry: '需再复习', ra
 repDone: '核对完成，成绩已上传；错题已自动加入错题本。如需重做，可点击「返回修改填写」或「重新作答」。',
 backEdit: '返回修改填写', scoreDone: '核对完成：{s}（成绩已上传）', scoreUnit: ' · 得分',
 loginT: '👤 学员登录', regT: '👤 学员注册',
-loginD: '请输入姓名与密码，成绩与错题本将记在此名下。', regD: '首次使用请设置登录密码，请牢记。',
+loginD: '请输入姓名与密码，成绩与错题本将记在此名下。', loginNeedQuiz: '答题需先登录，成绩与错题本将记在此名下。', regD: '首次使用请设置登录密码，请牢记。',
 namePh: '学员姓名', pwPh: '密码（至少4位）', pw2Ph: '确认密码', doLogin: '登 录', doReg: '注 册',
 goReg: '首次使用？点此注册', goLogin: '已有账号？点此登录', forgotPw: '忘记密码？请联系老师重置',
 errName: '请输入姓名', errPw: '密码至少4位', errPw2: '两次输入的密码不一致',
@@ -1263,7 +1263,7 @@ scoreDone: 'Checked: {s} (score uploaded)',
 scoreUnit: ' · Score',
 loginT: '👤 Student Login',
 regT: '👤 Student Register',
-loginD: 'Enter your name and password. Scores and wrong answers are saved under this name.',
+loginD: 'Enter your name and password. Scores and wrong answers are saved under this name.', loginNeedQuiz: 'Please log in to answer. Scores and wrong answers are saved under this name.',
 regD: 'First time? Set a login password and remember it.',
 namePh: 'Student name',
 pwPh: 'Password (min 4 chars)',
@@ -1412,7 +1412,7 @@ scoreDone: '採点完了：{s}（成績アップロード済み）',
 scoreUnit: ' · 得点',
 loginT: '👤 学習者ログイン',
 regT: '👤 学習者登録',
-loginD: '名前とパスワードを入力してください。成績と間違いノートはこの名前で記録されます。',
+loginD: '名前とパスワードを入力してください。成績と間違いノートはこの名前で記録されます。', loginNeedQuiz: '解答するにはログインが必要です。成績と間違いノートはこの名前で記録されます。',
 regD: '初回利用時はログインパスワードを設定し、忘れないようにしてください。',
 namePh: '学習者名',
 pwPh: 'パスワード（4文字以上）',
@@ -1561,7 +1561,7 @@ scoreDone: '채점 완료: {s} (성적 업로드됨)',
 scoreUnit: ' · 점수',
 loginT: '👤 학습자 로그인',
 regT: '👤 학습자 회원가입',
-loginD: '이름과 비밀번호를 입력해 주세요. 성적과 오답 노트는 이 이름으로 기록됩니다.',
+loginD: '이름과 비밀번호를 입력해 주세요. 성적과 오답 노트는 이 이름으로 기록됩니다.', loginNeedQuiz: '답안을 제출하려면 로그인이 필요합니다. 성적과 오답 노트는 이 이름으로 기록됩니다.',
 regD: '처음 이용 시 로그인 비밀번호를 설정하고 잊지 마세요.',
 namePh: '학습자 이름',
 pwPh: '비밀번호(4자 이상)',
@@ -2376,6 +2376,10 @@ function twCourse(c) {
             try { nm = progName(); } catch (e) {}
             if (nm) return true;
             openAuthModal('login', tab, false);
+            try {
+                var d = document.getElementById('authDesc');
+                if (d) d.textContent = tr("loginNeedQuiz");
+            } catch (e) {}
             return false;
         }
         var STUDENT_TOKEN_KEY = "TQ_STUDENT_TOKEN_V1";
@@ -2902,7 +2906,7 @@ function twCourse(c) {
             } else {
                 shareBar = '<div class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 text-left">'
                     + '<a href="javascript:void(0)" onclick="closeLessonModal()" class="text-sm font-bold text-violet-700 hover:underline">' + tr("backList") + '</a>'
-                    + '<div class="flex items-center gap-2 text-sm">' + shareNameHTML() + '</div></div>';
+                    + '<div class="flex items-center gap-2 text-sm"><button onclick="openLangPanel()" class="text-xs bg-white border border-violet-200 px-3 py-1.5 rounded-xl font-medium text-violet-700 hover:bg-violet-50 transition">🌐 ' + langShort(curLang()) + '</button>' + shareNameHTML() + '</div></div>';
             }
             /* ===== 分 Tab 互动课件：导读 / 按题型分页 / 成绩报告（参考互动课件 UI） ===== */
             lastGradeRes = null;
