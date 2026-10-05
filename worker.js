@@ -1769,7 +1769,7 @@ function twCourse(c) {
         function getProg() { try { return JSON.parse(localStorage.getItem(PROG_KEY) || "{}"); } catch(e) { return {}; } }
         function setProg(p) { localStorage.setItem(PROG_KEY, JSON.stringify(p)); }
         /* 学习进度按姓名隔离；未登录视为空；老格式（顶层为课程id）自动迁移到当前姓名下 */
-        function progName() { try { return progName(); } catch (e) { return ""; } }
+        function progName() { try { return (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) { return ""; } }
         function getMyProg() {
             var nm = progName();
             var all = getProg();
