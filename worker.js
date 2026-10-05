@@ -1726,7 +1726,7 @@ function twCourse(c) {
             return line;
         }).join("\\n");
     }
-    try {
+    if (nc.guide_json !== undefined) try {
         var g = JSON.parse(nc.guide_json || "[]");
         g.forEach(function(ch) {
             if (ch.title) ch.title = toTW(ch.title);
@@ -1734,7 +1734,7 @@ function twCourse(c) {
         });
         nc.guide_json = JSON.stringify(g);
     } catch (e) {}
-    try {
+    if (nc.quizzes_json !== undefined) try {
         var qs = JSON.parse(nc.quizzes_json || "[]");
         qs.forEach(function(q) {
             ["q", "o", "h", "s"].forEach(function(k) { if (q[k]) q[k] = toTW(q[k]); });
@@ -2971,7 +2971,7 @@ function twCourse(c) {
                 + '<div class="sticky bottom-0 z-40 mt-6 -mx-3 md:-mx-6 px-3 md:px-6 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">'
                 + '<div class="w-full max-w-6xl mx-auto bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 flex items-center justify-between gap-3">'
                 + '<p id="studyHint" class="text-rose-500 text-xs italic">' + tf("fillActive", { n: totalUnits }) + '</p>'
-                + '<button id="studySubmit" disabled onclick="studySubmitBtn()" class="shrink-0 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold py-2.5 px-6 rounded-xl shadow transition active:scale-95 text-sm">核对答案</button>'
+                + '<button id="studySubmit" disabled onclick="studySubmitBtn()" class="shrink-0 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold py-2.5 px-6 rounded-xl shadow transition active:scale-95 text-sm">' + t("checkBtn") + '</button>'
                 + '</div></div>'
                 + '<footer class="text-center mt-6 text-slate-400 text-xs">' + t("srcFrom") + esc(item.category) + (item.subcategory ? ' · ' + esc(item.subcategory) : '') + ' · ' + esc(item.title) + '</footer>';
             var bodyEl = document.getElementById('lessonBody');
