@@ -1,3 +1,10 @@
+# 2026-10-05 第 79 次部署：全站代码审计修复
+- bookFull() 中 i/kv 未声明成隐式全局变量（与 t() 污染同类），加 var
+- 管理员密码 4 处加 trim（/api/verify、/api/change-password 新旧密码、/api/admin/recover-password），与学生端统一
+- 9 处 localStorage 裸调用改走带 try-catch 的 progName()，隐私模式不白屏
+- 语言选择弹窗加 × 关闭按钮，与登录框统一
+- 回归：线上 4 段内联脚本全过 node --check
+
 # 2026-10-05 第 78 次部署：修复登录崩溃 + 登录框加关闭按钮
 - 根因：全局 t() 翻译函数被同名变量污染，登录时报 "t is not a function" 直接崩溃
 - 修复：t() 改名为 tr()（140+ 处调用同步改），避开单字母命名冲突
