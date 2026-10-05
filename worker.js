@@ -424,10 +424,10 @@ b.answers.forEach(a => { ansMap[a.i] = a.u;});
 let score = 0, gradable = 0;
 const details = qs.map((q, i) => {
 const v = checkAnswer(q, ansMap[i] == null? "": ansMap[i]);
-if (v === null) return { i: i, verdict: null, expected: q.a || ""};
+if (v === null) return { i: i, verdict: null, expected: q.a || "", q: q.q || ""};
 gradable++;
 if (v) score++;
-return { i: i, verdict:!!v, expected: q.a || ""};
+return { i: i, verdict:!!v, expected: q.a || "", q: q.q || ""};
 });
 const scoreText = score + "/" + gradable;
 const title = b.courseTitle || course.title || "";
