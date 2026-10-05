@@ -1825,7 +1825,7 @@ function twCourse(c) {
 
         /* 小工具 */
         function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-        function stripEmoji(s) { return String(s == null ? "" : s).replace(/^[📖\s]+/, ""); } /* 去掉标题开头自带的 📖，避免与固定图标重复 */
+        function stripEmoji(s) { return String(s == null ? "" : s).replace(/^[📖📜\s]+/, ""); } /* 去掉标题开头自带的 📖，避免与固定图标重复 */
         /* 去掉经文题干开头的"【经文填空】"等字样 */
         function stripVerseTag(s) {
             s = String(s == null ? "" : s);
@@ -1857,7 +1857,7 @@ function twCourse(c) {
             var SP = ' *';
             /* 引用统一显示为"全称第N章M节"，书名与章节分开高亮 */
             function vref(bk, ch, vs, ve) {
-                return '<span class="verse-ref-book">' + bookFull(bk) + '</span>'
+                return '<span class="verse-ref-book">📜 ' + bookFull(bk) + '</span>'
                     + '<span class="verse-ref-num">第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + JIE : '') + '</span>';
             }
             var DASH = '[\u2013\u2014\uFF0D-]';
@@ -2563,7 +2563,7 @@ function twCourse(c) {
                 var vq = Object.assign({}, q);
                 vq.q = stripVerseTag(q.q);
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
-                    + ((q.h || q.o) ? '<p class="mb-3"><span class="verse-ref">📖 ' + esc(normVerse(stripEmoji(q.h || q.o))) + '</span></p>' : '')
+                    + ((q.h || q.o) ? '<p class="mb-3"><span class="verse-ref">📜 ' + esc(normVerse(stripEmoji(q.h || q.o))) + '</span></p>' : '')
                     + '<div class="text-slate-800"><span class="verse-text">' + studyPara(vq, i) + '</span></div>' + verdict + '</div></div>';
             }
             if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') {
@@ -2929,7 +2929,7 @@ function twCourse(c) {
             /* ===== 分 Tab 互动课件：导读 / 按题型分页 / 成绩报告（参考互动课件 UI） ===== */
             lastGradeRes = null;
             var typeTabs = [
-                { t: 'verse', label: t('tyVerse'), icon: '📖' },
+                { t: 'verse', label: t('tyVerse'), icon: '📜' },
                 { t: 'fill', label: t('tyFill'), icon: '✏️' },
                 { t: 'single', label: t('tySingle'), icon: '🔘' },
                 { t: 'multiple', label: t('tyMulti'), icon: '☑️' },
@@ -3410,7 +3410,7 @@ function twCourse(c) {
                             if (ce > 0 && ce < 12) rawQ = rawQ.slice(ce + 1);
                         }
                         /* 经文出处徽章（与网页端一致，q.o 如"《约翰福音》3章16节"） */
-                        vref = (q.h || q.o) ? '<div class="verse-ref-line"><span class="verse-ref">📖 ' + esc(normVerse(stripEmoji(q.h || q.o))) + '</span></div>' : '';
+                        vref = (q.h || q.o) ? '<div class="verse-ref-line"><span class="verse-ref">📜 ' + esc(normVerse(stripEmoji(q.h || q.o))) + '</span></div>' : '';
                     }
                     var qtext = expInline(hlVerse(esc(rawQ)));
                     var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
