@@ -1071,8 +1071,9 @@ function renderHTML(results, categories, opts) {
             <div class="text-4xl mb-3">🔐</div>
             <h2 class="font-black text-lg text-slate-900">教师管理</h2>
             <p class="text-slate-400 text-sm mt-1 mb-5">请输入管理密码进入</p>
-            <input id="adminPwd" type="password" placeholder="管理密码" onkeydown="if(event.key==='Enter')adminLogin()"
-                class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3 text-center">
+            <input id="adminPwd" type="password" placeholder="管理密码" onkeydown="if(event.key==='Enter')adminLogin()" oninput="hideAdminErr()"
+                class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-2 text-center">
+            <p id="adminErr" class="hidden text-red-500 text-xs mb-2"></p>
             <button onclick="adminLogin()" class="w-full bg-indigo-900 text-white py-3.5 rounded-2xl font-bold">进入管理端</button>
             <a href="javascript:void(0)" onclick="openRecoverModal()" class="block mt-3 text-indigo-400 text-xs hover:underline">忘记密码？</a>
             <a href="/" class="block mt-4 text-slate-400 text-sm hover:underline">返回学员端</a>
@@ -1085,10 +1086,11 @@ function renderHTML(results, categories, opts) {
             <div class="text-4xl mb-3">🆘</div>
             <h2 class="font-black text-lg text-slate-900">找回管理密码</h2>
             <p class="text-slate-400 text-xs mt-1 mb-5">输入密码恢复码（在管理端"修改管理密码"中设置）</p>
-            <input id="rc_code" type="password" placeholder="密码恢复码"
+            <input id="rc_code" type="password" placeholder="密码恢复码" oninput="hideRcErr()"
                 class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3 text-center">
-            <input id="rc_new" type="password" placeholder="新管理密码（至少 6 位）"
-                class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-4 text-center">
+            <input id="rc_new" type="password" placeholder="新管理密码（至少 6 位）" oninput="hideRcErr()"
+                class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-2 text-center">
+            <p id="rcErr" class="hidden text-red-500 text-xs mb-3"></p>
             <button onclick="doAdminRecover()" class="w-full bg-indigo-900 text-white py-3.5 rounded-2xl font-bold">重设密码并进入</button>
             <button onclick="toggleModal('recoverModal')" class="mt-3 text-slate-400 text-sm hover:underline">取消</button>
         </div>
@@ -3142,13 +3144,16 @@ function renderHTML(results, categories, opts) {
         }
 
         /* 教师管理密码门（服务端会话） */
+        function hideAdminErr() { var e = document.getElementById('adminErr'); if (e) e.classList.add('hidden'); }
+        function showAdminErr(msg) { var e = document.getElementById('adminErr'); if (e) { e.innerText = msg; e.classList.remove('hidden'); } }
         async function adminLogin() {
             var p = document.getElementById('adminPwd').value;
-            if (!p) return;
+            hideAdminErr();
+            if (!p) { showAdminErr('请输入管理密码'); return; }
             var r = await fetch('/api/verify', { method: 'POST', body: JSON.stringify({ password: p }) });
             var j = await r.json();
             if (j.ok) { sessionStorage.setItem('TQ_ADMIN_OK', '1'); location.reload(); }
-            else alert('密码错误');
+            else showAdminErr('密码错误，请重试');
         }
 
         /* 教师版：查看本课全部正确答案（需管理会话） */
@@ -3578,15 +3583,18 @@ function renderHTML(results, categories, opts) {
             document.getElementById('rc_new').value = "";
             toggleModal('recoverModal');
         }
+        function hideRcErr() { var e = document.getElementById('rcErr'); if (e) e.classList.add('hidden'); }
+        function showRcErr(msg) { var e = document.getElementById('rcErr'); if (e) { e.innerText = msg; e.classList.remove('hidden'); } }
         async function doAdminRecover() {
             var c = (document.getElementById('rc_code').value || "").trim();
             var n = document.getElementById('rc_new').value || "";
-            if (!c) { alert("请输入恢复码"); return; }
-            if (n.length < 6) { alert("新密码至少 6 位"); return; }
+            hideRcErr();
+            if (!c) { showRcErr("请输入恢复码"); return; }
+            if (n.length < 6) { showRcErr("新密码至少 6 位"); return; }
             var r = await fetch('/api/admin/recover-password', { method: 'POST', body: JSON.stringify({ recoveryCode: c, newPassword: n }) });
             var j = await r.json().catch(function(){ return {}; });
             if (j.ok) { sessionStorage.setItem('TQ_ADMIN_OK', '1'); location.reload(); }
-            else alert("找回失败：" + (j.error || "未知错误"));
+            else showRcErr("找回失败：" + (j.error || "未知错误"));
         }
         /* 管理员重置学员密码 */
         function resetStudentPw(username) {
