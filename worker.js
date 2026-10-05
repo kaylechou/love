@@ -623,6 +623,12 @@ resp.headers.set("Set-Cookie", adminCookie(await adminToken(env)));
 return resp;
 }
 
+// API: 管理员退出登录
+if (pathname === "/api/admin/logout" && request.method === "POST") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403 });
+return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json", "Set-Cookie": clearAdminCookie() }});
+}
+
 // API: 修改管理密码（管理员）
 if (pathname === "/api/change-password" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
@@ -922,6 +928,7 @@ function renderHTML(results, categories, opts) {
                 <button onclick="openImportModal()" class="text-xs bg-violet-100 text-violet-700 px-4 py-2.5 rounded-xl font-bold hover:bg-violet-200 transition">📥 批量导入课程</button>
                 <button onclick="exportCSV()" class="text-xs bg-emerald-100 text-emerald-700 px-4 py-2.5 rounded-xl font-bold hover:bg-emerald-200 transition">📤 导出成绩 CSV</button>
                 <button onclick="openPwModal()" class="text-xs bg-amber-100 text-amber-700 px-4 py-2.5 rounded-xl font-bold hover:bg-amber-200 transition">🔑 修改管理密码</button>
+                <button onclick="adminLogout()" class="text-xs bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-300 transition">🚪 退出登录</button>
             </div>
         </div>
 
@@ -4380,6 +4387,7 @@ function twCourse(c) {
             if (r.ok) alert("公告已保存");
         }
         function openPwModal() { document.getElementById('pw_old').value = ""; document.getElementById('pw_new').value = ""; toggleModal('pwModal'); }
+        async function adminLogout() { if (!confirm("确定退出管理端登录？")) return; await fetch('/api/admin/logout', { method: 'POST' }); location.reload(); }
         async function doChangePassword() {
             var o = document.getElementById('pw_old').value, n = document.getElementById('pw_new').value;
             var r = await fetch('/api/change-password', { method: 'POST', body: JSON.stringify({ oldPassword: o, newPassword: n }) });
