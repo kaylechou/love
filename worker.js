@@ -1842,13 +1842,23 @@ function renderHTML(results, categories, opts) {
             }
             if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') {
                 var isMulti = q.type === 'multiple';
+                var rawQ = q.q || '';
+                if (isMulti) {
+                    /* 题干末尾自带的"（多选）"去掉，统一只保留紫色徽章，避免重复显示 */
+                    var mtags = ['（多选）', '(多选)'];
+                    for (var mi = 0; mi < mtags.length; mi++) {
+                        var mtg = mtags[mi], me = rawQ.length;
+                        while (me > 0 && (rawQ.charAt(me - 1) === ' ' || rawQ.charAt(me - 1) === '　')) me--;
+                        if (me >= mtg.length && rawQ.slice(me - mtg.length, me) === mtg) rawQ = rawQ.slice(0, me - mtg.length);
+                    }
+                }
                 var opts = q.type === 'judge' ? ['√', '×'] : String(q.o || '').split(',');
                 var pills = opts.map(function(o) {
                     var t = o.trim(); if (!t) return '';
                     var val = t.charAt(0);
                     return '<label class="sopt" data-val="' + esc(val) + '"><input type="' + (isMulti ? 'checkbox' : 'radio') + '" name="u-' + i + '" value="' + esc(val) + '" class="hidden"><span>' + esc(t) + '</span></label>';
                 }).join('');
-                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(q.q)) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">（多选）</span>' : '') + '</p>'
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(rawQ)) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">（多选）</span>' : '') + '</p>'
                     + '<div class="flex flex-wrap gap-2 mt-3">' + pills + '</div>' + verdict + '</div>';
             }
             if (q.type === 'essay') {
