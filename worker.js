@@ -1871,7 +1871,7 @@ function twCourse(c) {
         function hlSubcat(s) {
             s = esc(s);
             /* 旧约/新约 */
-            var out = s.replace(/^(旧約|新約|旧约|新约)([\s•·]*)/, function (m, t) {
+            var out = s.replace(/^(旧約|新約|旧约|新约)([\\s•·]*)/, function (m, t) {
                 var isOld = t.charAt(0) === '旧' || t.charAt(0) === '舊';
                 var style = isOld
                     ? 'background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;'
@@ -1880,7 +1880,7 @@ function twCourse(c) {
             });
             if (out !== s) return out;
             /* 讲员名-系列名，如：寇绍涵牧师-根基建造101 */
-            out = s.replace(/^([^-\s•·]+?)(?:牧师|老师|博士|长老)([\s\-—•·]+)/, function (m, name, sep) {
+            out = s.replace(/^([^-\\s•·]+?)(?:牧师|老师|博士|长老)([\\s\\-—•·]+)/, function (m, name, sep) {
                 var title = m.slice(0, m.length - sep.length);
                 return '<span style="display:inline-block;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;font-weight:700;font-size:.72rem;padding:.12rem .6rem;border-radius:9999px;white-space:nowrap;vertical-align:.05em;box-shadow:0 1px 4px rgba(0,0,0,.2);">' + title + '</span><span style="color:#94a3b8;margin:0 .35rem;">•</span>';
             });
