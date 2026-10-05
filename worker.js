@@ -81,8 +81,8 @@ async function sha256hex(s) {
 const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
 return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
-function json(data, status) {
-return new Response(JSON.stringify(data), { status: status || 200, headers: { "Content-Type": "application/json"}});
+function json(data, status, headers) {
+return new Response(JSON.stringify(data), { status: status || 200, headers: Object.assign({ "Content-Type": "application/json" }, headers || {}) });
 }
 /* 去掉题目答案（发给非管理员） */
 function stripAnswers(courses) {
@@ -94,6 +94,10 @@ const nc = Object.assign({}, c);
 nc.quizzes_json = JSON.stringify(qs);
 return nc;
 });
+}
+/* 首页列表精简字段：去掉题库/导读/说明（体积约为完整数据的 1/10），卡片与搜索只用 content */
+function briefCourse(c) {
+return { id: c.id, category: c.category, subcategory: c.subcategory, title: c.title, content: c.content, video_url: c.video_url, mode: c.mode, sort_order: c.sort_order, created_at: c.created_at };
 }
 async function getSetting(env, key) {
 try {
@@ -208,10 +212,25 @@ if (!env.DB) return new Response("数据库未绑定", { status: 500});
 await migrate(env);
 const authed = await isAdminReq(request, env);
 
-// API: 获取全部课程（非管理员拿不到答案）
+// API: 获取全部课程（非管理员拿不到答案；?brief=1 只返回列表精简字段）
 if (pathname === "/api/data") {
 const list = await orderedCourses(env);
-return json(authed? list: stripAnswers(list));
+const isBrief = searchParams.get("brief") === "1";
+let out = authed? list: stripAnswers(list);
+if (isBrief && !authed) out = out.map(briefCourse);
+const cc = authed? "no-store, no-cache, must-revalidate": "public, max-age=60";
+return json(out, 200, { "Cache-Control": cc });
+}
+
+// API: 取单门课程完整内容（学员点开课件时按需加载；非管理员拿不到答案）
+if (pathname === "/api/course") {
+const cid = searchParams.get("id") || "";
+const crs = await env.DB.prepare("SELECT * FROM courses WHERE id =?").bind(cid).all();
+const crows = (crs && crs.results) || [];
+if (!crows.length) return new Response("NOT_FOUND", { status: 404 });
+const one = authed? crows[0]: stripAnswers(crows)[0];
+const cc = authed? "no-store, no-cache, must-revalidate": "public, max-age=60";
+return json(one, 200, { "Cache-Control": cc });
 }
 
 // API: 保存课程（管理员）
@@ -313,7 +332,7 @@ s.subs.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 const total = s.count + s.subs.reduce((t, x) => t + x.count, 0);
 return { name: s.name, description: s.description, count: s.count, totalCount: total, subs: s.subs };
 });
-return json(out);
+return json(out, 200, { "Cache-Control": "public, max-age=60" });
 }
 
 // API: 保存系列/子栏目（管理员）
@@ -712,7 +731,9 @@ return new Response("服务器错误: " + e.message, { status: 500});
 function renderHTML(results, categories, opts) {
     var isShareMode = opts.shareMode, isAdmin = opts.isAdmin, adminAuthed = !!opts.adminAuthed, notice = opts.notice || "";
   // 把服务端已过滤好的展示数据直接灌给前端（分享模式只含被分享的那一课），顺带防 </script> 注入
-  const bootJson = JSON.stringify(results || []).replace(/</g, function(){ return String.fromCharCode(92) + 'u003c'; });
+  // 学员端主页只注入精简字段（提速约一半），点开课件时再按需拉完整内容；管理端/分享页保持完整
+  const bootList = (!isShareMode && !isAdmin) ? (results || []).map(briefCourse) : (results || []);
+  const bootJson = JSON.stringify(bootList).replace(/</g, function(){ return String.fromCharCode(92) + 'u003c'; });
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -1394,11 +1415,13 @@ function renderHTML(results, categories, opts) {
         function fontReset() { try { localStorage.setItem(FONT_KEY, String(FONT_DEFAULT)); } catch(e) {} applyFontScale(); }
 
         async function load() {
-            var r = await fetch('/api/data');
-            allData = await r.json();
+            /* 首屏数据服务端已注入 BOOT.list（学员端为精简版），无需再请求 /api/data；分类并行拉取 */
+            var needFetch = BOOT.isAdmin || !(BOOT.list && BOOT.list.length);
+            var dataP = needFetch ? fetch(BOOT.isAdmin ? '/api/data' : '/api/data?brief=1').then(function(r) { return r.json(); }) : null;
+            var catP = fetch('/api/categories').then(function(r) { return r.json(); }).catch(function() { return []; });
+            allData = dataP ? await dataP : BOOT.list;
             try {
-                var cr = await fetch('/api/categories');
-                var cj = await cr.json();
+                var cj = await catP;
                 catRows = Array.isArray(cj) ? cj : [];
                 catInfo = {};
                 catRows.forEach(function(s) {
@@ -1411,8 +1434,6 @@ function renderHTML(results, categories, opts) {
             renderSections(list);
             updateStats();
             if (!BOOT.isAdmin) {
-                var nr = await fetch('/api/notice').then(function(x){ return x.json(); }).catch(function(){ return {}; });
-                // 公告已由服务端渲染；这里只拉成绩
                 refreshStats();
             } else {
                 var gate = document.getElementById('adminGate');
@@ -2107,9 +2128,28 @@ function renderHTML(results, categories, opts) {
         }
 
         async function startLesson(id) {
-            var item = null;
-            for (var k = 0; k < allData.length; k++) { if (allData[k].id === id) { item = allData[k]; break; } }
-            if (!item) return;
+            var item = null, k, p;
+            /* 优先找已含完整题库的条目（分享页注入的单课 / 已按需拉取过的） */
+            var pools = [allData, (typeof BOOT !== "undefined" && BOOT.list) || []];
+            for (p = 0; p < pools.length && !item; p++) {
+                var arr = pools[p] || [];
+                for (k = 0; k < arr.length; k++) { if (arr[k].id === id && arr[k].quizzes_json !== undefined) { item = arr[k]; break; } }
+            }
+            if (!item) {
+                for (k = 0; k < allData.length; k++) { if (allData[k].id === id) { item = allData[k]; break; } }
+                /* 精简条目：按需拉取完整课程（题库/导读），成功后写回缓存 */
+                if (item && item.quizzes_json === undefined) {
+                    try {
+                        var fr = await fetch('/api/course?id=' + encodeURIComponent(id));
+                        if (fr.ok) {
+                            var full = await fr.json();
+                            item = full;
+                            for (k = 0; k < allData.length; k++) { if (allData[k].id === id) { allData[k] = full; break; } }
+                        }
+                    } catch (e) {}
+                }
+            }
+            if (!item || item.quizzes_json === undefined) return;
             activeLessonId = id;
             activeCourseTitle = item.title;
             activeCategory = item.category || "";
