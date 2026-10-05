@@ -1011,7 +1011,7 @@ function renderHTML(results, categories, opts) {
                 <textarea id="f_content" placeholder="导读内容..." class="w-full h-32 border p-3 rounded-xl text-sm"></textarea>
                 <div class="border border-indigo-100 rounded-xl p-3 bg-indigo-50/50">
                     <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
-                        <h3 class="text-xs font-black text-indigo-900">🗺️ 章节导读（思维导图式）</h3>
+                        <h3 class="text-xs font-black text-indigo-900">🗺️ 课程导览（思维导图式）</h3>
                         <div class="flex items-center gap-2">
                             <div class="flex bg-white rounded-lg p-0.5 text-[11px] font-bold border border-indigo-100">
                                 <button type="button" id="gModeVisual" class="px-2.5 py-1 rounded-md">🧩 可视化</button>
@@ -2237,7 +2237,7 @@ function renderHTML(results, categories, opts) {
             /* 导读页：视频 / 课程内容 / 答题说明 / 开始答题 */
             var typeSummary = typeTabs.map(function (mt) { return (mt.num ? mt.num + '、' : '') + mt.label + mt.count + '题'; }).join('、');
             var firstTab = typeTabs.length ? typeTabs[0].t : 'report';
-            /* 章节导读卡片（思维导图式）：管理端按章节一条条录入的小结 */
+            /* 课程导览卡片（思维导图式）：管理端按章节一条条录入的小结 */
             var guideCards = '';
             try {
                 var _gdc = JSON.parse(item.guide_json || '[]');
@@ -2578,6 +2578,7 @@ function renderHTML(results, categories, opts) {
             + '.md a{color:#4f46e5;}'
             + '.chapter{border-left:3px solid #a78bfa;padding:4px 0 4px 14px;margin-bottom:14px;}'
             + '.ch-title{font-weight:700;margin-bottom:6px;}'
+            + '.ch-num{display:inline-block;min-width:24px;height:24px;line-height:24px;text-align:center;background:#4f46e5;color:#fff;font-size:13px;font-weight:800;border-radius:7px;margin-right:8px;}'
             + '.chapter ul{margin:6px 0 0;padding-left:20px;color:#475569;} .chapter li{margin-bottom:4px;}'
             + '.q{border-top:1px solid #f1f5f9;padding:14px 0;} .q:first-of-type{border-top:none;}'
             + '.q-text{font-weight:600;margin-bottom:8px;}'
@@ -2655,9 +2656,9 @@ function renderHTML(results, categories, opts) {
             if (c.video_url) body += '<section class="card"><h2>🎬 课程视频</h2><p class="md"><a href="' + esc(c.video_url) + '">观看课程视频</a></p></section>';
             var realGuide = guide.filter(function(g) { return g && (g.title || (g.points || []).length); });
             if (realGuide.length) {
-                body += '<section class="card"><h2>🗺️ 章节导读</h2>' + realGuide.map(function(g, gi) {
+                body += '<section class="card"><h2>🗺️ 课程导览</h2>' + realGuide.map(function(g, gi) {
                     var pts = (g.points || []).filter(function(x) { return String(x).trim(); });
-                    return '<div class="chapter"><div class="ch-title">' + esc(g.title || ('第' + (gi + 1) + '章')) + '</div>'
+                    return '<div class="chapter"><div class="ch-title"><span class="ch-num">' + (gi + 1) + '</span>' + esc(g.title || ('第' + (gi + 1) + '章')) + '</div>'
                         + (pts.length ? '<ul>' + pts.map(function(x) { return '<li>' + hlVerse(esc(x)) + '</li>'; }).join('') + '</ul>' : '') + '</div>';
                 }).join('') + '</section>';
             }
@@ -2679,18 +2680,18 @@ function renderHTML(results, categories, opts) {
                             return '<div class="opt">' + esc(String(p).trim()) + '</div>';
                         }).join('') + '</div>';
                     }
-                    var ans = expAnswer(q);
                     var ws = '';
                     if (t === 'essay') {
                         ws = '<div class="ws">';
                         for (var wi = 0; wi < 5; wi++) ws += '<div class="ws-line"></div>';
                         ws += '</div>';
                     }
-                    body += '<div class="q"><div class="q-text">' + (qi + 1) + '. ' + bracket + qtext + '</div>' + opts + ws
-                        + (ans ? '<details class="ans"><summary>查看答案</summary><div>' + esc(ans) + '</div></details>' : '') + '</div>';
+                    body += '<div class="q"><div class="q-text">' + (qi + 1) + '. ' + bracket + qtext + '</div>' + opts + ws + '</div>';
                 });
                 body += '</section>';
             });
+            /* 参考答案统一附在所有题型之后，不再每题单独出现 */
+            body += buildAnswerKey(c);
             if (!hasQ && !c.content && !realGuide.length) body += '<section class="card"><p class="empty">本课件暂无内容</p></section>';
             return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
                 + '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -2815,6 +2816,7 @@ function renderHTML(results, categories, opts) {
             + '.blank{display:inline-block;min-width:70px;border-bottom:2px solid #94a3b8;}'
             + '.ans{background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 12px;margin-top:6px;}'
             + '.chapter{margin-bottom:10px;}.ch-title{font-weight:bold;}'
+            + '.ch-num{display:inline-block;min-width:24px;height:24px;line-height:24px;text-align:center;background:#4f46e5;color:#fff;font-size:13px;font-weight:800;border-radius:7px;margin-right:8px;}'
             + '.md p{margin:0 0 8px;}.md ul{margin:0 0 8px;padding-left:20px;}'
             + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;}.verse-text{background:#fef3c7;border-bottom:2px solid #f59e0b;border-radius:3px;padding:0 3px;}'
             + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:28px;}'
@@ -2846,15 +2848,7 @@ function renderHTML(results, categories, opts) {
             var p1 = h.split('<style>');
             var p2 = p1[1].split('</style>');
             h = p1[0] + '<style>' + WORD_CSS + '</style>' + p2[1];
-            var dd1 = '<details class="ans">', dd2 = '</details>', di, dj;
-            while ((di = h.indexOf(dd1)) >= 0) {
-                dj = h.indexOf(dd2, di);
-                if (dj < 0) break;
-                h = h.slice(0, di) + h.slice(dj + dd2.length);
-            }
             h = h.split('<span class="blank">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>').join('<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>');
-            var key = buildAnswerKey(c);
-            if (key) h = h.split('<footer>').join(key + '<footer>');
             return h;
         }
         function buildExcelHTML(c) {
@@ -2869,7 +2863,7 @@ function renderHTML(results, categories, opts) {
                     var pts = (g.points || []).filter(function(x) { return String(x).trim(); });
                     return '<tr><td>' + (gi + 1) + '</td><td>' + esc(g.title || '') + '</td><td>' + hlVerse(esc(pts.join('；'))) + '</td></tr>';
                 }).join('');
-                guideHtml = '<h3>章节导读</h3><table border="1" cellpadding="6" cellspacing="0"><tr><th>序号</th><th>章节</th><th>要点</th></tr>' + grows + '</table><br><br>';
+                guideHtml = '<h3>课程导览</h3><table border="1" cellpadding="6" cellspacing="0"><tr><th>序号</th><th>章节</th><th>要点</th></tr>' + grows + '</table><br><br>';
             }
             var trs = qs.map(function(q, i) {
                 var t = q.type || 'fill';
@@ -3164,7 +3158,7 @@ function renderHTML(results, categories, opts) {
                 var pts = (g.points || []).filter(function(x) { return String(x).trim(); });
                 if (!g.title && !pts.length) return;
                 slides.push({
-                    t: [pptxPara('章节导读 · ' + (g.title || ('第' + (gi + 1) + '章')), 3200, true)],
+                    t: [pptxPara('课程导览 · ' + (g.title || ('第' + (gi + 1) + '章')), 3200, true)],
                     b: pts.map(function(x) { return pptxRichPara('• ' + String(x).trim(), 1800); })
                 });
             });
@@ -3317,7 +3311,7 @@ function renderHTML(results, categories, opts) {
                 + '<input class="q-a w-full bg-indigo-100/50 border-none rounded p-1 text-xs font-bold text-indigo-700" value="' + esc(d.a) + '" placeholder="正确答案（填空：|/；分空，/或“或”分同空多答案，如 失败/软弱；互动关系；多选如 A|C）">';
             document.getElementById('quizList').appendChild(div);
         }
-        /* 章节导读（思维导图式）结构化编辑器 */
+        /* 课程导览（思维导图式）结构化编辑器 */
         var guideData = [];
         function renderGuideEditor() {
             var box = document.getElementById('guideEditor');
@@ -3373,7 +3367,7 @@ function renderHTML(results, categories, opts) {
                 else if (t.classList.contains('g-point')) { var pi = parseInt(t.getAttribute('data-pt'), 10); guideData[ci].points[pi] = t.value; }
             });
         }
-        /* 章节导读：可视化 / JSON 代码双模式 */
+        /* 课程导览：可视化 / JSON 代码双模式 */
         var guideEditMode = 'visual';
         function setGuideMode(m) {
             var toJson = (m === 'json');
@@ -3465,8 +3459,8 @@ function renderHTML(results, categories, opts) {
             if (guideEditMode === 'json') {
                 try {
                     guideVal = JSON.parse(document.getElementById('guideJson').value.trim() || '[]');
-                    if (!Array.isArray(guideVal)) { alert('章节导读 JSON 顶层必须是数组'); return; }
-                } catch (e) { alert('章节导读 JSON 格式错误：' + e.message); return; }
+                    if (!Array.isArray(guideVal)) { alert('课程导览 JSON 顶层必须是数组'); return; }
+                } catch (e) { alert('课程导览 JSON 格式错误：' + e.message); return; }
             } else {
                 guideVal = guideData;
             }
