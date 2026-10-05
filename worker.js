@@ -2231,7 +2231,7 @@ function twCourse(c) {
                             + '<span id="' + kChev + '" class="text-xs text-violet-500 w-4 text-center">' + (kCollapsed ? "▶" : "▼") + '</span>'
                             + '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁 ' + esc(sk) + '</span>'
                             + '<span class="text-xs text-slate-400">' + tf("nLessons", { n: subgroups[sk].length }) + '</span></button>'
-                            + (sd ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + esc(stripMd(sd)) + '</p>' : '')
+                            + (sd ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + hlVerse(esc(stripMd(sd))) + '</p>' : '')
                             + '<div id="' + kBody + '" class="' + (kCollapsed ? "hidden" : "") + '">' + gridHtml + '</div></div>';
                     } else {
                         bodyHtml += gridHtml;
