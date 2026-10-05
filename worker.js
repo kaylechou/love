@@ -1189,7 +1189,7 @@ function renderHTML(results, categories, opts) {
                     return '<div class="border border-slate-100 rounded-2xl p-4">'
                         + '<div class="text-[11px] text-violet-500 font-bold mb-1">' + esc([x.series, x.sub, x.title].filter(function(s) { return s; }).join(' · ') || '') + '</div>'
                         + '<div class="text-[11px] text-indigo-500 font-bold mb-1">' + esc(wrongTypeNum(x)) + '</div>'
-                        + '<div class="text-sm font-bold text-slate-800 mb-2">' + esc(x.q || '') + '</div>'
+                        + '<div class="text-sm font-bold text-slate-800 mb-2">' + esc(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')) + '</div>'
                         + '<div class="text-xs text-slate-500">你的答案：' + esc(x.u || '（未填）') + '</div>'
                         + '<div class="text-xs text-emerald-600 font-bold mt-1">正确参考：' + esc(x.expected || '') + '</div></div>';
                 }).join('');
@@ -1210,6 +1210,12 @@ function renderHTML(results, categories, opts) {
         /* 小工具 */
         function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
         function stripEmoji(s) { return String(s == null ? "" : s).replace(/^[📖\s]+/, ""); } /* 去掉标题开头自带的 📖，避免与固定图标重复 */
+        /* 去掉经文题干开头的"【经文填空】"等字样 */
+        function stripVerseTag(s) {
+            s = String(s == null ? "" : s);
+            if (s.charAt(0) === '【') { var e = s.indexOf('】'); if (e > 0 && e < 12) s = s.slice(e + 1); }
+            return s;
+        }
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
         var BIBLE_BOOKS = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|哥林多前书|哥林多后书|约翰一书|约翰二书|约翰三书|彼得前书|彼得后书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|传道书|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录|诗篇|箴言|雅歌';
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
@@ -1836,9 +1842,11 @@ function renderHTML(results, categories, opts) {
         function renderQ(q, i, num) {
             var verdict = '<div class="qverdict hidden mt-2 text-sm font-bold" id="verdict-' + i + '"></div>';
             if (q.type === 'verse') {
+                var vq = Object.assign({}, q);
+                vq.q = stripVerseTag(q.q);
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
                     + '<p class="mb-3"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || '核心经文')) + '</span></p>'
-                    + '<div class="text-slate-800"><span class="verse-text">' + studyPara(q, i) + '</span></div>' + verdict + '</div></div>';
+                    + '<div class="text-slate-800"><span class="verse-text">' + studyPara(vq, i) + '</span></div>' + verdict + '</div></div>';
             }
             if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') {
                 var isMulti = q.type === 'multiple';
@@ -2581,6 +2589,8 @@ function renderHTML(results, categories, opts) {
             + '.ch-num{display:inline-block;min-width:24px;height:24px;line-height:24px;text-align:center;background:#4f46e5;color:#fff;font-size:13px;font-weight:800;border-radius:7px;margin-right:8px;}'
             + '.chapter ul{margin:6px 0 0;padding-left:20px;color:#475569;} .chapter li{margin-bottom:4px;}'
             + '.q{border-top:1px solid #f1f5f9;padding:14px 0;} .q:first-of-type{border-top:none;}'
+            + '.q-verse{background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #3b82f6;border-radius:12px;padding:12px 14px;margin:12px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+            + '.verse-ref-line{margin:2px 0 8px;}'
             + '.q-text{font-weight:600;margin-bottom:8px;}'
             + '.blank{display:inline-block;min-width:70px;border-bottom:2px solid #94a3b8;margin:0 2px;}'
             + '.opts{margin:8px 0;} .opt{padding:6px 0;color:#475569;}'
@@ -2672,7 +2682,18 @@ function renderHTML(results, categories, opts) {
                 hasQ = true;
                 body += '<section class="card"><h2>' + (EXP_TYPE_LABEL[t] || t) + '（共' + list.length + '题）</h2>';
                 list.forEach(function(q, qi) {
-                    var qtext = expInline(hlVerse(esc(q.q || '')));
+                    var rawQ = q.q || '';
+                    var vref = '';
+                    if (t === 'verse') {
+                        /* 去掉题干开头的"【经文填空】"字样 */
+                        if (rawQ.charAt(0) === '【') {
+                            var ce = rawQ.indexOf('】');
+                            if (ce > 0 && ce < 12) rawQ = rawQ.slice(ce + 1);
+                        }
+                        /* 经文出处徽章（与网页端一致，q.o 如"《约翰福音》3章16节"） */
+                        vref = '<div class="verse-ref-line"><span class="verse-ref">📖 ' + esc(stripEmoji(q.h || q.o || '核心经文')) + '</span></div>';
+                    }
+                    var qtext = expInline(hlVerse(esc(rawQ)));
                     var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
                     var opts = '';
                     if ((t === 'single' || t === 'multiple') && q.o) {
@@ -2686,7 +2707,7 @@ function renderHTML(results, categories, opts) {
                         for (var wi = 0; wi < 5; wi++) ws += '<div class="ws-line"></div>';
                         ws += '</div>';
                     }
-                    body += '<div class="q"><div class="q-text">' + (qi + 1) + '. ' + bracket + qtext + '</div>' + opts + ws + '</div>';
+                    body += '<div class="q' + (t === 'verse' ? ' q-verse' : '') + '"><div class="q-text">' + (qi + 1) + '. ' + bracket + vref + qtext + '</div>' + opts + ws + '</div>';
                 });
                 body += '</section>';
             });
@@ -2813,6 +2834,8 @@ function renderHTML(results, categories, opts) {
             + '.hero{background:#ede9fe;padding:20px;}'
             + '.card{margin-bottom:16px;}'
             + '.q{margin:12px 0;}.q-text{font-weight:bold;}'
+            + '.q-verse{background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #3b82f6;border-radius:12px;padding:12px 14px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+            + '.verse-ref-line{margin:2px 0 8px;}'
             + '.blank{display:inline-block;min-width:70px;border-bottom:2px solid #94a3b8;}'
             + '.ans{background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 12px;margin-top:6px;}'
             + '.chapter{margin-bottom:10px;}.ch-title{font-weight:bold;}'
@@ -2961,7 +2984,7 @@ function renderHTML(results, categories, opts) {
             var body = arr.map(function(x, i) {
                 return '<section class="card"><h2>第' + (i + 1) + '题 <span style="font-size:13px;color:#6366f1;">' + esc(wrongTypeNum(x)) + '</span></h2>'
                     + (wrongMeta(x) ? '<p style="font-size:12px;color:#94a3b8;margin:-8px 0 10px;">' + esc(wrongMeta(x)) + '</p>' : '')
-                    + '<div class="md"><p>' + esc(x.q || '') + '</p>'
+                    + '<div class="md"><p>' + esc(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')) + '</p>'
                     + '<p>你的答案：<b style="color:#dc2626;">' + esc(x.u || '（未填）') + '</b></p>'
                     + '<p>正确答案：<b style="color:#059669;">' + esc(x.expected || '') + '</b></p></div></section>';
             }).join('');
@@ -2984,7 +3007,7 @@ function renderHTML(results, categories, opts) {
             var trs = arr.map(function(x, i) {
                 return '<tr><td>' + (i + 1) + '</td><td>' + esc(x.series || '') + '</td><td>' + esc(x.sub || '') + '</td><td>' + esc(x.title || '') + '</td>'
                     + '<td>' + esc(WRONG_TYPE_LABEL[x.type] || x.type || '') + '</td><td>' + esc(x.n || '') + '</td>'
-                    + '<td>' + esc(x.q || '') + '</td><td>' + esc(x.u || '') + '</td><td>' + esc(x.expected || '') + '</td></tr>';
+                    + '<td>' + esc(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')) + '</td><td>' + esc(x.u || '') + '</td><td>' + esc(x.expected || '') + '</td></tr>';
             }).join('');
             return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
                 + '<head><meta charset="utf-8"></head><body>'
@@ -3007,7 +3030,7 @@ function renderHTML(results, categories, opts) {
             arr.forEach(function(x, i) {
                 var qParas = [pptxPara('【' + (WRONG_TYPE_LABEL[x.type] || x.type || '') + (x.n ? ' · 第' + x.n + '题' : '') + '】', 1800, true, '4F81BD')];
                 if (wrongMeta(x)) qParas.push(pptxPara(wrongMeta(x), 1600, false, '64748B'));
-                qParas.push(pptxPara(String(x.q || ''), 1800, false));
+                qParas.push(pptxPara(String(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')), 1800, false));
                 qParas.push(pptxPara('你的答案：' + (x.u || '（未填）'), 1800, false, 'C0504D'));
                 var ansParas = [pptxPara('【正确答案】', 1800, true, '047857'), pptxPara(String(x.expected || ''), 2000, false, '047857')];
                 if (single) {
