@@ -1666,7 +1666,8 @@ function applyI18n() {
         var nb = document.getElementById('noticeBarText');
         if (nb) {
             if (nb.dataset.orig === undefined) nb.dataset.orig = nb.textContent;
-            nb.textContent = (curLang() === 'tw') ? toTW(nb.dataset.orig) : nb.dataset.orig;
+            var ntx = (curLang() === 'tw') ? toTW(nb.dataset.orig) : nb.dataset.orig;
+            nb.innerHTML = hlVerse(esc(ntx));
         }
         var lb = document.getElementById('langBtn');
         if (lb) lb.innerHTML = '🌐 ' + langShort(curLang());
@@ -2173,8 +2174,8 @@ function twCourse(c) {
                 + ' data-search="' + esc(c.title + " " + c.content + " " + (c.subcategory || "")).toLowerCase() + '"'
                 + ' style="animation-delay:' + Math.min(idx * 40, 600) + 'ms">'
                 + '<div class="flex items-center justify-between"><div class="flex items-center gap-2">' + (BOOT.isAdmin ? '<input type="checkbox" class="exp-check w-4 h-4 accent-violet-600" data-id="' + c.id + '" title="勾选后可批量导出">' : '') + statusBadge(c.id) + '</div>' + cardBtns + '</div>'
-                + '<div><h3 class="font-bold text-[1.05rem] text-slate-900 leading-snug">' + esc(c.title) + videoBadge + '</h3>'
-                + '<p class="text-sm text-slate-400 mt-2 leading-relaxed line-clamp-2">' + esc(desc) + '</p></div>'
+                + '<div><h3 class="font-bold text-[1.05rem] text-slate-900 leading-snug">' + hlVerse(esc(c.title)) + videoBadge + '</h3>'
+                + '<p class="text-sm text-slate-400 mt-2 leading-relaxed line-clamp-2">' + hlVerse(esc(desc)) + '</p></div>'
                 + '<button data-id="' + c.id + '" onclick="startLesson(this.dataset.id)" class="mt-auto w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-violet-200 hover:shadow-xl hover:opacity-95 active:scale-[.99] transition flex items-center justify-center gap-2">' + goText + ' <span aria-hidden="true">→</span></button>'
                 + '</div>';
         }
@@ -2242,7 +2243,7 @@ function twCourse(c) {
                     + '<span class="w-1.5 h-7 bg-violet-500 rounded-full"></span>'
                     + '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + esc(cat) + '</h2>'
                     + '<span class="text-sm text-slate-400">' + tf("nLessons", { n: groups[cat].length }) + '</span></button>'
-                    + (info.description ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + esc(info.description) + '</p>' : '')
+                    + (info.description ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + hlVerse(esc(info.description)) + '</p>' : '')
                     + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + ' mt-2">' + bodyHtml + '</div></div>';
             });
             wrap.innerHTML = html;
@@ -2950,7 +2951,7 @@ function twCourse(c) {
             } catch (e) {}
             var overviewSec = '<section id="qsec-overview" class="qsec"><div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 space-y-5">'
                 + videoHtml
-                + (item.content ? '<div class="prose text-slate-600 bg-slate-50 p-6 rounded-2xl text-sm leading-relaxed max-w-none">' + marked.parse(item.content) + '</div>' : '')
+                + (item.content ? '<div class="prose text-slate-600 bg-slate-50 p-6 rounded-2xl text-sm leading-relaxed max-w-none">' + hlVerse(marked.parse(item.content)) + '</div>' : '')
                 + guideCards
                 + '<div class="bg-amber-50 p-4 rounded-xl border border-amber-200/80 flex items-start gap-3"><div class="shrink-0">💡</div>'
                 + '<div class="text-xs text-amber-900 leading-relaxed whitespace-pre-line"><b>' + t("quizGuideT") + '</b>' + (item.instructions ? esc(item.instructions) : (tf("defaultGuide", { summary: typeSummary || t("multiTypes") }))) + '</div></div>'
