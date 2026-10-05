@@ -611,6 +611,45 @@ resp.headers.set("Set-Cookie", adminCookie(await adminToken(env)));
 return resp;
 }
 
+// API: 设置管理密码恢复码（管理员）
+if (pathname === "/api/admin/set-recovery" && request.method === "POST") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
+const b = await request.json().catch(() => ({}));
+const code = String(b.recoveryCode || "").trim();
+if (code.length < 6) return json({ ok: false, error: "恢复码至少 6 位"}, 400);
+await setSetting(env, "admin_recovery_hash", await sha256hex("tq-recovery:" + code));
+return json({ ok: true});
+}
+
+// API: 凭恢复码重设管理密码（公开，需恢复码）
+if (pathname === "/api/admin/recover-password" && request.method === "POST") {
+const b = await request.json().catch(() => ({}));
+const code = String(b.recoveryCode || "").trim();
+const np = String(b.newPassword || "");
+const saved = await getSetting(env, "admin_recovery_hash");
+if (!saved || !code || (await sha256hex("tq-recovery:" + code)) !== saved) return json({ ok: false, error: "恢复码错误"}, 401);
+if (np.length < 6) return json({ ok: false, error: "新密码至少 6 位"}, 400);
+await setSetting(env, "admin_pw_hash", await sha256hex(np));
+const resp = json({ ok: true});
+resp.headers.set("Set-Cookie", adminCookie(await adminToken(env)));
+return resp;
+}
+
+// API: 管理员重置学员密码（管理员）
+if (pathname === "/api/student/reset-password" && request.method === "POST") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
+const b = await request.json().catch(() => ({}));
+const username = ((b.username || "") + "").trim();
+const np = String(b.newPassword || "");
+if (!username) return json({ ok: false, error: "缺少学员姓名"}, 400);
+if (np.length < 4) return json({ ok: false, error: "新密码至少 4 位"}, 400);
+const row = await env.DB.prepare("SELECT username FROM students WHERE username = ?").bind(username).first();
+if (!row) return json({ ok: false, error: "该学员尚未注册"}, 404);
+const hash = await sha256hex("tq-student:" + username + ":" + np);
+await env.DB.prepare("UPDATE students SET pw_hash = ? WHERE username = ?").bind(hash, username).run();
+return json({ ok: true});
+}
+
 // API: 首页公告
 if (pathname === "/api/notice" && request.method === "GET") {
 return json({ notice: (await getSetting(env, "notice")) || ""});
@@ -1013,6 +1052,14 @@ function renderHTML(results, categories, opts) {
                 <button onclick="doChangePassword()" class="flex-1 bg-indigo-900 text-white py-3 rounded-2xl font-bold">确认修改</button>
                 <button onclick="toggleModal('pwModal')" class="bg-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold">取消</button>
             </div>
+            <div class="mt-5 pt-5 border-t border-slate-100 text-left">
+                <h3 class="font-bold text-sm text-slate-700 mb-1">🆘 密码恢复码</h3>
+                <p class="text-xs text-slate-400 mb-3">忘记管理密码时，凭恢复码重设。请记在可靠的地方，不要告诉他人。</p>
+                <div class="flex gap-2">
+                    <input id="rc_set" type="password" placeholder="恢复码（至少 6 位）" class="flex-1 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400">
+                    <button onclick="setRecoveryCode()" class="bg-amber-500 text-white px-5 rounded-2xl font-bold text-sm">设置</button>
+                </div>
+            </div>
         </div>
     </div>
     ` : ''}
@@ -1027,7 +1074,23 @@ function renderHTML(results, categories, opts) {
             <input id="adminPwd" type="password" placeholder="管理密码" onkeydown="if(event.key==='Enter')adminLogin()"
                 class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3 text-center">
             <button onclick="adminLogin()" class="w-full bg-indigo-900 text-white py-3.5 rounded-2xl font-bold">进入管理端</button>
+            <a href="javascript:void(0)" onclick="openRecoverModal()" class="block mt-3 text-indigo-400 text-xs hover:underline">忘记密码？</a>
             <a href="/" class="block mt-4 text-slate-400 text-sm hover:underline">返回学员端</a>
+        </div>
+    </div>
+
+    <!-- 管理密码找回弹窗 -->
+    <div id="recoverModal" class="hidden fixed inset-0 z-[100] bg-indigo-950/95 flex items-center justify-center p-6">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl">
+            <div class="text-4xl mb-3">🆘</div>
+            <h2 class="font-black text-lg text-slate-900">找回管理密码</h2>
+            <p class="text-slate-400 text-xs mt-1 mb-5">输入密码恢复码（在管理端"修改管理密码"中设置）</p>
+            <input id="rc_code" type="password" placeholder="密码恢复码"
+                class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3 text-center">
+            <input id="rc_new" type="password" placeholder="新管理密码（至少 6 位）"
+                class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-4 text-center">
+            <button onclick="doAdminRecover()" class="w-full bg-indigo-900 text-white py-3.5 rounded-2xl font-bold">重设密码并进入</button>
+            <button onclick="toggleModal('recoverModal')" class="mt-3 text-slate-400 text-sm hover:underline">取消</button>
         </div>
     </div>` : ''}
     <script>
@@ -1623,6 +1686,7 @@ function renderHTML(results, categories, opts) {
                     + '<div id="authErr" style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px"></div>'
                     + '<button id="authOk" onclick="submitAuth()" style="width:100%;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;margin-bottom:8px">登 录</button>'
                     + '<button id="authSwitch" onclick="toggleAuthMode()" style="width:100%;background:none;border:none;color:#4f46e5;font-size:12px;padding:6px">首次使用？点此注册</button>'
+                    + '<p style="font-size:11px;color:#94a3b8;margin:6px 0 0">忘记密码？请联系老师重置</p>'
                     + '</div>';
                 document.body.appendChild(m);
                 ['authName','authPw','authPw2'].forEach(function(id) {
@@ -2352,8 +2416,10 @@ function renderHTML(results, categories, opts) {
                     var admin = !!s.is_admin;
                     return '<li class="flex items-center justify-between gap-2 border border-slate-100 rounded-2xl px-4 py-2.5">'
                         + '<span class="text-sm font-bold text-slate-700">' + esc(s.username) + (admin ? ' <span class="text-[10px] bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">👑 管理员</span>' : '') + '</span>'
+                        + '<div class="flex gap-2">'
+                        + '<button data-un="' + esc(s.username) + '" onclick="resetStudentPw(this.dataset.un)" class="text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600">重置密码</button>'
                         + '<button data-un="' + esc(s.username) + '" data-to="' + (admin ? '0' : '1') + '" onclick="toggleStudentAdmin(this.dataset.un, this.dataset.to)" class="text-xs font-bold px-3 py-1.5 rounded-xl ' + (admin ? 'bg-slate-100 text-slate-500' : 'bg-violet-600 text-white') + '">'
-                        + (admin ? '取消管理员' : '设为管理员') + '</button></li>';
+                        + (admin ? '取消管理员' : '设为管理员') + '</button></div></li>';
                 }).join('');
             } catch (e) {
                 ul.innerHTML = '<li class="text-sm text-slate-400">加载失败，点刷新重试</li>';
@@ -3497,6 +3563,41 @@ function renderHTML(results, categories, opts) {
             var j = await r.json().catch(function(){ return {}; });
             if (j.ok) { alert("密码修改成功"); toggleModal('pwModal'); }
             else alert("修改失败：" + (j.error || "未知错误"));
+        }
+        /* 管理密码恢复码 */
+        async function setRecoveryCode() {
+            var c = (document.getElementById('rc_set').value || "").trim();
+            if (c.length < 6) { alert("恢复码至少 6 位"); return; }
+            var r = await fetch('/api/admin/set-recovery', { method: 'POST', body: JSON.stringify({ recoveryCode: c }) });
+            var j = await r.json().catch(function(){ return {}; });
+            if (j.ok) { alert("恢复码已设置，请妥善保管"); document.getElementById('rc_set').value = ""; }
+            else alert("设置失败：" + (j.error || "未知错误"));
+        }
+        function openRecoverModal() {
+            document.getElementById('rc_code').value = "";
+            document.getElementById('rc_new').value = "";
+            toggleModal('recoverModal');
+        }
+        async function doAdminRecover() {
+            var c = (document.getElementById('rc_code').value || "").trim();
+            var n = document.getElementById('rc_new').value || "";
+            if (!c) { alert("请输入恢复码"); return; }
+            if (n.length < 6) { alert("新密码至少 6 位"); return; }
+            var r = await fetch('/api/admin/recover-password', { method: 'POST', body: JSON.stringify({ recoveryCode: c, newPassword: n }) });
+            var j = await r.json().catch(function(){ return {}; });
+            if (j.ok) { sessionStorage.setItem('TQ_ADMIN_OK', '1'); location.reload(); }
+            else alert("找回失败：" + (j.error || "未知错误"));
+        }
+        /* 管理员重置学员密码 */
+        function resetStudentPw(username) {
+            var np = prompt("为「" + username + "」设置新密码（至少 4 位）：", "");
+            if (np === null) return;
+            np = (np || "").trim();
+            if (np.length < 4) { alert("密码至少 4 位"); return; }
+            fetch('/api/student/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, newPassword: np }) })
+                .then(function(r){ return r.json(); })
+                .then(function(j){ if (j.ok) alert("已重置，请将新密码告知学员"); else alert("重置失败：" + (j.error || "未知错误")); })
+                .catch(function(){ alert("重置失败，请稍后重试"); });
         }
         applyFontScale();
         applyViewMode();
