@@ -444,7 +444,7 @@ return json({ success: true});
 if (pathname === "/api/student/auth" && request.method === "POST") {
 const b = await request.json();
 const username = ((b.username || "") + "").trim();
-const password = (b.password || "") + "";
+const password = ((b.password || "") + "").trim();
 const mode = b.mode === "register" ? "register" : "login";
 if (!username) return json({ error: "请输入姓名" }, 400);
 if (password.length < 4) return json({ error: "密码至少4位" }, 400);
@@ -659,7 +659,7 @@ if (pathname === "/api/student/reset-password" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
 const b = await request.json().catch(() => ({}));
 const username = ((b.username || "") + "").trim();
-const np = String(b.newPassword || "");
+const np = String(b.newPassword || "").trim();
 if (!username) return json({ ok: false, error: "缺少学员姓名"}, 400);
 if (np.length < 4) return json({ ok: false, error: "新密码至少 4 位"}, 400);
 const row = await env.DB.prepare("SELECT username FROM students WHERE username = ?").bind(username).first();
