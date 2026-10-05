@@ -427,10 +427,11 @@ return { i: i, verdict:!!v, expected: q.a || ""};
 });
 const scoreText = score + "/" + gradable;
 const title = b.courseTitle || course.title || "";
-// 去重：同一学员同一课程只保留最新一条
-await env.DB.prepare("DELETE FROM progress WHERE username=? AND (course_id=? OR course_id=?)").bind(username, courseId, title).run();
-await env.DB.prepare("INSERT INTO progress (username, course_id, course_title, score, submitted_at) VALUES (?,?,?,?,?)")
-.bind(username, courseId, title, scoreText, now).run();
+// 去重：同一学员同一课程只保留最新一条（batch 原子执行防并发重复）
+await env.DB.batch([
+    env.DB.prepare("DELETE FROM progress WHERE username=? AND course_id=?").bind(username, courseId),
+    env.DB.prepare("INSERT INTO progress (username, course_id, course_title, score, submitted_at) VALUES (?,?,?,?,?)").bind(username, courseId, title, scoreText, now),
+]);
 return json({ success: true, score: score, gradable: gradable, details: details, scoreText: scoreText});
 }
 // 兼容旧客户端
