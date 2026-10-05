@@ -1890,43 +1890,6 @@ function twCourse(c) {
             });
             return s;
         }
-        /* normVerse：把出处字符串归一化为纯文本"全称第N章M节"（用于题卡徽章、导出标题） */
-        function normVerse(s) {
-            s = String(s == null ? "" : s);
-            var B = bibleBooks();
-            var JIE = (curLang() === 'tw') ? '節' : '节';
-            var JIEP = '[节節]';
-            var SP = ' *';
-            var DASH = '[\u2013\u2014\uFF0D-]';
-            function tx(bk, ch, vs, ve) { return bookFull(bk) + '第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + JIE : ''); }
-            var VP = new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)'
-                + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP + SP + '[说說]' + SP + '[：:，,]' + SP + '([^<]*)'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)'
-                + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章(?!' + SP + '[0-9])', 'g');
-            return s.replace(VP, function (m) {
-                var a = arguments;
-                if (a[1] !== undefined) return tx(a[1], a[2], a[3], a[4]);
-                if (a[5] !== undefined) return tx(a[5], a[6], a[7], a[8]);
-                if (a[9] !== undefined) return tx(a[9], a[10], a[11], a[12]);
-                if (a[14] !== undefined) return tx(a[14], a[15], a[16], a[17]);
-                if (a[18] !== undefined) return tx(a[18], a[19], a[20]);
-                if (a[21] !== undefined) return tx(a[21], a[22], a[23]);
-                if (a[25] !== undefined) return tx(a[25], a[26], a[27]);
-                if (a[28] !== undefined) return tx(a[28], a[29], a[30]);
-                if (a[32] !== undefined) return tx(a[32], a[33], a[34]);
-                if (a[35] !== undefined) return tx(a[35], a[36], a[37]);
-                if (a[38] !== undefined) return tx(a[38], a[39], a[40]);
-                return tx(a[41], a[42], null);
-            });
-        }
         /* verseSegs：将 hlVerse 输出切分为段 [{k:0普通|1引用|2经文, t:文本}]，供 PPT 多 run 渲染 */
         /* verseSegs：将 hlVerse 输出切分为段 [{k:0普通|1书名|2经文|3章节, t:文本}]，供 PPT 多 run 渲染 */
         function verseSegs(s) {
@@ -2563,7 +2526,7 @@ function twCourse(c) {
                 var vq = Object.assign({}, q);
                 vq.q = stripVerseTag(q.q);
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
-                    + ((q.h || q.o) ? '<p class="mb-3"><span class="verse-ref">📜 ' + esc(normVerse(stripEmoji(q.h || q.o))) + '</span></p>' : '')
+                    + ((q.h || q.o) ? '<p class="mb-3">' + hlVerse(esc(stripEmoji(q.h || q.o))) + '</p>' : '')
                     + '<div class="text-slate-800"><span class="verse-text">' + studyPara(vq, i) + '</span></div>' + verdict + '</div></div>';
             }
             if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') {
@@ -3410,7 +3373,7 @@ function twCourse(c) {
                             if (ce > 0 && ce < 12) rawQ = rawQ.slice(ce + 1);
                         }
                         /* 经文出处徽章（与网页端一致，q.o 如"《约翰福音》3章16节"） */
-                        vref = (q.h || q.o) ? '<div class="verse-ref-line"><span class="verse-ref">📜 ' + esc(normVerse(stripEmoji(q.h || q.o))) + '</span></div>' : '';
+                        vref = (q.h || q.o) ? '<div class="verse-ref-line">' + hlVerse(esc(stripEmoji(q.h || q.o))) + '</div>' : '';
                     }
                     var qtext = expInline(hlVerse(esc(rawQ)));
                     var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
