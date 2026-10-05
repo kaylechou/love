@@ -1,0 +1,8 @@
+# 用法：docker compose -f docker/docker-compose.yml -f docker/docker-compose.pull.yml up -d
+# 从 GitHub Packages (ghcr.io) 拉取预构建镜像，无需本地 build
+
+services:
+  tuanqi:
+    image: ghcr.io/kaylechou/love:latest
+    build: null
+    pull_policy: always
