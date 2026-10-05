@@ -1901,13 +1901,28 @@ function twCourse(c) {
         }
         /* 系列名匹配图标 */
         function catIcon(cat) {
-            var c = String(cat || "");
-            if (c.indexOf("圣经导览") >= 0) return "🗺️";
-            if (c.indexOf("基要真理") >= 0) return "🏠";
-            if (c.indexOf("圣经") >= 0) return "📖";
-            if (c.indexOf("祷告") >= 0) return "🙏";
-            if (c.indexOf("敬拜") >= 0 || c.indexOf("赞美") >= 0) return "🎵";
-            if (c.indexOf("宣教") >= 0) return "🌍";
+            var c = String(cat || "").trim();
+            /* 全名精确匹配（按名称含义） */
+            var fullMap = {
+                "基要真理": "🏠",
+                "圣经导览": "🗺️"
+            };
+            if (fullMap[c]) return fullMap[c];
+            /* 按全名含义语义匹配 */
+            if (/导览|概览|纵览/.test(c)) return "🗺️";
+            if (/基要|根基|初信|栽培/.test(c)) return "🏠";
+            if (/真理|教义|神学/.test(c)) return "📖";
+            if (/祷告|祈祷/.test(c)) return "🙏";
+            if (/敬拜|赞美|诗歌/.test(c)) return "🎵";
+            if (/宣教|布道|差传/.test(c)) return "🌍";
+            if (/团契|小组|相交/.test(c)) return "🤝";
+            if (/家庭|婚姻|亲子/.test(c)) return "👨‍👩‍👧‍👦";
+            if (/福音书|福音/.test(c)) return "✝️";
+            if (/书信/.test(c)) return "✉️";
+            if (/先知|预言|启示/.test(c)) return "🔥";
+            if (/智慧/.test(c)) return "💡";
+            if (/历史/.test(c)) return "🏛️";
+            if (/圣经|经卷/.test(c)) return "📖";
             return "📚";
         }
         function hlVerse(s) {
@@ -2639,6 +2654,7 @@ function twCourse(c) {
             var total = 0, filled = 0;
             for (var v = 0; v < activeQuizzes.length; v++) {
                 var qv = activeQuizzes[v];
+                if (!renderedQTypes[qv.type]) continue;
                 if (qv.type === 'single' || qv.type === 'judge' || qv.type === 'multiple') {
                     total++;
                     if (document.querySelector('input[name="u-' + v + '"]:checked')) filled++;
@@ -2689,6 +2705,7 @@ function twCourse(c) {
         }
         function studySubmitBtn() { if (studyRevealed) toggleStudyEdit(); else submitStudy(); }
         async function submitStudy() {
+            renderAllQTypeTabs();
             if (BOOT.shareMode && !progName()) {
                 alert(tr("needName"));
                 var sni = document.getElementById("shareNameInput"); if (sni) sni.focus();
@@ -2872,8 +2889,87 @@ function twCourse(c) {
         }
 
         /* 分 Tab 课件：页签切换 / 问答参考答案开关 / 成绩报告 */
+        /* 题型页签懒加载：打开课件只渲染导读，点页签才渲染题目，大幅提速 */
+        var curTypeTabs = [];
+        var curHasSections = false;
+        var renderedQTypes = {};
+        function qCardWrapHTML(q, i, n) {
+            return '<div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 text-slate-700 leading-relaxed">' + renderQ(q, i, n) + '</div>';
+        }
+        function buildTypeSecHTML(mt, ti) {
+            var secHtml = '';
+            var qnum = 0;
+            if (curHasSections) {
+                var secs = [], secMap = {};
+                activeQuizzes.forEach(function (q) { var s = (q.s || '').trim() || tr("secDefault"); if (!secMap[s]) { secMap[s] = true; secs.push(s); } });
+                secs.forEach(function (s, si) {
+                    var inner = '';
+                    activeQuizzes.forEach(function (q, i) {
+                        if (q.type !== mt.t) return;
+                        if (((q.s || '').trim() || tr("secDefault")) !== s) return;
+                        if (q.type !== 'verse') { qnum++; }
+                        inner += qCardWrapHTML(q, i, qnum);
+                    });
+                    if (inner) {
+                        var badge = ('0' + (si + 1)).slice(-2);
+                        secHtml += '<div class="mb-6"><h3 class="text-base font-bold text-slate-800 mb-3 flex items-center"><span class="bg-blue-600 text-white w-7 h-7 rounded-lg flex items-center justify-center mr-2 text-xs shrink-0">' + badge + '</span><span>' + esc(s) + '</span></h3><div class="space-y-4">' + inner + '</div></div>';
+                    }
+                });
+            } else {
+                var flat = '';
+                activeQuizzes.forEach(function (q, i) {
+                    if (q.type !== mt.t) return;
+                    if (q.type !== 'verse') { qnum++; }
+                    flat += qCardWrapHTML(q, i, qnum);
+                });
+                secHtml = '<div class="space-y-4">' + flat + '</div>';
+            }
+            var prevBtn = ti > 0
+                ? '<button onclick="switchQTab(\\'' + curTypeTabs[ti - 1].t + '\\')" class="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95">' + tr("prevType") + curTypeTabs[ti - 1].label + '</button>'
+                : '<span></span>';
+            var nextBtn = ti < curTypeTabs.length - 1
+                ? '<button onclick="switchQTab(\\'' + curTypeTabs[ti + 1].t + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + tr("nextType") + curTypeTabs[ti + 1].label + ' →</button>'
+                : '<button onclick="switchQTab(\\'report\\')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + tr("viewReport") + '</button>';
+            return '<div class="flex items-center gap-2 mb-4"><span class="w-2 h-6 bg-indigo-600 rounded-full"></span>'
+                + '<h2 class="text-xl font-bold text-slate-900">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + ' <span class="text-sm font-normal text-slate-400">(' + tf("nQuestions", { n: mt.count }) + ')</span></h2></div>'
+                + secHtml
+                + '<div class="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-slate-200 mb-24">' + prevBtn + nextBtn + '</div>';
+        }
+        function renderedUnits() {
+            var total = 0;
+            activeQuizzes.forEach(function (q) {
+                if (!renderedQTypes[q.type]) return;
+                if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') total++;
+                else if (q.type === 'essay') total++;
+                else {
+                    var mm = String(q.q || '').match(/_{4,}|＿{2,}/g);
+                    total += mm ? mm.length : 1;
+                }
+            });
+            return total;
+        }
+        function updateFillHint() {
+            var el = document.getElementById('studyHint');
+            if (el) el.innerHTML = tf("fillActive", { n: renderedUnits() });
+        }
+        function renderQTypeTab(t) {
+            var sec = document.getElementById('qsec-' + t);
+            if (!sec || renderedQTypes[t]) return;
+            var idx = -1;
+            for (var i = 0; i < curTypeTabs.length; i++) { if (curTypeTabs[i].t === t) { idx = i; break; } }
+            if (idx < 0) return;
+            sec.innerHTML = buildTypeSecHTML(curTypeTabs[idx], idx);
+            renderedQTypes[t] = true;
+            updateFillHint();
+            if (typeof updateStudyBar === 'function') updateStudyBar();
+        }
+        function renderAllQTypeTabs() {
+            for (var i = 0; i < curTypeTabs.length; i++) renderQTypeTab(curTypeTabs[i].t);
+        }
         function switchQTab(tab) {
             if (tab !== 'overview' && !requireNameForQuiz(tab)) return;
+            if (tab === 'report') renderAllQTypeTabs();
+            else if (tab !== 'overview') renderQTypeTab(tab);
             document.querySelectorAll('#quizContainer .qsec').forEach(function (el) { el.classList.add('hidden'); });
             document.querySelectorAll('.qtab-btn').forEach(function (el) { el.classList.remove('qtab-active'); });
             var sec = document.getElementById('qsec-' + tab);
@@ -3047,50 +3143,12 @@ function twCourse(c) {
                 + '<div class="text-xs text-amber-900 leading-relaxed whitespace-pre-line"><b>' + tr("quizGuideT") + '</b>' + (item.instructions ? esc(item.instructions) : (tf("defaultGuide", { summary: typeSummary || tr("multiTypes") }))) + '</div></div>'
                 + '<div class="flex justify-end"><button onclick="switchQTab(\\'' + firstTab + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition">' + tr("startQuiz") + '</button></div>'
                 + '</div></section>';
-            /* 按题型分页：有章节则组内再按章节徽章分组 */
-            function qCardWrap(q, i, n) {
-                return '<div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200/80 text-slate-700 leading-relaxed">' + renderQ(q, i, n) + '</div>';
-            }
-            var typeSecs = typeTabs.map(function (mt, ti) {
-                var secHtml = '';
-                var qnum = 0;
-                if (hasSections) {
-                    var secs = [], secMap = {};
-                    activeQuizzes.forEach(function (q) { var s = (q.s || '').trim() || tr("secDefault"); if (!secMap[s]) { secMap[s] = true; secs.push(s); } });
-                    secs.forEach(function (s, si) {
-                        var inner = '';
-                        activeQuizzes.forEach(function (q, i) {
-                            if (q.type !== mt.t) return;
-                            if (((q.s || '').trim() || tr("secDefault")) !== s) return;
-                            if (q.type !== 'verse') { qnum++; }
-                            inner += qCardWrap(q, i, qnum);
-                        });
-                        if (inner) {
-                            var badge = ('0' + (si + 1)).slice(-2);
-                            secHtml += '<div class="mb-6"><h3 class="text-base font-bold text-slate-800 mb-3 flex items-center"><span class="bg-blue-600 text-white w-7 h-7 rounded-lg flex items-center justify-center mr-2 text-xs shrink-0">' + badge + '</span><span>' + esc(s) + '</span></h3><div class="space-y-4">' + inner + '</div></div>';
-                        }
-                    });
-                } else {
-                    var flat = '';
-                    activeQuizzes.forEach(function (q, i) {
-                        if (q.type !== mt.t) return;
-                        if (q.type !== 'verse') { qnum++; }
-                        flat += qCardWrap(q, i, qnum);
-                    });
-                    secHtml = '<div class="space-y-4">' + flat + '</div>';
-                }
-                var prevBtn = ti > 0
-                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti - 1].t + '\\')" class="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95">' + tr("prevType") + typeTabs[ti - 1].label + '</button>'
-                    : '<span></span>';
-                var nextBtn = ti < typeTabs.length - 1
-                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti + 1].t + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + tr("nextType") + typeTabs[ti + 1].label + ' →</button>'
-                    : '<button onclick="switchQTab(\\'report\\')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + tr("viewReport") + '</button>';
-                return '<section id="qsec-' + mt.t + '" class="qsec hidden">'
-                    + '<div class="flex items-center gap-2 mb-4"><span class="w-2 h-6 bg-indigo-600 rounded-full"></span>'
-                    + '<h2 class="text-xl font-bold text-slate-900">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + ' <span class="text-sm font-normal text-slate-400">(' + tf("nQuestions", { n: mt.count }) + ')</span></h2></div>'
-                    + secHtml
-                    + '<div class="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-slate-200 mb-24">' + prevBtn + nextBtn + '</div>'
-                    + '</section>';
+            /* 按题型分页：懒加载，打开课件只放占位符，点页签时才渲染题目 */
+            curTypeTabs = typeTabs;
+            curHasSections = hasSections;
+            renderedQTypes = {};
+            var typeSecs = typeTabs.map(function (mt) {
+                return '<section id="qsec-' + mt.t + '" class="qsec hidden"><div class="flex items-center justify-center py-20 text-slate-400 text-sm"><span>⏳</span></div></section>';
             }).join('');
             /* 成绩报告页 */
             var reportSec = '<section id="qsec-report" class="qsec hidden"><div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 text-center space-y-6">'
@@ -4029,6 +4087,7 @@ function twCourse(c) {
         /* 教师版：查看本课全部正确答案（需管理会话） */
         async function teacherUnlock() {
             if (!document.getElementById('teacherBtn')) return;
+            renderAllQTypeTabs();
             if (teacherMode) {
                 teacherMode = false;
                 document.querySelectorAll('.tch-box').forEach(function(el) { el.remove(); });
