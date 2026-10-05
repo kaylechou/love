@@ -1899,6 +1899,17 @@ function twCourse(c) {
             }
             return s;
         }
+        /* 系列名匹配图标 */
+        function catIcon(cat) {
+            var c = String(cat || "");
+            if (c.indexOf("圣经导览") >= 0) return "🗺️";
+            if (c.indexOf("基要真理") >= 0) return "🏠";
+            if (c.indexOf("圣经") >= 0) return "📖";
+            if (c.indexOf("祷告") >= 0) return "🙏";
+            if (c.indexOf("敬拜") >= 0 || c.indexOf("赞美") >= 0) return "🎵";
+            if (c.indexOf("宣教") >= 0) return "🌍";
+            return "📚";
+        }
         function hlVerse(s) {
             s = String(s == null ? "" : s);
             var B = bibleBooks();
@@ -2288,7 +2299,7 @@ function twCourse(c) {
                     + '<button data-tkey="' + esc(sKey) + '" data-tbody="' + sBody + '" data-tchev="' + sChev + '" onclick="toggleTree(this)" class="flex items-center gap-3 w-full text-left group">'
                     + '<span id="' + sChev + '" class="text-sm text-violet-500 w-5 text-center">' + (sCollapsed ? "▶" : "▼") + '</span>'
                     + '<span class="w-1.5 h-7 bg-violet-500 rounded-full"></span>'
-                    + '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + esc(cat) + '</h2>'
+                    + '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + catIcon(cat) + ' ' + esc(cat) + '</h2>'
                     + '<span class="text-sm text-slate-400">' + tf("nLessons", { n: groups[cat].length }) + '</span></button>'
                     + (info.description ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + hlVerse(esc(info.description)) + '</p>' : '')
                     + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + ' mt-2">' + bodyHtml + '</div></div>';
