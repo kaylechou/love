@@ -1644,25 +1644,25 @@ tchPwWrong: '비밀번호가 틀렸습니다', tchAnsFail: '정답을 불러오�
 wbEmptyAlert: '오답노트가 비어 있습니다', popupBlocked: '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도해 주세요.'
 }
 };
-function t(k) {
+function tr(k) {
     var L = curLang();
     var d = I18N[L] || I18N.zh;
     var s = (d[k] !== undefined) ? d[k] : ((I18N.zh[k] !== undefined) ? I18N.zh[k] : k);
     return (L === 'tw') ? toTW(s) : s;
 }
 function tf(k, obj) {
-    var s = t(k);
+    var s = tr(k);
     for (var p in obj) { if (Object.prototype.hasOwnProperty.call(obj, p)) s = s.split('{' + p + '}').join(obj[p]); }
     return s;
 }
 /* 静态 data-i18n 元素应用当前语言 */
 function applyI18n() {
     try {
-        document.querySelectorAll('[data-i18n]').forEach(function(el) { el.textContent = t(el.getAttribute('data-i18n')); });
-        document.querySelectorAll('[data-i18n-html]').forEach(function(el) { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
-        document.querySelectorAll('[data-i18n-ph]').forEach(function(el) { el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'))); });
-        document.querySelectorAll('[data-i18n-title]').forEach(function(el) { el.setAttribute('title', t(el.getAttribute('data-i18n-title'))); });
-        document.title = t('appName');
+        document.querySelectorAll('[data-i18n]').forEach(function(el) { el.textContent = tr(el.getAttribute('data-i18n')); });
+        document.querySelectorAll('[data-i18n-html]').forEach(function(el) { el.innerHTML = tr(el.getAttribute('data-i18n-html')); });
+        document.querySelectorAll('[data-i18n-ph]').forEach(function(el) { el.setAttribute('placeholder', tr(el.getAttribute('data-i18n-ph'))); });
+        document.querySelectorAll('[data-i18n-title]').forEach(function(el) { el.setAttribute('title', tr(el.getAttribute('data-i18n-title'))); });
+        document.title = tr('appName');
         var nb = document.getElementById('noticeBarText');
         if (nb) {
             if (nb.dataset.orig === undefined) nb.dataset.orig = nb.textContent;
@@ -1681,9 +1681,9 @@ function openLangPanel() {
         m.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
         m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.5)" data-close="1"></div>'
             + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:320px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
-            + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 16px">' + t('langT') + '</h3>'
+            + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 16px">' + tr('langT') + '</h3>'
             + '<div id="langList"></div>'
-            + '<button data-close="1" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">' + t('cancel') + '</button></div>';
+            + '<button data-close="1" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">' + tr('cancel') + '</button></div>';
         m.querySelectorAll('[data-close]').forEach(function(x) { x.onclick = function() { m.style.display = 'none'; }; });
         document.body.appendChild(m);
     }
@@ -1782,7 +1782,7 @@ function twCourse(c) {
         function getWrong() { try { return JSON.parse(localStorage.getItem(WRONG_KEY) || "{}"); } catch(e) { return {}; } }
         function setWrong(w) { try { localStorage.setItem(WRONG_KEY, JSON.stringify(w)); } catch(e) {} }
         function saveWrongs(items) {
-            var name = localStorage.getItem(USER_KEY) || t("wbAnon");
+            var name = localStorage.getItem(USER_KEY) || tr("wbAnon");
             var w = getWrong();
             var arr = w[name] || [];
             items.forEach(function(it) {
@@ -1794,30 +1794,30 @@ function twCourse(c) {
         }
         function openWrongBook(courseId) {
             window._wrongCourseId = courseId || null;
-            var name = localStorage.getItem(USER_KEY) || t("wbAnon");
+            var name = localStorage.getItem(USER_KEY) || tr("wbAnon");
             var all = (getWrong()[name] || []);
             var arr = courseId ? all.filter(function(x) { return x.cid === courseId; }) : all;
             var titleEl = document.getElementById('wrongBookTitle');
-            if (titleEl) titleEl.innerText = courseId ? (t("wbT") + (arr.length && arr[0].title ? ' · ' + arr[0].title : '')) : t("wbMyT");
+            if (titleEl) titleEl.innerText = courseId ? (tr("wbT") + (arr.length && arr[0].title ? ' · ' + arr[0].title : '')) : tr("wbMyT");
             var list = document.getElementById('wrongBookList');
             if (!arr.length) {
-                list.innerHTML = '<div class="text-center text-slate-400 text-sm py-10">' + (courseId ? t("wbEmptyC") : t("wbEmpty")) + '</div>';
+                list.innerHTML = '<div class="text-center text-slate-400 text-sm py-10">' + (courseId ? tr("wbEmptyC") : tr("wbEmpty")) + '</div>';
             } else {
                 list.innerHTML = arr.map(function(x) {
                     return '<div class="border border-slate-100 rounded-2xl p-4">'
                         + '<div class="text-[11px] text-violet-500 font-bold mb-1">' + esc([x.series, x.sub, x.title].filter(function(s) { return s; }).join(' · ') || '') + '</div>'
                         + '<div class="text-[11px] text-indigo-500 font-bold mb-1">' + esc(wrongTypeNum(x)) + '</div>'
                         + '<div class="text-sm font-bold text-slate-800 mb-2">' + esc(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')) + '</div>'
-                        + '<div class="text-xs text-slate-500">' + t("wbU") + esc(x.u || t("wbNA")) + '</div>'
-                        + '<div class="text-xs text-emerald-600 font-bold mt-1">' + t("wbE") + esc(x.expected || '') + '</div></div>';
+                        + '<div class="text-xs text-slate-500">' + tr("wbU") + esc(x.u || tr("wbNA")) + '</div>'
+                        + '<div class="text-xs text-emerald-600 font-bold mt-1">' + tr("wbE") + esc(x.expected || '') + '</div></div>';
                 }).join('');
             }
             toggleModal('wrongBookModal');
         }
         function clearWrongBook() {
             var fc = window._wrongCourseId || null;
-            if (!confirm(fc ? t("wbClearC") : t("wbClearA"))) return;
-            var name = localStorage.getItem(USER_KEY) || t("wbAnon");
+            if (!confirm(fc ? tr("wbClearC") : tr("wbClearA"))) return;
+            var name = localStorage.getItem(USER_KEY) || tr("wbAnon");
             var w = getWrong();
             if (fc) w[name] = (w[name] || []).filter(function(x) { return x.cid !== fc; });
             else w[name] = [];
@@ -1920,7 +1920,7 @@ function twCourse(c) {
         /* 字号调节：改根 font-size，Tailwind rem 单位全站跟随；localStorage 持久化 */
         var FONT_KEY = "TQ_FONT_V1";
         var FONT_SCALES = [0.85, 1, 1.15, 1.3, 1.5];
-        var FONT_LABELS = [t("fontS"), t("fontM"), t("fontL"), t("fontXL"), t("fontXXL")];
+        var FONT_LABELS = [tr("fontS"), tr("fontM"), tr("fontL"), tr("fontXL"), tr("fontXXL")];
         var FONT_DEFAULT = 2;
         function getFontIdx() { var i = parseInt(localStorage.getItem(FONT_KEY) || String(FONT_DEFAULT), 10); if (isNaN(i)) i = FONT_DEFAULT; return Math.min(4, Math.max(0, i)); }
         function applyFontScale() {
@@ -1966,7 +1966,7 @@ function twCourse(c) {
             var m = document.getElementById("videoChoiceModal");
             if (!m) return;
             document.getElementById("videoChoiceList").innerHTML = videos.map(function (v, i) {
-                var wxTip = (isWeComUrl(v.url) && !isWeChat()) ? '<span class="block text-xs text-emerald-600 mt-0.5">' + t("vidWx") + '</span>' : '';
+                var wxTip = (isWeComUrl(v.url) && !isWeChat()) ? '<span class="block text-xs text-emerald-600 mt-0.5">' + tr("vidWx") + '</span>' : '';
                 return '<button data-vi="' + i + '" onclick="openVideoByIdx(this)" class="w-full p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-left transition active:scale-95 flex items-center gap-3">'
                     + '<span class="text-2xl">\u25b6\ufe0f</span><span><span class="block font-bold text-slate-800">' + esc(v.label) + '</span><span class="block text-xs text-slate-400 truncate max-w-[220px]">' + esc(v.url) + '</span>' + wxTip + '</span></button>';
             }).join("");
@@ -2044,7 +2044,7 @@ function twCourse(c) {
             if (b) {
                 var env = getVideoNetEnv() || "cn";
                 b.innerHTML = "🎬";
-                b.title = t("vidEntry") + (env === "cn" ? t("vidSimple") : t("vidAll")) + t("vidToggle");
+                b.title = tr("vidEntry") + (env === "cn" ? tr("vidSimple") : tr("vidAll")) + tr("vidToggle");
                 b.style.opacity = env === "cn" ? ".55" : "1";
             }
         }
@@ -2072,7 +2072,7 @@ function twCourse(c) {
             }
             if (btn) {
                 btn.innerHTML = mode === "desktop" ? "📱" : "🖥️";
-                btn.title = mode === "desktop" ? t("toMob") : t("toDesk");
+                btn.title = mode === "desktop" ? tr("toMob") : tr("toDesk");
             }
         }
         function toggleViewMode() {
@@ -2149,16 +2149,16 @@ function twCourse(c) {
         function statusBadge(id) {
             var p = getMyProg()[id] || {};
             if (p.completed)
-                return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 flex items-center justify-center text-[9px]">✓</span>' + t("stDone") + '</span>';
+                return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 flex items-center justify-center text-[9px]">✓</span>' + tr("stDone") + '</span>';
             if (p.started)
-                return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-amber-500"></span>' + t("stDoing") + '</span>';
-            return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300"></span>' + t("stNot") + '</span>';
+                return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-amber-500"></span>' + tr("stDoing") + '</span>';
+            return '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full"><span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300"></span>' + tr("stNot") + '</span>';
         }
 
         /* 课程卡片（新 UI） */
         function courseCard(c, idx) {
             var desc = stripMd(c.content).slice(0, 44) + "…";
-            var shareBtn = '<button data-id="' + c.id + '" onclick="copyShareLink(this.dataset.id)" title="' + t("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition">🔗</button>';
+            var shareBtn = '<button data-id="' + c.id + '" onclick="copyShareLink(this.dataset.id)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition">🔗</button>';
             var adminBtns = "";
             if (BOOT.isAdmin) {
                 adminBtns = '<button data-id="' + c.id + '" onclick="editCourse(this.dataset.id)" title="编辑" class="text-slate-300 hover:text-violet-600 transition">🖊️</button>'
@@ -2168,8 +2168,8 @@ function twCourse(c) {
                     + '<button data-id="' + c.id + '" onclick="deleteCourse(this.dataset.id)" title="删除" class="text-slate-300 hover:text-red-500 transition">🗑️</button>';
             }
             var cardBtns = '<div class="flex items-center gap-3 text-[15px]">' + shareBtn + adminBtns + '</div>';
-            var videoBadge = parseVideoUrls(c.video_url).length ? ' <span class="video-badge text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full align-middle">' + t("videoBadge") + '</span>' : '';
-            var goText = t("startLearning");
+            var videoBadge = parseVideoUrls(c.video_url).length ? ' <span class="video-badge text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full align-middle">' + tr("videoBadge") + '</span>' : '';
+            var goText = tr("startLearning");
             return '<div class="course-card bg-white rounded-[1.75rem] border border-slate-100 shadow-sm p-6 flex flex-col gap-4 hover:shadow-lg hover:-translate-y-0.5 transition"'
                 + ' data-search="' + esc(c.title + " " + c.content + " " + (c.subcategory || "")).toLowerCase() + '"'
                 + ' style="animation-delay:' + Math.min(idx * 40, 600) + 'ms">'
@@ -2351,13 +2351,14 @@ function twCourse(c) {
             document.getElementById('lessonModal').classList.add('hidden');
             try { document.body.style.overflow = ''; } catch (e) {}
         }
+        function closeAuthModal() { try { document.getElementById('authModal').style.display = 'none'; } catch (e) {} }
         function login() { openAuthModal('login', null, true); }
         /* 姓名按钮：未登记则登录，已登记则确认后登出（本地错题本按姓名保留） */
         function syncNameBtn() {
             var nm = "";
             try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
             var nb = document.getElementById("nameBtn");
-            if (nb) nb.innerText = nm || t("setName");
+            if (nb) nb.innerText = nm || tr("setName");
         }
         function nameBtnClick() {
             var nm = "";
@@ -2402,15 +2403,16 @@ function twCourse(c) {
                 var inp = 'style="width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box"';
                 m.innerHTML = '<div style="position:absolute;inset:0;background:rgba(15,23,42,.6)"></div>'
                     + '<div style="position:relative;background:#fff;border-radius:24px;padding:24px;width:100%;max-width:340px;box-shadow:0 25px 50px rgba(0,0,0,.25)">'
-                    + '<h3 id="authTitle" style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:17px">' + t("loginT") + '</h3>'
-                    + '<p id="authDesc" style="font-size:12px;color:#94a3b8;margin:0 0 14px">' + t("loginD") + '</p>'
-                    + '<input id="authName" placeholder="' + t("namePh") + '" ' + inp + '>'
-                    + '<input id="authPw" type="password" placeholder="' + t("pwPh") + '" ' + inp + '>'
-                    + '<input id="authPw2" type="password" placeholder="' + t("pw2Ph") + '" ' + inp + ' style="display:none;width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box">'
+                    + '<button onclick="closeAuthModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1">×</button>'
+                    + '<h3 id="authTitle" style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:17px">' + tr("loginT") + '</h3>'
+                    + '<p id="authDesc" style="font-size:12px;color:#94a3b8;margin:0 0 14px">' + tr("loginD") + '</p>'
+                    + '<input id="authName" placeholder="' + tr("namePh") + '" ' + inp + '>'
+                    + '<input id="authPw" type="password" placeholder="' + tr("pwPh") + '" ' + inp + '>'
+                    + '<input id="authPw2" type="password" placeholder="' + tr("pw2Ph") + '" ' + inp + ' style="display:none;width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box">'
                     + '<div id="authErr" style="display:none;color:#dc2626;font-size:12px;margin-bottom:10px"></div>'
-                    + '<button id="authOk" onclick="submitAuth()" style="width:100%;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;margin-bottom:8px">' + t("doLogin") + '</button>'
-                    + '<button id="authSwitch" onclick="toggleAuthMode()" style="width:100%;background:none;border:none;color:#4f46e5;font-size:12px;padding:6px">' + t("goReg") + '</button>'
-                    + '<p style="font-size:11px;color:#94a3b8;margin:6px 0 0">' + t("forgotPw") + '</p>'
+                    + '<button id="authOk" onclick="submitAuth()" style="width:100%;background:#4f46e5;color:#fff;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;margin-bottom:8px">' + tr("doLogin") + '</button>'
+                    + '<button id="authSwitch" onclick="toggleAuthMode()" style="width:100%;background:none;border:none;color:#4f46e5;font-size:12px;padding:6px">' + tr("goReg") + '</button>'
+                    + '<p style="font-size:11px;color:#94a3b8;margin:6px 0 0">' + tr("forgotPw") + '</p>'
                     + '</div>';
                 document.body.appendChild(m);
                 ['authName','authPw','authPw2'].forEach(function(id) {
@@ -2427,10 +2429,10 @@ function twCourse(c) {
         function setAuthMode(mode) {
             window._authMode = mode;
             var isReg = (mode === 'register');
-            document.getElementById('authTitle').innerText = isReg ? t("regT") : t("loginT");
-            document.getElementById('authDesc').innerText = isReg ? t("regD") : t("loginD");
-            document.getElementById('authOk').innerText = isReg ? t("doReg") : t("doLogin");
-            document.getElementById('authSwitch').innerText = isReg ? t("goLogin") : t("goReg");
+            document.getElementById('authTitle').innerText = isReg ? tr("regT") : tr("loginT");
+            document.getElementById('authDesc').innerText = isReg ? tr("regD") : tr("loginD");
+            document.getElementById('authOk').innerText = isReg ? tr("doReg") : tr("doLogin");
+            document.getElementById('authSwitch').innerText = isReg ? tr("goLogin") : tr("goReg");
             document.getElementById('authPw2').style.display = isReg ? '' : 'none';
             hideAuthErr();
         }
@@ -2441,18 +2443,18 @@ function twCourse(c) {
             var name = (document.getElementById('authName').value || "").trim();
             var pw = document.getElementById('authPw').value || "";
             var mode = window._authMode || 'login';
-            if (!name) { showAuthErr(t("errName")); return; }
-            if (pw.length < 4) { showAuthErr(t("errPw")); return; }
+            if (!name) { showAuthErr(tr("errName")); return; }
+            if (pw.length < 4) { showAuthErr(tr("errPw")); return; }
             if (mode === 'register') {
                 var pw2 = document.getElementById('authPw2').value || "";
-                if (pw !== pw2) { showAuthErr(t("errPw2")); return; }
+                if (pw !== pw2) { showAuthErr(tr("errPw2")); return; }
             }
             var btn = document.getElementById('authOk');
-            btn.disabled = true; btn.innerText = t("doing");
+            btn.disabled = true; btn.innerText = tr("doing");
             try {
                 var r = await fetch('/api/student/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name, password: pw, mode: mode }) });
                 var j = await r.json();
-                if (!j.success) { showAuthErr(j.error || t("opFail")); return; }
+                if (!j.success) { showAuthErr(j.error || tr("opFail")); return; }
                 try { localStorage.setItem(USER_KEY, name); localStorage.setItem(STUDENT_TOKEN_KEY, j.token || ""); localStorage.setItem(STUDENT_ADMIN_KEY, j.is_admin ? "1" : "0"); } catch (e) {}
                 document.getElementById('authPw').value = '';
                 document.getElementById('authPw2').value = '';
@@ -2465,7 +2467,7 @@ function twCourse(c) {
                 var t = window._pendingQTab; window._pendingQTab = null;
                 if (t) switchQTab(t);
             } catch (e) {
-                showAuthErr(t("netErr"));
+                showAuthErr(tr("netErr"));
             } finally {
                 btn.disabled = false;
                 setAuthMode(window._authMode || 'login');
@@ -2498,19 +2500,19 @@ function twCourse(c) {
         /* 分享页姓名条：与主站共用同一本地姓名，成绩自动记在其名下 */
         function shareNameHTML() {
             var sn0 = (localStorage.getItem(USER_KEY) || "").trim();
-            if (sn0) return '<span class="text-slate-600">' + t("studentIs") + '<b class="text-slate-800">' + esc(sn0) + '</b></span>'
-                + '<button onclick="shareRename()" class="text-xs text-violet-600 underline">' + t("changeBtn") + '</button>';
-            return '<button onclick="openShareAuth()" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-xl font-bold">' + t("loginReg") + '</button>';
+            if (sn0) return '<span class="text-slate-600">' + tr("studentIs") + '<b class="text-slate-800">' + esc(sn0) + '</b></span>'
+                + '<button onclick="shareRename()" class="text-xs text-violet-600 underline">' + tr("changeBtn") + '</button>';
+            return '<button onclick="openShareAuth()" class="text-xs bg-violet-600 text-white px-3 py-1.5 rounded-xl font-bold">' + tr("loginReg") + '</button>';
         }
         function shareRename() {
             try { localStorage.removeItem(USER_KEY); localStorage.removeItem(STUDENT_TOKEN_KEY); localStorage.removeItem(STUDENT_ADMIN_KEY); } catch(e) {}
             document.getElementById("shareNameBox").innerHTML = shareNameHTML();
-            var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = t("setName");
+            var nb = document.getElementById("nameBtn"); if (nb) nb.innerText = tr("setName");
         }
 
         function copyShareLink(id) {
             var url = window.location.origin + "/" + id;
-            navigator.clipboard.writeText(url).then(function() { alert(t("linkCopied")); });
+            navigator.clipboard.writeText(url).then(function() { alert(tr("linkCopied")); });
         }
 
         /* ===== 统一智能渲染：章节自动分组 + 题型自动识别（填空内嵌/问答文本框/单选药丸乱序/经文卡片）+ 填完核对 ===== */
@@ -2559,12 +2561,12 @@ function twCourse(c) {
                     var val = t.charAt(0);
                     return '<label class="sopt" data-val="' + esc(val) + '"><input type="' + (isMulti ? 'checkbox' : 'radio') + '" name="u-' + i + '" value="' + esc(val) + '" class="hidden"><span>' + esc(t) + '</span></label>';
                 }).join('');
-                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(rawQ)) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">' + t("multiTag") + '</span>' : '') + '</p>'
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(rawQ)) + (isMulti ? ' <span class="text-xs text-indigo-500 font-bold">' + tr("multiTag") + '</span>' : '') + '</p>'
                     + '<div class="flex flex-wrap gap-2 mt-3">' + pills + '</div>' + verdict + '</div>';
             }
             if (q.type === 'essay') {
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(q.q)) + '</p>'
-                    + '<textarea id="u-' + i + '" class="quiz-input w-full p-4 border rounded-2xl bg-slate-50 h-28 mt-3" placeholder="' + t("essayPh") + '"></textarea>' + verdict + '</div>';
+                    + '<textarea id="u-' + i + '" class="quiz-input w-full p-4 border rounded-2xl bg-slate-50 h-28 mt-3" placeholder="' + tr("essayPh") + '"></textarea>' + verdict + '</div>';
             }
             return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + studyPara(q, i) + '</p>' + verdict + '</div>';
         }
@@ -2613,7 +2615,7 @@ function twCourse(c) {
             if (!btn || !hint) return;
             if (p.total > 0 && p.filled === p.total) {
                 btn.disabled = false;
-                hint.innerText = t("fillDoneToast");
+                hint.innerText = tr("fillDoneToast");
                 hint.className = 'mt-4 text-emerald-600 text-sm italic';
             } else {
                 btn.disabled = true;
@@ -2624,7 +2626,7 @@ function twCourse(c) {
         function studySubmitBtn() { if (studyRevealed) toggleStudyEdit(); else submitStudy(); }
         async function submitStudy() {
             if (BOOT.shareMode && !(localStorage.getItem(USER_KEY) || "").trim()) {
-                alert(t("needName"));
+                alert(tr("needName"));
                 var sni = document.getElementById("shareNameInput"); if (sni) sni.focus();
                 return;
             }
@@ -2657,10 +2659,10 @@ function twCourse(c) {
                 }
                 answers.push({ i: v, u: u });
             }
-            if (!ok) { alert(t("notComplete")); return; }
+            if (!ok) { alert(tr("notComplete")); return; }
             var btn = document.getElementById('studySubmit');
-            btn.disabled = true; btn.innerText = t("checking");
-            var name = localStorage.getItem(USER_KEY) || t("wbAnon");
+            btn.disabled = true; btn.innerText = tr("checking");
+            var name = localStorage.getItem(USER_KEY) || tr("wbAnon");
             try {
                 var r = await fetch('/api/submit', {
                     method: 'POST',
@@ -2670,8 +2672,8 @@ function twCourse(c) {
                 if (!r.ok || !res.details) throw 0;
                 renderStudyGraded(res);
             } catch (e) {
-                alert(t("checkFail"));
-                btn.disabled = false; btn.innerText = t("checkBtn");
+                alert(tr("checkFail"));
+                btn.disabled = false; btn.innerText = tr("checkBtn");
             }
         }
         /* 按选项值取选项完整文字（用于答案对比显示） */
@@ -2722,8 +2724,8 @@ function twCourse(c) {
                 var vEl = document.getElementById('verdict-' + d.i);
                 if (vEl) {
                     vEl.classList.remove('hidden');
-                    if (d.verdict === null) vEl.innerHTML = '<span class="text-amber-600">' + t("vOpen") + '</span>';
-                    else vEl.innerHTML = d.verdict ? '<span class="text-emerald-600">' + t("vOk") + '</span>' : '<span class="text-red-500">' + t("vNg") + '</span>';
+                    if (d.verdict === null) vEl.innerHTML = '<span class="text-amber-600">' + tr("vOpen") + '</span>';
+                    else vEl.innerHTML = d.verdict ? '<span class="text-emerald-600">' + tr("vOk") + '</span>' : '<span class="text-red-500">' + tr("vNg") + '</span>';
                 }
                 /* 整理“你的答案 / 正确答案”文字（按题型） */
                 var userAnsText = uv.join(' / '), correctText = d.expected || '';
@@ -2738,14 +2740,14 @@ function twCourse(c) {
                 }
                 if (q.type === 'essay' && d.expected && vEl) {
                     vEl.insertAdjacentHTML('afterend',
-                        '<div class="qref-wrap mt-2"><button onclick="toggleQRef(' + d.i + ')" class="text-xs font-bold text-indigo-600 hover:underline">' + t("qrefToggle") + '</button>'
+                        '<div class="qref-wrap mt-2"><button onclick="toggleQRef(' + d.i + ')" class="text-xs font-bold text-indigo-600 hover:underline">' + tr("qrefToggle") + '</button>'
                         + '<div id="qref-' + d.i + '" class="hidden mt-2 text-sm rounded-xl bg-indigo-50 border border-indigo-100 p-3 text-slate-700 text-left">' + esc(d.expected) + '</div></div>');
                 }
                 if (d.verdict === false) {
                     if (vEl) vEl.insertAdjacentHTML('afterend',
                         '<div class="ans-compare mt-2 text-sm rounded-xl bg-red-50 border border-red-100 p-3 space-y-1 text-left">'
-                        + '<div><span class="font-bold text-red-500">' + t("yourAns") + '</span><span class="text-slate-700">' + esc(userAnsText || t("wbNA")) + '</span></div>'
-                        + '<div><span class="font-bold text-emerald-600">' + t("rightAns") + '</span><span class="text-slate-700">' + esc(correctText || '') + '</span></div></div>');
+                        + '<div><span class="font-bold text-red-500">' + tr("yourAns") + '</span><span class="text-slate-700">' + esc(userAnsText || tr("wbNA")) + '</span></div>'
+                        + '<div><span class="font-bold text-emerald-600">' + tr("rightAns") + '</span><span class="text-slate-700">' + esc(correctText || '') + '</span></div></div>');
                     var qn = card ? (card.getAttribute('data-qnum') || '') : '';
                     wrongs.push({ cid: activeLessonId, title: activeCourseTitle, series: activeCategory, sub: activeSubcategory, q: q.q || '', type: q.type || '', n: qn, u: userAnsText, expected: correctText, ts: Date.now() });
                 }
@@ -2753,7 +2755,7 @@ function twCourse(c) {
             if (wrongs.length) saveWrongs(wrongs);
             /* 错题同步到服务端，教师可在管理端查看（失败不影响本地） */
             try {
-                if (name && name !== t("wbAnon")) {
+                if (name && name !== tr("wbAnon")) {
                     fetch('/api/wrongs/save', { method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, wrongs: wrongs,
                             token: (function(){ try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch(e) { return ""; } })() }) });
@@ -2766,10 +2768,10 @@ function twCourse(c) {
             }
             var btn = document.getElementById('studySubmit'), hint = document.getElementById('studyHint');
             var p = studyProgress();
-            if (btn) { btn.disabled = false; btn.innerText = t("backEdit"); btn.classList.remove('bg-slate-800', 'hover:bg-slate-900'); btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700'); }
+            if (btn) { btn.disabled = false; btn.innerText = tr("backEdit"); btn.classList.remove('bg-slate-800', 'hover:bg-slate-900'); btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700'); }
             if (hint) { hint.innerText = tf("scoreDone", { s: res.score + ' / ' + res.gradable }); hint.className = 'mt-4 text-slate-500 text-sm'; }
             var bar = document.getElementById('progress-bar');
-            if (bar) bar.innerText = tf("progFill", { a: p.total, b: p.total }) + t("scoreUnit") + ' ' + res.score + ' / ' + res.gradable;
+            if (bar) bar.innerText = tf("progFill", { a: p.total, b: p.total }) + tr("scoreUnit") + ' ' + res.score + ' / ' + res.gradable;
             if (!BOOT.isAdmin) refreshStats();
             var qc = document.getElementById('quizContainer');
             if (qc && qc.scrollIntoView) qc.scrollIntoView();
@@ -2785,7 +2787,7 @@ function twCourse(c) {
             document.querySelectorAll('#quizContainer .qref-wrap').forEach(function(el) { el.remove(); });
             lastGradeRes = null;
             var btn = document.getElementById('studySubmit');
-            if (btn) { btn.innerText = t("checkBtn"); btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700'); btn.classList.add('bg-slate-800', 'hover:bg-slate-900'); }
+            if (btn) { btn.innerText = tr("checkBtn"); btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700'); btn.classList.add('bg-slate-800', 'hover:bg-slate-900'); }
             updateStudyBar();
             updateQReport();
         }
@@ -2822,20 +2824,20 @@ function twCourse(c) {
             p.innerText = ans + ' / ' + tot;
             if (!lastGradeRes) {
                 if (s) s.innerText = '--';
-                if (r) { r.innerText = t("repWait"); r.className = 'text-xl md:text-2xl font-bold text-slate-400'; }
-                if (h) h.innerText = t("repHint");
-                if (act) { act.innerText = t("checkBtn"); act.className = 'bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
+                if (r) { r.innerText = tr("repWait"); r.className = 'text-xl md:text-2xl font-bold text-slate-400'; }
+                if (h) h.innerText = tr("repHint");
+                if (act) { act.innerText = tr("checkBtn"); act.className = 'bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
                 return;
             }
             var sc = lastGradeRes.score, gr = lastGradeRes.gradable;
             if (s) s.innerText = sc + ' / ' + gr;
-            var pct = gr > 0 ? sc / gr * 100 : 0, rating = t("rateGo"), cls = 'text-xl md:text-2xl font-bold text-slate-400';
-            if (pct >= 80) { rating = t("rateTop"); cls = 'text-xl md:text-2xl font-bold text-emerald-600'; }
-            else if (pct >= 60) { rating = t("rateGood"); cls = 'text-xl md:text-2xl font-bold text-indigo-600'; }
-            else if (ans > 0) { rating = t("rateRetry"); cls = 'text-xl md:text-2xl font-bold text-amber-500'; }
+            var pct = gr > 0 ? sc / gr * 100 : 0, rating = tr("rateGo"), cls = 'text-xl md:text-2xl font-bold text-slate-400';
+            if (pct >= 80) { rating = tr("rateTop"); cls = 'text-xl md:text-2xl font-bold text-emerald-600'; }
+            else if (pct >= 60) { rating = tr("rateGood"); cls = 'text-xl md:text-2xl font-bold text-indigo-600'; }
+            else if (ans > 0) { rating = tr("rateRetry"); cls = 'text-xl md:text-2xl font-bold text-amber-500'; }
             if (r) { r.innerText = rating; r.className = cls; }
-            if (h) h.innerText = t("repDone");
-            if (act) { act.innerText = t("backEdit"); act.className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
+            if (h) h.innerText = tr("repDone");
+            if (act) { act.innerText = tr("backEdit"); act.className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition'; }
         }
 
         async function startLesson(id) {
@@ -2881,7 +2883,7 @@ function twCourse(c) {
                 var sub = vids.length > 1 ? tf("videoMulti", { n: vids.length }) : esc(vids[0].label);
                 videoHtml = '<div id="lessonVideoWrap"><a href="javascript:void(0)" onclick="openVideoChoice(window._curVids)" class="block rounded-3xl mb-8 p-8 text-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white no-underline">'
                     + '<div class="text-5xl mb-3">▶️</div>'
-                    + '<div class="font-black text-lg mb-1">' + t("watchVideo") + '</div>'
+                    + '<div class="font-black text-lg mb-1">' + tr("watchVideo") + '</div>'
                     + '<div class="text-slate-400 text-xs">' + sub + '</div></a></div>';
             }
             studyRevealed = false;
@@ -2890,48 +2892,48 @@ function twCourse(c) {
             /* 统一智能页头：有章节→分章课件版，无章节→互动答题版，均带实时进度 */
             var hasSections = activeQuizzes.some(function(q) { return (q.s || "").trim() !== ""; });
             var totalUnits = countUnits();
-            var subTitle = hasSections ? t("modeChapters") : t("modeQuiz");
+            var subTitle = hasSections ? tr("modeChapters") : tr("modeQuiz");
             var shareBar = '';
             if (BOOT.shareMode) {
                 shareBar = '<div class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 text-left">'
-                    + '<a href="/" class="text-sm font-bold text-violet-700 hover:underline">' + t("backHome") + '</a>'
+                    + '<a href="/" class="text-sm font-bold text-violet-700 hover:underline">' + tr("backHome") + '</a>'
                     + '<div id="shareNameBox" class="flex items-center gap-2 text-sm">' + shareNameHTML() + '</div></div>';
             } else {
                 shareBar = '<div class="mb-6 flex flex-wrap items-center justify-between gap-3 bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 text-left">'
-                    + '<a href="javascript:void(0)" onclick="closeLessonModal()" class="text-sm font-bold text-violet-700 hover:underline">' + t("backList") + '</a>'
+                    + '<a href="javascript:void(0)" onclick="closeLessonModal()" class="text-sm font-bold text-violet-700 hover:underline">' + tr("backList") + '</a>'
                     + '<div class="flex items-center gap-2 text-sm">' + shareNameHTML() + '</div></div>';
             }
             /* ===== 分 Tab 互动课件：导读 / 按题型分页 / 成绩报告（参考互动课件 UI） ===== */
             lastGradeRes = null;
             var typeTabs = [
-                { t: 'verse', label: t('tyVerse'), icon: '📜' },
-                { t: 'fill', label: t('tyFill'), icon: '✏️' },
-                { t: 'single', label: t('tySingle'), icon: '🔘' },
-                { t: 'multiple', label: t('tyMulti'), icon: '☑️' },
-                { t: 'judge', label: t('tyJudge'), icon: '⚖️' },
-                { t: 'essay', label: t('tyEssay'), icon: '💬' }
+                { t: 'verse', label: tr('tyVerse'), icon: '📜' },
+                { t: 'fill', label: tr('tyFill'), icon: '✏️' },
+                { t: 'single', label: tr('tySingle'), icon: '🔘' },
+                { t: 'multiple', label: tr('tyMulti'), icon: '☑️' },
+                { t: 'judge', label: tr('tyJudge'), icon: '⚖️' },
+                { t: 'essay', label: tr('tyEssay'), icon: '💬' }
             ].filter(function (mt) { return activeQuizzes.some(function (q) { return q.type === mt.t; }); });
             var CN_NUM = (curLang() === 'zh' || curLang() === 'tw') ? ['一', '二', '三', '四', '五', '六'] : ['1', '2', '3', '4', '5', '6'];
             typeTabs.forEach(function (mt, ti) {
                 mt.num = CN_NUM[ti] || '';
                 mt.count = activeQuizzes.filter(function (q) { return q.type === mt.t; }).length;
             });
-            var tabBtns = '<button id="qtab-overview" onclick="switchQTab(\\'overview\\')" class="qtab-btn qtab-active">' + t("tabGuide") + '</button>'
+            var tabBtns = '<button id="qtab-overview" onclick="switchQTab(\\'overview\\')" class="qtab-btn qtab-active">' + tr("tabGuide") + '</button>'
                 + typeTabs.map(function (mt) {
                     return '<button id="qtab-' + mt.t + '" onclick="switchQTab(\\'' + mt.t + '\\')" class="qtab-btn">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + '<span class="qtab-count">' + tf("nQuestions", { n: mt.count }) + '</span></button>';
                 }).join('')
-                + '<button id="qtab-report" onclick="switchQTab(\\'report\\')" class="qtab-btn qtab-report">' + t("tabReport") + '</button>';
-            var teacherTopBtn = '<button id="teacherBtn" onclick="teacherUnlock()" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-amber-200 border border-amber-500/30 transition">' + t("teacherBtn") + '</button>';
+                + '<button id="qtab-report" onclick="switchQTab(\\'report\\')" class="qtab-btn qtab-report">' + tr("tabReport") + '</button>';
+            var teacherTopBtn = '<button id="teacherBtn" onclick="teacherUnlock()" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-amber-200 border border-amber-500/30 transition">' + tr("teacherBtn") + '</button>';
             document.getElementById('lessonHeader').innerHTML = shareBar
                 + '<div class="sticky top-0 z-40 -mx-3 md:-mx-6 px-3 md:px-6 pt-4 pb-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 shadow-md">'
                 + '<div class="w-full max-w-7xl mx-auto"><div class="flex items-start justify-between gap-3">'
                 + '<div class="min-w-0"><div class="flex items-center gap-2 text-[11px] font-semibold text-indigo-300 uppercase tracking-wider mb-1">'
-                + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(item.category || t("courseWord")) + '</span>'
+                + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(item.category || tr("courseWord")) + '</span>'
                 + (item.subcategory ? '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(item.subcategory) + '</span>' : '')
-                + '<span class="shrink-0">' + t("onlineLesson") + '</span></div>'
+                + '<span class="shrink-0">' + tr("onlineLesson") + '</span></div>'
                 + '<h1 class="text-xl md:text-2xl font-bold text-indigo-50 leading-snug">' + esc(item.title) + '</h1>'
                 + '<p class="text-indigo-300/80 text-xs mt-1">' + subTitle + '</p></div>'
-                + (canViewAnswers() ? teacherTopBtn : '<button onclick="openWrongBook(activeLessonId)" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-indigo-900/80 hover:bg-indigo-800 text-indigo-100 border border-indigo-700/50 transition">' + t("wrongBook") + '</button>')
+                + (canViewAnswers() ? teacherTopBtn : '<button onclick="openWrongBook(activeLessonId)" class="shrink-0 text-xs px-3 py-2 rounded-lg font-bold bg-indigo-900/80 hover:bg-indigo-800 text-indigo-100 border border-indigo-700/50 transition">' + tr("wrongBook") + '</button>')
                 + '</div>'
                 + '<div id="progress-bar" class="text-xs mt-2 text-indigo-200 font-medium">' + tf("progFill", { a: 0, b: totalUnits }) + '</div>'
                 + '<nav class="flex gap-1 overflow-x-auto mt-1.5">' + tabBtns + '</nav>'
@@ -2963,8 +2965,8 @@ function twCourse(c) {
                 + (item.content ? '<div class="prose text-slate-600 bg-slate-50 p-6 rounded-2xl text-sm leading-relaxed max-w-none">' + hlVerse(marked.parse(item.content)) + '</div>' : '')
                 + guideCards
                 + '<div class="bg-amber-50 p-4 rounded-xl border border-amber-200/80 flex items-start gap-3"><div class="shrink-0">💡</div>'
-                + '<div class="text-xs text-amber-900 leading-relaxed whitespace-pre-line"><b>' + t("quizGuideT") + '</b>' + (item.instructions ? esc(item.instructions) : (tf("defaultGuide", { summary: typeSummary || t("multiTypes") }))) + '</div></div>'
-                + '<div class="flex justify-end"><button onclick="switchQTab(\\'' + firstTab + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition">' + t("startQuiz") + '</button></div>'
+                + '<div class="text-xs text-amber-900 leading-relaxed whitespace-pre-line"><b>' + tr("quizGuideT") + '</b>' + (item.instructions ? esc(item.instructions) : (tf("defaultGuide", { summary: typeSummary || tr("multiTypes") }))) + '</div></div>'
+                + '<div class="flex justify-end"><button onclick="switchQTab(\\'' + firstTab + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition">' + tr("startQuiz") + '</button></div>'
                 + '</div></section>';
             /* 按题型分页：有章节则组内再按章节徽章分组 */
             function qCardWrap(q, i, n) {
@@ -2975,12 +2977,12 @@ function twCourse(c) {
                 var qnum = 0;
                 if (hasSections) {
                     var secs = [], secMap = {};
-                    activeQuizzes.forEach(function (q) { var s = (q.s || '').trim() || t("secDefault"); if (!secMap[s]) { secMap[s] = true; secs.push(s); } });
+                    activeQuizzes.forEach(function (q) { var s = (q.s || '').trim() || tr("secDefault"); if (!secMap[s]) { secMap[s] = true; secs.push(s); } });
                     secs.forEach(function (s, si) {
                         var inner = '';
                         activeQuizzes.forEach(function (q, i) {
                             if (q.type !== mt.t) return;
-                            if (((q.s || '').trim() || t("secDefault")) !== s) return;
+                            if (((q.s || '').trim() || tr("secDefault")) !== s) return;
                             if (q.type !== 'verse') { qnum++; }
                             inner += qCardWrap(q, i, qnum);
                         });
@@ -2999,11 +3001,11 @@ function twCourse(c) {
                     secHtml = '<div class="space-y-4">' + flat + '</div>';
                 }
                 var prevBtn = ti > 0
-                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti - 1].t + '\\')" class="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95">' + t("prevType") + typeTabs[ti - 1].label + '</button>'
+                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti - 1].t + '\\')" class="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95">' + tr("prevType") + typeTabs[ti - 1].label + '</button>'
                     : '<span></span>';
                 var nextBtn = ti < typeTabs.length - 1
-                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti + 1].t + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + t("nextType") + typeTabs[ti + 1].label + ' →</button>'
-                    : '<button onclick="switchQTab(\\'report\\')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + t("viewReport") + '</button>';
+                    ? '<button onclick="switchQTab(\\'' + typeTabs[ti + 1].t + '\\')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + tr("nextType") + typeTabs[ti + 1].label + ' →</button>'
+                    : '<button onclick="switchQTab(\\'report\\')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition active:scale-95 shadow">' + tr("viewReport") + '</button>';
                 return '<section id="qsec-' + mt.t + '" class="qsec hidden">'
                     + '<div class="flex items-center gap-2 mb-4"><span class="w-2 h-6 bg-indigo-600 rounded-full"></span>'
                     + '<h2 class="text-xl font-bold text-slate-900">' + mt.icon + ' ' + (mt.num ? mt.num + '、' : '') + mt.label + ' <span class="text-sm font-normal text-slate-400">(' + tf("nQuestions", { n: mt.count }) + ')</span></h2></div>'
@@ -3014,25 +3016,25 @@ function twCourse(c) {
             /* 成绩报告页 */
             var reportSec = '<section id="qsec-report" class="qsec hidden"><div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80 text-center space-y-6">'
                 + '<div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto text-3xl">🎓</div>'
-                + '<div><h2 class="text-2xl font-bold text-slate-900">' + t("reportT") + '</h2><p class="text-xs text-slate-500 mt-1">' + esc(item.title) + t("reportSub") + '</p></div>'
+                + '<div><h2 class="text-2xl font-bold text-slate-900">' + tr("reportT") + '</h2><p class="text-xs text-slate-500 mt-1">' + esc(item.title) + tr("reportSub") + '</p></div>'
                 + '<div class="grid grid-cols-3 gap-3 max-w-3xl mx-auto">'
-                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + t("repAnswered") + '</div><div class="text-xl md:text-2xl font-bold text-indigo-600" id="qr-progress">0 / 0</div></div>'
-                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + t("repObjScore") + '</div><div class="text-xl md:text-2xl font-bold text-emerald-600" id="qr-score">--</div></div>'
-                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + t("repRating") + '</div><div class="text-xl md:text-2xl font-bold text-slate-400" id="qr-rating">' + t("repWait") + '</div></div>'
+                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + tr("repAnswered") + '</div><div class="text-xl md:text-2xl font-bold text-indigo-600" id="qr-progress">0 / 0</div></div>'
+                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + tr("repObjScore") + '</div><div class="text-xl md:text-2xl font-bold text-emerald-600" id="qr-score">--</div></div>'
+                + '<div class="bg-slate-50 p-4 rounded-xl border border-slate-200"><div class="text-xs text-slate-500 mb-1">' + tr("repRating") + '</div><div class="text-xl md:text-2xl font-bold text-slate-400" id="qr-rating">' + tr("repWait") + '</div></div>'
                 + '</div>'
                 + '<p id="qr-hint" class="text-xs text-slate-500 max-w-3xl mx-auto leading-relaxed"></p>'
                 + '<div class="flex flex-wrap justify-center gap-3">'
-                + '<button id="qr-action" onclick="studySubmitBtn()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">' + t("checkBtn") + '</button>'
-                + '<button onclick="toggleStudyEdit();switchQTab(\\'overview\\')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs font-bold transition">' + t("redoBtn") + '</button>'
-                + (canViewAnswers() ? '<button onclick="teacherUnlock()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">' + t("allAnswers") + '</button>' : '')
+                + '<button id="qr-action" onclick="studySubmitBtn()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">' + tr("checkBtn") + '</button>'
+                + '<button onclick="toggleStudyEdit();switchQTab(\\'overview\\')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs font-bold transition">' + tr("redoBtn") + '</button>'
+                + (canViewAnswers() ? '<button onclick="teacherUnlock()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition">' + tr("allAnswers") + '</button>' : '')
                 + '</div></div></section>';
             var bodyHtml = '<div id="quizContainer" class="space-y-6">' + overviewSec + typeSecs + reportSec + '</div>'
                 + '<div class="sticky bottom-0 z-40 mt-6 -mx-3 md:-mx-6 px-3 md:px-6 pb-4 pt-3 bg-gradient-to-t from-white via-white to-transparent">'
                 + '<div class="w-full max-w-7xl mx-auto bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 flex items-center justify-between gap-3">'
                 + '<p id="studyHint" class="text-rose-500 text-xs italic">' + tf("fillActive", { n: totalUnits }) + '</p>'
-                + '<button id="studySubmit" disabled onclick="studySubmitBtn()" class="shrink-0 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold py-2.5 px-6 rounded-xl shadow transition active:scale-95 text-sm">' + t("checkBtn") + '</button>'
+                + '<button id="studySubmit" disabled onclick="studySubmitBtn()" class="shrink-0 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold py-2.5 px-6 rounded-xl shadow transition active:scale-95 text-sm">' + tr("checkBtn") + '</button>'
                 + '</div></div>'
-                + '<footer class="text-center mt-6 text-slate-400 text-xs">' + t("srcFrom") + esc(item.category) + (item.subcategory ? ' · ' + esc(item.subcategory) : '') + ' · ' + esc(item.title) + '</footer>';
+                + '<footer class="text-center mt-6 text-slate-400 text-xs">' + tr("srcFrom") + esc(item.category) + (item.subcategory ? ' · ' + esc(item.subcategory) : '') + ' · ' + esc(item.title) + '</footer>';
             var bodyEl = document.getElementById('lessonBody');
             bodyEl.innerHTML = bodyHtml;
 
@@ -3042,8 +3044,8 @@ function twCourse(c) {
 
             var bb = document.getElementById('backListBtn');
             if (bb) {
-                if (BOOT.shareMode) { bb.innerText = t("backHome"); bb.onclick = function() { location.href = '/'; }; }
-                else { bb.innerText = t("backList"); bb.onclick = function() { location.reload(); }; }
+                if (BOOT.shareMode) { bb.innerText = tr("backHome"); bb.onclick = function() { location.href = '/'; }; }
+                else { bb.innerText = tr("backList"); bb.onclick = function() { location.reload(); }; }
             }
             document.getElementById('resultArea').classList.add('hidden');
             toggleModal('lessonModal');
@@ -3137,7 +3139,7 @@ function twCourse(c) {
                         + (typeLine ? '<div class="text-[11px] text-indigo-500 font-bold mb-1">' + esc(typeLine) + '</div>' : '')
                         + '<div class="text-sm text-slate-800 font-medium mb-2">' + esc(x.question) + '</div>'
                         + '<div class="text-xs mb-1"><span class="text-red-500 font-bold">学员答案：</span><span class="text-slate-600">' + esc(x.user_answer) + '</span></div>'
-                        + '<div class="text-xs"><span class="text-emerald-600 font-bold">' + t("rightAns") + '</span><span class="text-slate-600">' + esc(x.correct_answer) + '</span></div>'
+                        + '<div class="text-xs"><span class="text-emerald-600 font-bold">' + tr("rightAns") + '</span><span class="text-slate-600">' + esc(x.correct_answer) + '</span></div>'
                         + '</div>';
                 }).join('');
                 return '<div class="font-bold text-slate-700 text-sm mt-4 mb-2">📖 ' + esc(k) + '（' + groups[k].length + '题）</div>' + items;
@@ -3622,7 +3624,7 @@ function twCourse(c) {
         function wrongBookName() {
             var nm = "";
             try { nm = (localStorage.getItem(USER_KEY) || "").trim(); } catch (e) {}
-            return nm || t("wbAnon");
+            return nm || tr("wbAnon");
         }
         function openWrongExportMenu() {
             var m = document.getElementById('wrongExportModal');
@@ -3650,9 +3652,9 @@ function twCourse(c) {
             var fc = window._wrongCourseId || null;
             var arr = getWrong()[wrongBookName()] || [];
             if (fc) arr = arr.filter(function(x) { return x.cid === fc; });
-            document.getElementById('wrongExportTitle').innerText = t("expWrongT");
-            document.getElementById('wrongExportCancel').innerText = t("cancel");
-            document.getElementById('wrongExportSub').innerText = tf("wbExpSub", { name: wrongBookName(), n: arr.length }) + (fc ? t("wbScopeOne") : t("wbScopeAll"));
+            document.getElementById('wrongExportTitle').innerText = tr("expWrongT");
+            document.getElementById('wrongExportCancel').innerText = tr("cancel");
+            document.getElementById('wrongExportSub').innerText = tf("wbExpSub", { name: wrongBookName(), n: arr.length }) + (fc ? tr("wbScopeOne") : tr("wbScopeAll"));
             m.style.display = 'flex';
         }
         function closeWrongExportMenu() {
@@ -3665,7 +3667,7 @@ function twCourse(c) {
             var arr = getWrong()[name] || [];
             var fc = window._wrongCourseId || null;
             if (fc) arr = arr.filter(function(x) { return x.cid === fc; });
-            if (!arr.length) { alert(t("wbEmptyAlert")); return; }
+            if (!arr.length) { alert(tr("wbEmptyAlert")); return; }
             var fn = safeFileName(name + '的错题本');
             var pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
             if (fmt === 'html') downloadHTML(fn + '.html', buildWrongHTML(name, arr));
@@ -3681,8 +3683,8 @@ function twCourse(c) {
                 return '<section class="card"><h2>第' + (i + 1) + '题 <span style="font-size:13px;color:#6366f1;">' + esc(wrongTypeNum(x)) + '</span></h2>'
                     + (wrongMeta(x) ? '<p style="font-size:12px;color:#94a3b8;margin:-8px 0 10px;">' + esc(wrongMeta(x)) + '</p>' : '')
                     + '<div class="md"><p>' + esc(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')) + '</p>'
-                    + '<p>' + t("wbU") + '<b style="color:#dc2626;">' + esc(x.u || t("wbNA")) + '</b></p>'
-                    + '<p>' + t("rightAns") + '<b style="color:#059669;">' + esc(x.expected || '') + '</b></p></div></section>';
+                    + '<p>' + tr("wbU") + '<b style="color:#dc2626;">' + esc(x.u || tr("wbNA")) + '</b></p>'
+                    + '<p>' + tr("rightAns") + '<b style="color:#059669;">' + esc(x.expected || '') + '</b></p></div></section>';
             }).join('');
             return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
                 + '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -3713,7 +3715,7 @@ function twCourse(c) {
         }
         function printWrongs(name, arr) {
             var w = window.open('', '_blank');
-            if (!w) { alert(t("popupBlocked")); return; }
+            if (!w) { alert(tr("popupBlocked")); return; }
             w.document.write(buildWrongHTML(name, arr));
             w.document.close();
             w.focus();
@@ -3727,7 +3729,7 @@ function twCourse(c) {
                 var qParas = [pptxPara('【' + (WRONG_TYPE_LABEL[x.type] || x.type || '') + (x.n ? ' · 第' + x.n + '题' : '') + '】', 1800, true, '4F81BD')];
                 if (wrongMeta(x)) qParas.push(pptxPara(wrongMeta(x), 1600, false, '64748B'));
                 qParas.push(pptxPara(String(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')), 1800, false));
-                qParas.push(pptxPara(t("wbU") + (x.u || t("wbNA")), 1800, false, 'C0504D'));
+                qParas.push(pptxPara(tr("wbU") + (x.u || tr("wbNA")), 1800, false, 'C0504D'));
                 var ansParas = [pptxPara('【正确答案】', 1800, true, '047857'), pptxPara(String(x.expected || ''), 2000, false, '047857')];
                 if (single) {
                     slides.push({ t: [pptxPara('第 ' + (i + 1) + ' 题', 3200, true)], b: qParas, a: ansParas });
@@ -3951,7 +3953,7 @@ function twCourse(c) {
             if (teacherMode) {
                 teacherMode = false;
                 document.querySelectorAll('.tch-box').forEach(function(el) { el.remove(); });
-                document.getElementById('teacherBtn').innerText = t("teacherBtn");
+                document.getElementById('teacherBtn').innerText = tr("teacherBtn");
                 return;
             }
             var ansUrl = '/api/answers?course_id=' + encodeURIComponent(activeLessonId || "");
@@ -3959,15 +3961,15 @@ function twCourse(c) {
             if (isStuAdmin) ansUrl += '&username=' + encodeURIComponent(progName()) + '&token=' + encodeURIComponent(studentToken());
             var r = await fetch(ansUrl);
             if (r.status === 403) {
-                if (isStuAdmin) { alert(t("tchExpired")); return; }
-                var p = prompt(t("tchPwPrompt"));
+                if (isStuAdmin) { alert(tr("tchExpired")); return; }
+                var p = prompt(tr("tchPwPrompt"));
                 if (!p) return;
                 var v = await fetch('/api/verify', { method: 'POST', body: JSON.stringify({ password: p }) });
                 var j = await v.json();
-                if (!j.ok) { alert(t("tchPwWrong")); return; }
+                if (!j.ok) { alert(tr("tchPwWrong")); return; }
                 r = await fetch(ansUrl);
             }
-            if (!r.ok) { alert(t("tchAnsFail")); return; }
+            if (!r.ok) { alert(tr("tchAnsFail")); return; }
             var qs = (await r.json()).quizzes || [];
             teacherMode = true;
             activeQuizzes.forEach(function(q, i) {
@@ -3975,11 +3977,11 @@ function twCourse(c) {
                 if (!card || card.querySelector('.tch-box')) return;
                 var div = document.createElement('div');
                 div.className = 'tch-box mt-4 pt-4 border-t border-dashed border-amber-300 text-sm';
-                div.innerHTML = '<span class="font-bold text-amber-700">' + t("tchAnsT") + '</span>'
-                    + '<span class="text-slate-700 font-bold">' + (esc((qs[i] || {}).a) || t("tchOpenAns")) + '</span>';
+                div.innerHTML = '<span class="font-bold text-amber-700">' + tr("tchAnsT") + '</span>'
+                    + '<span class="text-slate-700 font-bold">' + (esc((qs[i] || {}).a) || tr("tchOpenAns")) + '</span>';
                 card.appendChild(div);
             });
-            document.getElementById('teacherBtn').innerText = t("teacherExit");
+            document.getElementById('teacherBtn').innerText = tr("teacherExit");
         }
 
         /* 管理端：智能解析 / 题目行 / 保存 */
