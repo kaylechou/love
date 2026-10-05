@@ -1,7 +1,8 @@
-# 2026-10-05 未部署：经文加粗去下划线（待用户确认部署）
+# 2026-10-05 第 89 次部署：经文加粗去下划线（deployment 05bab19f）
 - .verse-text 去掉 border-bottom 下划线，加 font-weight:700 加粗，琥珀底纹差异化高亮保留
-- 同步 3 处导出 CSS（HTML/Word/Excel/PPT 导出）
+- 同步 3 处导出 CSS（HTML/Word/Excel 导出）
 - PPT 导出经文 run 同步加粗
+- 线上验证：CSS 已生效
 
 # 2026-10-05 第 88 次部署：修复 progName 无限递归
 - progName() 误写成自调用导致永远返回空，登录后姓名按钮不显示、进度/错题未按姓名隔离
