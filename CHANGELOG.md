@@ -1,3 +1,8 @@
+# 2026-10-05 第 88 次部署：修复 progName 无限递归
+- progName() 误写成自调用导致永远返回空，登录后姓名按钮不显示、进度/错题未按姓名隔离
+- 改为从 localStorage 读取用户名
+- 回归：线上 4 段内联脚本全过 node --check
+
 # 2026-10-05 第 87 次部署：第九轮优化
 - progress 表加 (username, course_id) 索引
 - 错题同步改 batch（N 次往返降为 1 次）
