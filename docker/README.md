@@ -33,16 +33,18 @@ docker compose -f docker/docker-compose.yml up -d --build
 
 数据持久化在 `./data/fellowship.db`（SQLite 单文件，备份拷走就行）。
 
-## 从 Cloudflare D1 迁移数据
+## 数据同步（Cloudflare ↔ NAS 双向）
 
+**Cloudflare → NAS（自动）**：每天凌晨自动备份任务检测到课程变化时，
+会同步更新 GitHub 上的 `docker/data/seed.sql`（全量课程+分类数据）。
+
+**NAS 端同步**：在 NAS 上运行同步脚本即可（建议加到群晖计划任务每天执行）：
 ```bash
-# 在本机（需 Cloudflare API Token）导出 D1 全库为 SQL
-# 然后：
-sqlite3 data/fellowship.db < dump.sql
-docker compose -f docker/docker-compose.yml restart
+cd /path/to/love
+bash docker/sync-from-github.sh
 ```
-
-或直接用 `wrangler d1 export` 导出后导入。
+脚本会：拉取最新 seed.sql → 有变化才导入 → 自动备份旧库 → 重启容器。
+用户数据表（成绩/学员/错题本/设置）不受影响，只更新课程和分类。
 
 ## 公网访问
 
