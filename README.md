@@ -140,6 +140,7 @@
 - 前端：原生 HTML / CSS / JavaScript（Tailwind CDN），无构建步骤
 - 管理登录：HttpOnly Cookie + SHA-256 密码哈希；学员密码 SHA-256 加盐哈希
 - 服务端判分；未登录时 API 不下发答案；HTML 带 `Cache-Control: no-store` 防缓存
+- 加载优化：首页只下发课程精简字段（题库/导读按需加载），公开接口边缘缓存 60 秒，首屏请求并行化
 
 ### 数据模型（`courses` 表）
 
@@ -157,7 +158,8 @@
 
 | 接口 | 说明 |
 |---|---|
-| `GET /api/data` | 课程列表（未登录不下发答案） |
+| `GET /api/data` | 课程列表（未登录不下发答案；`?brief=1` 只返回精简字段） |
+| `GET /api/course?id=` | 单门课程完整内容（点开课件时按需加载） |
 | `GET /api/categories` | 系列 / 子栏目两级栏目 |
 | `POST /api/save` | 新建 / 更新课程（管理） |
 | `POST /api/delete` | 删除课程（管理） |
