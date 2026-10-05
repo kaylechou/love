@@ -1,4 +1,3 @@
--- 团契智学 NAS 数据种子（自动生成）
 PRAGMA journal_mode=WAL;
 BEGIN;
 CREATE TABLE IF NOT EXISTS courses (
@@ -131,20 +130,19 @@ INSERT OR REPLACE INTO courses (id,category,title,content,quizzes_json,video_url
 CREATE TABLE IF NOT EXISTS categories (
   parent TEXT DEFAULT '', name TEXT, description TEXT DEFAULT '', created_at TEXT DEFAULT '',
   PRIMARY KEY (parent, name));
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('基要真理','寇绍涵牧师-根基建造101','**根基建造101｜寇绍涵牧师**
+
+讲员：寇绍涵牧师（美国加州曙光华人基督教会主任牧师，晨星之光基金会）
+
+信仰需要根基。正如房屋建在磐石上才能经风历雨，基督徒的生命也必须建造在稳固的真理根基上。本系列从"救恩是什么"等最核心的基要问题入手，带领信徒用圣经真理辨别各样信息，以永恒不变的真理检视自己的信仰和生活经历，把信仰的根基打深、打牢。
+
+适合初信者系统学习，也适合每一位渴望在真道上扎根成长的弟兄姊妹。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('','基要真理','基要真理，是基督徒信仰的根基——关乎我们所信的是谁、为何而信、以及如何活出这份信仰。本系列从圣经、神、基督、圣灵，到救恩、教会、祷告与末世，系统梳理信仰的核心要道，帮助每一位信徒打下扎实稳固的根基，在真道上长大成熟，行事为人能与所蒙的恩相称。');
 INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('','圣经导览','**圣经导览｜66卷逐卷精读**
 
 圣经是神给人最完整的启示，66卷书贯穿创造、堕落、救赎、新造的宏大叙事。本系列按卷逐卷导览，从创世记到启示录，帮助你掌握每卷书的写作背景、结构大纲、核心信息与关键经文，在整本圣经的脉络中认识神的作为。
 
 适合想要系统读经、建立整全圣经观的每一位信徒。愿神的话语成为你脚前的灯、路上的光。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('','基要真理','基要真理，是基督徒信仰的根基——关乎我们所信的是谁、为何而信、以及如何活出这份信仰。本系列从圣经、神、基督、圣灵，到救恩、教会、祷告与末世，系统梳理信仰的核心要道，帮助每一位信徒打下扎实稳固的根基，在真道上长大成熟，行事为人能与所蒙的恩相称。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•保罗书信','罗马书到腓利门书，十三卷保罗书信阐明因信称义、基督里的新生命、教会的真理与生活，是基督徒信仰的基石。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•历史书','使徒行传记载圣灵降临、教会诞生、福音从耶路撒冷传到地极，是教会历史的第一章，也是今日宣教的蓝图。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•普通书信（大公书信）','希伯来书到犹大书，八卷普通书信写给众教会：持守真道、警醒异端、在苦难中忍耐、彼此相爱。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•福音书（四福音书）','四福音书记载耶稣基督的生平、教训、神迹、受死与复活。马太显明他是君王，马可显明他是仆人，路加显明他是人子，约翰显明他是神的儿子。四卷互相补足，见证同一位基督。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•预言书','启示录是圣经的终卷：羔羊得胜、撒但被捆、新天新地。预言给受苦的教会带来盼望，给全地带来警醒。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','旧约•历史书','从约书亚进迦南到以色列被掳归回，十二卷历史书记载神子民的得胜与失败。士师的循环、王国的兴衰、被掳与归回，都显明神的信实与人对顺服的亏欠。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','旧约•大先知书','以赛亚、耶利米、以西结、但以理——大先知书宣告审判与安慰，预言弥赛亚的降临与国度的复兴。哀歌则为耶路撒冷的倾覆哀哭。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','旧约•小先知书（十二小先知书）','从何西阿到玛拉基，十二卷小先知书篇幅虽小、分量却重：呼吁悔改、宣告审判、应许复兴，为弥赛亚铺平道路。');
 INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','旧约•律法书（摩西五经）','摩西五经是整本圣经的根基，由摩西在圣灵感动下写成，记载从创造天地到以色列人在摩押平原预备进入迦南的历史。
 
 - **创世记**：创造、堕落、拣选——神拣选亚伯拉罕建立选民
@@ -154,12 +152,13 @@ INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导�
 - **申命记**：重申、祝福——摩西临终重申律法，祝福与警告并陈
 
 五经奠定了整本圣经的神学基础：创造、约、救赎、圣洁、顺服。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','旧约•历史书','从约书亚进迦南到以色列被掳归回，十二卷历史书记载神子民的得胜与失败。士师的循环、王国的兴衰、被掳与归回，都显明神的信实与人对顺服的亏欠。');
 INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','旧约•诗歌智慧书','五卷诗歌智慧书是圣经的心灵之声：约伯记探讨苦难之谜，诗篇是历代圣徒的祷告赞美，箴言传授生活智慧，传道书看透日光之下的虚空，雅歌歌颂圣洁的爱情。');
-INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('基要真理','寇绍涵牧师-根基建造101','**根基建造101｜寇绍涵牧师**
-
-讲员：寇绍涵牧师（美国加州曙光华人基督教会主任牧师，晨星之光基金会）
-
-信仰需要根基。正如房屋建在磐石上才能经风历雨，基督徒的生命也必须建造在稳固的真理根基上。本系列从"救恩是什么"等最核心的基要问题入手，带领信徒用圣经真理辨别各样信息，以永恒不变的真理检视自己的信仰和生活经历，把信仰的根基打深、打牢。
-
-适合初信者系统学习，也适合每一位渴望在真道上扎根成长的弟兄姊妹。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','旧约•大先知书','以赛亚、耶利米、以西结、但以理——大先知书宣告审判与安慰，预言弥赛亚的降临与国度的复兴。哀歌则为耶路撒冷的倾覆哀哭。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','旧约•小先知书（十二小先知书）','从何西阿到玛拉基，十二卷小先知书篇幅虽小、分量却重：呼吁悔改、宣告审判、应许复兴，为弥赛亚铺平道路。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•福音书（四福音书）','四福音书记载耶稣基督的生平、教训、神迹、受死与复活。马太显明他是君王，马可显明他是仆人，路加显明他是人子，约翰显明他是神的儿子。四卷互相补足，见证同一位基督。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•历史书','使徒行传记载圣灵降临、教会诞生、福音从耶路撒冷传到地极，是教会历史的第一章，也是今日宣教的蓝图。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•保罗书信','罗马书到腓利门书，十三卷保罗书信阐明因信称义、基督里的新生命、教会的真理与生活，是基督徒信仰的基石。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•普通书信（大公书信）','希伯来书到犹大书，八卷普通书信写给众教会：持守真道、警醒异端、在苦难中忍耐、彼此相爱。');
+INSERT OR REPLACE INTO categories (parent,name,description) VALUES ('圣经导览','新约•预言书','启示录是圣经的终卷：羔羊得胜、撒但被捆、新天新地。预言给受苦的教会带来盼望，给全地带来警醒。');
 COMMIT;
