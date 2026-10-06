@@ -329,6 +329,8 @@
 
 ---
 
+## 第101次部署（2026-10-06）
+- hlSubcat 英文讲员徽章修复：Reverend/Pastor/Dr. 开头的"头衔+名字"顺序单独匹配，与中文"名字+头衔"区分处理
 ## 第100次部署（2026-10-06）
 - 课程卡片翻译修复：briefCourse 补上 i18n_json，首页卡片标题/简介随语言切换
 - hlSubcat 三语徽章：Old/New Testament、Reverend/Pastor 等英文及日韩旧新约、讲员名同样实心+描边差异化徽章
