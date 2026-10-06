@@ -4296,7 +4296,7 @@ function i18nCourse(c) {
         function pptxRichPara(text, sz) {
             var segs = verseSegs(esc(text));
             var runs = segs.map(function(sg) {
-                var color = sg.k === 1 ? '7C3AED' : (sg.k === 2 ? 'B45309' : (sg.k === 3 ? '1D4ED8' : (sg.k === 4 ? 'D97706' : null)));
+                var color = sg.k === 1 ? '7C3AED' : (sg.k === 2 ? '92400E' : (sg.k === 3 ? '1D4ED8' : (sg.k === 4 ? 'D97706' : null)));
                 return pptxRun(sg.t, sz, (sg.k === 1 || sg.k === 2), color);
             });
             return '<a:p>' + runs.join('') + '</a:p>';
