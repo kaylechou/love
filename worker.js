@@ -4755,32 +4755,31 @@ function i18nCourse(c) {
                     var xCollapsed = !!cst[xKey];
                     var xBodyId = sBodyId + 'x' + xi;
                     var xChev = xCollapsed ? '\u25B6' : '\u25BC';
-                    return '<div class="ml-5 mt-2 border-l-2 border-violet-100 pl-3 py-1.5">'
-                        + '<div class="flex items-start gap-2">'
+                    return '<div class="ml-2 sm:ml-5 mt-2 border-l-2 border-violet-100 pl-2 sm:pl-3 py-1.5">'
+                        + '<div class="flex items-center gap-1.5">'
                         + '<button data-ckey="' + esc(xKey) + '" data-cbody="' + xBodyId + '" onclick="toggleCat(this)" class="shrink-0 w-5 h-5 flex items-center justify-center text-violet-400 hover:bg-violet-50 rounded"><span class="cat-chev text-xs">' + xChev + '</span></button>'
-                        + '<div class="flex-1 min-w-0"><div class="text-sm font-bold text-slate-700">📁 ' + esc(x.name)
+                        + '<div class="text-sm font-bold text-slate-700 flex-1 min-w-0 truncate">📁 ' + esc(x.name)
                         + ' <span class="text-xs font-normal text-slate-400">' + x.count + ' 门课程</span></div>'
-                        + '<div id="' + xBodyId + '" class="' + (xCollapsed ? 'hidden' : '') + '"><div class="text-xs text-slate-500 mt-0.5 leading-relaxed">' + (x.description ? esc(x.description) : '<span class="text-slate-300">（暂无简介）</span>') + '</div></div></div>'
-                        + '<div class="flex gap-1.5 shrink-0">'
-                        + '<button data-p="' + esc(s.name) + '" data-n="' + esc(x.name) + '" onclick="openCatModal(this.dataset.p, this.dataset.n)" class="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg font-bold">编辑</button>'
-                        + '<button data-p="' + esc(s.name) + '" data-n="' + esc(x.name) + '" onclick="deleteCat(this.dataset.p, this.dataset.n)" class="text-xs bg-red-50 text-red-500 px-2.5 py-1 rounded-lg font-bold">删除</button>'
-                        + '</div></div></div>';
+                        + '<div class="flex gap-1 shrink-0">'
+                        + '<button data-p="' + esc(s.name) + '" data-n="' + esc(x.name) + '" onclick="openCatModal(this.dataset.p, this.dataset.n)" class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg font-bold">编辑</button>'
+                        + '<button data-p="' + esc(s.name) + '" data-n="' + esc(x.name) + '" onclick="deleteCat(this.dataset.p, this.dataset.n)" class="text-xs bg-red-50 text-red-500 px-2 py-1 rounded-lg font-bold">删除</button>'
+                        + '</div></div>'
+                        + '<div id="' + xBodyId + '" class="' + (xCollapsed ? 'hidden' : '') + '"><div class="text-xs text-slate-500 mt-1 leading-relaxed">' + (x.description ? esc(x.description) : '<span class="text-slate-300">（暂无简介）</span>') + '</div></div></div>';
                 }).join('');
                 var sChev = sCollapsed ? '\u25B6' : '\u25BC';
-                return '<div class="border border-slate-100 rounded-2xl p-4">'
-                    + '<div class="flex items-start gap-2">'
+                return '<div class="border border-slate-100 rounded-2xl p-3 sm:p-4">'
+                    + '<div class="flex items-center gap-2">'
                     + '<button data-ckey="' + esc(sKey) + '" data-cbody="' + sBodyId + '" onclick="toggleCat(this)" class="shrink-0 w-6 h-6 flex items-center justify-center text-violet-500 hover:bg-violet-50 rounded-lg"><span class="cat-chev text-xs">' + sChev + '</span></button>'
-                    + '<div class="flex-1 min-w-0">'
-                    + '<div class="font-bold text-slate-800 text-sm">📚 ' + esc(s.name)
+                    + '<div class="font-bold text-slate-800 text-sm flex-1 min-w-0 truncate">📚 ' + esc(s.name)
                     + ' <span class="text-xs font-normal text-slate-400">' + s.totalCount + ' 门课程</span></div>'
+                    + '<div class="flex gap-1 shrink-0">'
+                    + '<button data-p="' + esc(s.name) + '" onclick="openCatModal(this.dataset.p, null)" class="text-xs bg-violet-50 text-violet-600 px-2 py-1 rounded-lg font-bold whitespace-nowrap">＋子栏目</button>'
+                    + '<button data-p="" data-n="' + esc(s.name) + '" onclick="openCatModal(this.dataset.p, this.dataset.n)" class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg font-bold">编辑</button>'
+                    + '<button data-p="" data-n="' + esc(s.name) + '" onclick="deleteCat(this.dataset.p, this.dataset.n)" class="text-xs bg-red-50 text-red-500 px-2 py-1 rounded-lg font-bold">删除</button>'
+                    + '</div></div>'
                     + '<div id="' + sBodyId + '" class="' + (sCollapsed ? 'hidden' : '') + '">'
-                    + '<div class="text-xs text-slate-500 mt-1 leading-relaxed">' + (s.description ? esc(s.description) : '<span class="text-slate-300">（暂无简介，点击编辑添加）</span>') + '</div>'
-                    + subs + '</div></div>'
-                    + '<div class="flex gap-1.5 shrink-0 flex-wrap justify-end">'
-                    + '<button data-p="' + esc(s.name) + '" onclick="openCatModal(this.dataset.p, null)" class="text-xs bg-violet-50 text-violet-600 px-2.5 py-1 rounded-lg font-bold">＋子栏目</button>'
-                    + '<button data-p="" data-n="' + esc(s.name) + '" onclick="openCatModal(this.dataset.p, this.dataset.n)" class="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg font-bold">编辑</button>'
-                    + '<button data-p="" data-n="' + esc(s.name) + '" onclick="deleteCat(this.dataset.p, this.dataset.n)" class="text-xs bg-red-50 text-red-500 px-2.5 py-1 rounded-lg font-bold">删除</button>'
-                    + '</div></div></div>';
+                    + '<div class="text-xs text-slate-500 mt-2 leading-relaxed">' + (s.description ? esc(s.description) : '<span class="text-slate-300">（暂无简介，点击编辑添加）</span>') + '</div>'
+                    + subs + '</div></div>';
             }).join('');
         }
         /* parent 为空 => 系列；非空 => parent 系列下的子栏目 */
