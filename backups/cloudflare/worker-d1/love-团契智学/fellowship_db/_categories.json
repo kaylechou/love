@@ -1,67 +1,80 @@
 [
   {
-    "parent": "基要真理",
-    "name": "寇绍涵牧师-根基建造101",
-    "description": "**根基建造101｜寇绍涵牧师**\n\n讲员：寇绍涵牧师（美国加州曙光华人基督教会主任牧师，晨星之光基金会）\n\n信仰需要根基。正如房屋建在磐石上才能经风历雨，基督徒的生命也必须建造在稳固的真理根基上。本系列从\"救恩是什么\"等最核心的基要问题入手，带领信徒用圣经真理辨别各样信息，以永恒不变的真理检视自己的信仰和生活经历，把信仰的根基打深、打牢。\n\n适合初信者系统学习，也适合每一位渴望在真道上扎根成长的弟兄姊妹。"
+    "parent": "",
+    "name": "圣经导览",
+    "description": "**圣经导览｜66卷逐卷精读**\n\n圣经是神给人最完整的启示，66卷书贯穿创造、堕落、救赎、新造的宏大叙事。本系列按卷逐卷导览，从创世记到启示录，帮助你掌握每卷书的写作背景、结构大纲、核心信息与关键经文，在整本圣经的脉络中认识神的作为。\n\n适合想要系统读经、建立整全圣经观的每一位信徒。愿神的话语成为你脚前的灯、路上的光。",
+    "i18n_json": "{\"en\": {\"name\": \"Bible tour\", \"description\": \"Bible Tour | 66 Volumes Reading\\n\\nThe Bible is God's most complete revelation to man, and the 66 books run through the grand narrative of creation, fall, redemption, and new creation.This series of scroll-by-scroll guides, from Genesis to Revelation, helps you grasp the writing background, structural outlines, core messages, and key scriptures of each book, and learn about God's work throughout the context of the Bible.\\n\\nFor every believer who wants to read the Bible systematically and build a holistic view of the Bible.May the word of God be a lamp to your feet and a light to your path.\"}, \"ja\": {\"name\": \"聖書ツアー\", \"description\": \"聖書ツアー| 66巻読書\\n\\n聖書は人間に対する神の最も完全な啓示であり、66冊の書物は創造、堕落、贖い、新しい創造の壮大な物語を通しています。創世記から黙示録までのこの一連のスクロールバイスクロールガイドは，各書籍の執筆背景，構造的な概要，コアメッセージ，重要な聖句を把握し，聖書の文脈全体を通して神の働きについて学ぶのに役立ちます。\\n\\n体系的に聖書を読み、聖書の全体像を構築したいすべての信者のために。神の言葉があなたの足のともしびと，あなたの道の光となりますように。\"}, \"ko\": {\"name\": \"성경 투어\", \"description\": \"성경 투어 | 66권 읽기\\n\\n성경은 인간에 대한 하나님의 가장 완전한 계시이며, 66 권의 책은 창조, 타락, 구속 및 새로운 창조에 대한 웅장한 서술을 통해 진행됩니다.창세기부터 요한계시록까지 스크롤 바이 스크롤 가이드 시리즈는 각 책의 글쓰기 배경, 구조적 개요, 핵심 메시지 및 핵심 경전을 파악하고 성경의 맥락에서 하나님의 역사에 대해 배우는 데 도움이 된다.\\n\\n체계적으로 성경을 읽고 성경에 대한 전체적인 관점을 구축하고자하는 모든 신자를 위해.하나님의 말씀이 여러분의 발에 등불이 되고 여러분의 길에 빛이 되기를 바랍니다.\"}}"
   },
   {
     "parent": "",
     "name": "基要真理",
-    "description": "基要真理，是基督徒信仰的根基——关乎我们所信的是谁、为何而信、以及如何活出这份信仰。本系列从圣经、神、基督、圣灵，到救恩、教会、祷告与末世，系统梳理信仰的核心要道，帮助每一位信徒打下扎实稳固的根基，在真道上长大成熟，行事为人能与所蒙的恩相称。"
-  },
-  {
-    "parent": "",
-    "name": "圣经导览",
-    "description": "**圣经导览｜66卷逐卷精读**\n\n圣经是神给人最完整的启示，66卷书贯穿创造、堕落、救赎、新造的宏大叙事。本系列按卷逐卷导览，从创世记到启示录，帮助你掌握每卷书的写作背景、结构大纲、核心信息与关键经文，在整本圣经的脉络中认识神的作为。\n\n适合想要系统读经、建立整全圣经观的每一位信徒。愿神的话语成为你脚前的灯、路上的光。"
+    "description": "基要真理，是基督徒信仰的根基——关乎我们所信的是谁、为何而信、以及如何活出这份信仰。本系列从圣经、神、基督、圣灵，到救恩、教会、祷告与末世，系统梳理信仰的核心要道，帮助每一位信徒打下扎实稳固的根基，在真道上长大成熟，行事为人能与所蒙的恩相称。",
+    "i18n_json": "{\"en\": {\"name\": \"Fundamental Truths\", \"description\": \"Fundamental truths are the foundation of the Christian faith-who we believe in, why we believe it, and how we live it. From the Bible, God, Christ, and the Holy Spirit to salvation, church, prayer, and the last days, this series systematically combs the core tenets of faith to help every believer lay a solid and solid foundation, grow and mature in the true way, and act in a way that is commensurate with the grace received.\"}, \"ja\": {\"name\": \"基本的な真理\", \"description\": \"基本的な真理は，キリスト教の信仰の基礎です。わたしたちは誰を信じ，なぜそれを信じ，どのようにそれを生きるのかを信じています。聖書、神、キリスト、聖霊から救い、教会、祈り、終わりの日まで、このシリーズは、すべての信者がしっかりとした堅固な基礎を築き、真の方法で成長し成熟し、受けた恵みに見合った方法で行動するのを助けるために、信仰の中心的な教義を体系的に梳きます。\"}, \"ko\": {\"name\": \"기본 진리\", \"description\": \"근본적인 진리는 그리스도교 신앙의 기초입니다. 우리는 무엇을 믿으며, 왜 그것을 믿으며, 어떻게 살아가는가? 이 시리즈는 성경, 하나님, 그리스도, 성령에서 구원, 교회, 기도, 말세에 이르기까지 모든 신자가 견고하고 견고한 기초를 세우고 참된 방식으로 성장하고 성숙하며 받은 은혜에 상응하는 방식으로 행동하도록 돕기 위해 신앙의 핵심 교리를 체계적으로 결합합니다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "旧约•律法书（摩西五经）",
-    "description": "摩西五经是整本圣经的根基，由摩西在圣灵感动下写成，记载从创造天地到以色列人在摩押平原预备进入迦南的历史。\n\n- **创世记**：创造、堕落、拣选——神拣选亚伯拉罕建立选民\n- **出埃及记**：救赎、立约——神领以色列出埃及，在西奈山颁布律法\n- **利未记**：圣洁、敬拜——教导神的子民如何过圣洁生活亲近圣洁的神\n- **民数记**：旷野、试炼——以色列四十年旷野漂流的信实与失败\n- **申命记**：重申、祝福——摩西临终重申律法，祝福与警告并陈\n\n五经奠定了整本圣经的神学基础：创造、约、救赎、圣洁、顺服。"
+    "name": "新约+保罗书信",
+    "description": "罗马书到腓利门书，十三卷保罗书信阐明因信称义、基督里的新生命、教会的真理与生活，是基督徒信仰的基石。",
+    "i18n_json": "{\"en\": {\"name\": \"New Testament+Epistles of Paul\", \"description\": \"From Romans to Philemon, the thirteenth book of Paul's epistles clarifies that justification by faith, new life in Christ, and the truth and life of the church are the cornerstones of the Christian faith.\"}, \"ja\": {\"name\": \"新約聖書+パウロの手紙\", \"description\": \"ローマ人への手紙からフィレモンへの手紙まで、パウロの手紙の13番目の本は、信仰による義とされること、キリストにある新しいいのち、教会の真理といのちがキリスト教信仰の礎石であることを明確にしています。\"}, \"ko\": {\"name\": \"신약전서+바울서신\", \"description\": \"로마서에서 빌레몬서에 이르기까지 바울의 열세 번째 서간은 신앙에 의한 의화, 그리스도 안에서의 새로운 삶, 교회의 진리와 삶이 그리스도교 신앙의 초석임을 분명히합니다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "旧约•历史书",
-    "description": "从约书亚进迦南到以色列被掳归回，十二卷历史书记载神子民的得胜与失败。士师的循环、王国的兴衰、被掳与归回，都显明神的信实与人对顺服的亏欠。"
+    "name": "新约+历史书",
+    "description": "使徒行传记载圣灵降临、教会诞生、福音从耶路撒冷传到地极，是教会历史的第一章，也是今日宣教的蓝图。",
+    "i18n_json": "{\"en\": {\"name\": \"New Testament+History Book\", \"description\": \"The Acts of the Apostles, which records the coming of the Holy Spirit, the birth of the Church, and the spread of the gospel from Jerusalem to the ends of the earth, is the first chapter in the history of the Church and the blueprint of today's mission.\"}, \"ja\": {\"name\": \"新約聖書+歴史書\", \"description\": \"聖霊の到来，教会の誕生，エルサレムから地の果てまでの福音の広がりを記録した使徒行伝は，教会の歴史の第一章であり，今日の宣教の青写真です。\"}, \"ko\": {\"name\": \"신약성경+역사서\", \"description\": \"성령의 임하심, 교회의 탄생, 예루살렘에서 땅 끝까지의 복음 전파를 기록한 사도행전은 교회 역사의 첫 장이자 오늘날 선교의 청사진입니다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "旧约•诗歌智慧书",
-    "description": "五卷诗歌智慧书是圣经的心灵之声：约伯记探讨苦难之谜，诗篇是历代圣徒的祷告赞美，箴言传授生活智慧，传道书看透日光之下的虚空，雅歌歌颂圣洁的爱情。"
+    "name": "新约+普通书信（大公书信）",
+    "description": "希伯来书到犹大书，八卷普通书信写给众教会：持守真道、警醒异端、在苦难中忍耐、彼此相爱。",
+    "i18n_json": "{\"en\": {\"name\": \"New Testament+General Epistles (Grand Duke Epistles)\", \"description\": \"From the Book of Hebrews to the Book of Jude, eight ordinary volumes of letters were written to the churches: to hold on to the word of truth, to guard against heresy, to endure suffering, and to love one another.\"}, \"ja\": {\"name\": \"新約聖書一般書簡（公会議書簡）\", \"description\": \"ヘブル書からユダ書まで、真理の言葉を守り、異端を防ぎ、苦しみに耐え、互いに愛し合うために、8巻の通常の手紙が教会に書かれていました。\"}, \"ko\": {\"name\": \"신약+일반 서신 (대공 서신)\", \"description\": \"히브리서에서 유다서에 이르기까지, 진리의 말씀을 붙잡고, 이단을 막고, 고통을 견디고, 서로 사랑하라는 여덟 권의 평범한 편지가 교회에 쓰여졌다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "旧约•大先知书",
-    "description": "以赛亚、耶利米、以西结、但以理——大先知书宣告审判与安慰，预言弥赛亚的降临与国度的复兴。哀歌则为耶路撒冷的倾覆哀哭。"
+    "name": "新约+福音书（四福音书）",
+    "description": "四福音书记载耶稣基督的生平、教训、神迹、受死与复活。马太显明他是君王，马可显明他是仆人，路加显明他是人子，约翰显明他是神的儿子。四卷互相补足，见证同一位基督。",
+    "i18n_json": "{\"en\": {\"name\": \"New Testament+Gospels (Four Gospels)\", \"description\": \"The four Gospels record the life, teachings, miracles, death, and resurrection of Jesus Christ. Matthew shows that he is a king, Mark shows that he is a servant, Luke shows that he is a son of man, and John shows that he is a son of God. The four volumes complement each other and bear witness to the same Christ.\"}, \"ja\": {\"name\": \"新約聖書+福音書（ 4つの福音書）\", \"description\": \"4つの福音書は，イエス・キリストの生涯，教え，奇跡，死，復活を記録しています。マタイは自分が王であることを示し，マルコは自分がしもべであることを示し，ルカは自分が人の子であることを示し，ヨハネは自分が神の子であることを示しています。四巻は互いに補完し合い，同じキリストの証となります。\"}, \"ko\": {\"name\": \"신약성경+복음서 (4복음서)\", \"description\": \"사복음서는 예수 그리스도의 생애, 가르침, 기적, 죽음, 부활을 기록한다. 마태는 그가 왕이라는 것을 보여주고, 마가는 그가 종이라는 것을 보여주고, 누가는 그가 사람의 아들이라는 것을 보여주고, 요한은 그가 하나님의 아들이라는 것을 보여줍니다. 네 권은 서로를 보완하고 동일한 그리스도를 증언합니다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "旧约•小先知书（十二小先知书）",
-    "description": "从何西阿到玛拉基，十二卷小先知书篇幅虽小、分量却重：呼吁悔改、宣告审判、应许复兴，为弥赛亚铺平道路。"
+    "name": "新约+预言书",
+    "description": "启示录是圣经的终卷：羔羊得胜、撒但被捆、新天新地。预言给受苦的教会带来盼望，给全地带来警醒。",
+    "i18n_json": "{\"en\": {\"name\": \"New Testament+Book of Prophecies\", \"description\": \"The book of Revelation is the final book of the Bible: the victory of the Lamb, the bondage of Satan, the new heavens and the new earth. Prophecy brings hope to the suffering church, and vigilance to the whole earth.\"}, \"ja\": {\"name\": \"新約聖書+預言書\", \"description\": \"黙示録は聖書の最後の本です：子羊の勝利、サタンの束縛、新しい天と新しい地。預言は，苦しんでいる教会に希望をもたらし，全地に警戒をもたらします。\"}, \"ko\": {\"name\": \"신약성경+예언서\", \"description\": \"요한계시록은 성경의 마지막 책입니다. 어린양의 승리, 사탄의 속박, 새 하늘과 새 땅. 예언은 고통받는 교회에 희망을, 온 땅에 경계를 가져다줍니다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "新约•福音书（四福音书）",
-    "description": "四福音书记载耶稣基督的生平、教训、神迹、受死与复活。马太显明他是君王，马可显明他是仆人，路加显明他是人子，约翰显明他是神的儿子。四卷互相补足，见证同一位基督。"
+    "name": "旧约+历史书",
+    "description": "从约书亚进迦南到以色列被掳归回，十二卷历史书记载神子民的得胜与失败。士师的循环、王国的兴衰、被掳与归回，都显明神的信实与人对顺服的亏欠。",
+    "i18n_json": "{\"en\": {\"name\": \"Old Testament+History Books\", \"description\": \"From the entry of Joshua into Canaan to the return of the captivity of Israel, the twelve books of history record the triumphs and defeats of God's people. The circulation of judges, the rise and fall of the kingdom, the exile and return, all revealed God's faithfulness and man's debt to obedience.\"}, \"ja\": {\"name\": \"旧約聖書+歴史書\", \"description\": \"ヨシュアのカナンへの入国から，イスラエルの捕囚の帰還まで，歴史の十二書は，神の民の勝利と敗北を記録しています。裁判官の流布、王国の興亡、追放と帰還、すべてが神の忠実さと従順に対する人間の借りを明らかにしました。\"}, \"ko\": {\"name\": \"구약성경+역사서\", \"description\": \"여호수아가 가나안에 입성할 때부터 이스라엘의 포로가 돌아올 때까지, 열두 권의 역사서는 하나님의 백성의 승리와 패배를 기록하고 있다. 사사의 순환, 왕국의 흥망, 유배와 귀환은 모두 하나님의 신실하심과 순종에 대한 인간의 빚을 드러냈다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "新约•历史书",
-    "description": "使徒行传记载圣灵降临、教会诞生、福音从耶路撒冷传到地极，是教会历史的第一章，也是今日宣教的蓝图。"
+    "name": "旧约+大先知书",
+    "description": "以赛亚、耶利米、以西结、但以理——大先知书宣告审判与安慰，预言弥赛亚的降临与国度的复兴。哀歌则为耶路撒冷的倾覆哀哭。",
+    "i18n_json": "{\"en\": {\"name\": \"Old Testament+The Great Prophet\", \"description\": \"Isaiah, Jeremiah, Ezekiel, Daniel - the great prophets proclaimed judgment and consolation, prophesied the coming of the Messiah and the restoration of the kingdom. Lamentations weep for the overthrow of Jerusalem.\"}, \"ja\": {\"name\": \"旧約聖書+偉大な預言者\", \"description\": \"イザヤ，エレミヤ，エゼキエル，ダニエル-偉大な預言者たちは裁きと慰めを宣べ伝え，メシアの到来と王国の回復を預言しました。嘆きはエルサレムの打倒のために泣き叫びます。\"}, \"ko\": {\"name\": \"구약성경+위대한 선지자\", \"description\": \"이사야, 예레미야, 에스겔, 다니엘 - 위대한 선지자들은 심판과 위로를 선포하고 메시아의 오심과 왕국의 회복을 예언했습니다. 예루살렘의 전복을 위해 애통이 울부짖는다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "新约•保罗书信",
-    "description": "罗马书到腓利门书，十三卷保罗书信阐明因信称义、基督里的新生命、教会的真理与生活，是基督徒信仰的基石。"
+    "name": "旧约+小先知书（十二小先知书）",
+    "description": "从何西阿到玛拉基，十二卷小先知书篇幅虽小、分量却重：呼吁悔改、宣告审判、应许复兴，为弥赛亚铺平道路。",
+    "i18n_json": "{\"en\": {\"name\": \"Old Testament+Lesser Prophets (12 Lesser Prophets)\", \"description\": \"From Hosea to Malachi, the twelve small prophets, though small in size and weight, called for repentance, pronounced judgment, promised restoration, and paved the way for the Messiah.\"}, \"ja\": {\"name\": \"旧約聖書+小預言者（ 12人の小預言者）\", \"description\": \"ホセアからマラキに至るまで， 12人の小さな預言者たちは，大きさも重さも小さいものの，悔い改めを求め，裁きを宣べ伝え，回復を約束し，メシアへの道を開きました。\"}, \"ko\": {\"name\": \"구약성경+소선지자 (12명의 소선지자)\", \"description\": \"호세아에서 말라기까지, 작은 선지자 열두 명은 크기와 무게는 작지만 회개를 요구하고, 심판을 선고하고, 회복을 약속하고, 메시아의 길을 닦았다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "新约•普通书信（大公书信）",
-    "description": "希伯来书到犹大书，八卷普通书信写给众教会：持守真道、警醒异端、在苦难中忍耐、彼此相爱。"
+    "name": "旧约+律法书（摩西五经）",
+    "description": "摩西五经是整本圣经的根基，由摩西在圣灵感动下写成，记载从创造天地到以色列人在摩押平原预备进入迦南的历史。\n\n- **创世记**：创造、堕落、拣选——神拣选亚伯拉罕建立选民\n- **出埃及记**：救赎、立约——神领以色列出埃及，在西奈山颁布律法\n- **利未记**：圣洁、敬拜——教导神的子民如何过圣洁生活亲近圣洁的神\n- **民数记**：旷野、试炼——以色列四十年旷野漂流的信实与失败\n- **申命记**：重申、祝福——摩西临终重申律法，祝福与警告并陈\n\n五经奠定了整本圣经的神学基础：创造、约、救赎、圣洁、顺服。",
+    "i18n_json": "{\"en\": {\"name\": \"Old Testament+Book of the Law (Pentateuch)\", \"description\": \"The Pentateuch is the foundation of the entire Bible, written by Moses in the Holy Spirit, and records the history from the creation of the heavens and the earth to the preparation of the Israelites for their entry into Canaan in the plains of Moab.\\n\\n- Genesis: Creation, Fall, Election - God Chosen Abraham to Build His Chosen People\\n- Exodus: Redemption, covenant - God brought Israel out of Egypt and promulgated the law on Mount Sinai\\n- Leviticus: Holiness, Worship - Teaching God's people how to live holy lives and draw near to a holy God\\n- Numbers: Wilderness, Trial - Faithfulness and Failure of Israel's Forty Years of Wandering in the Wilderness\\n- Deuteronomy: Reaffirmation, Blessings - Moses' final restatement of the law, blessings and warnings.\\n\\nThe Pentateuch lays the theological foundation for the entire Bible: creation, covenant, redemption, holiness, obedience.\"}, \"ja\": {\"name\": \"旧約聖書+律法の書（五）\", \"description\": \"聖霊によってモーセによって書かれた聖書全体の基礎は、五であり、天と地の創造から、モアブの平野でカナンに入るためのイスラエル人の準備までの歴史を記録しています。\\n\\n-創世記：創造、堕落、選挙-神は選ばれた民を築くためにアブラハムを選ばれました\\n-出エジプト記：贖い、聖約-神はイスラエルをエジプトから連れ出し、シナイ山に律法を公布されました\\n-レビ記：聖性、崇拝-聖なる生活を送り、聖なる神に近づく方法を神の民に教える\\n-数字：荒野、試練-イスラエルの荒野をさまよう40年の忠実さと失敗\\n-申命記：再確認、祝福-モーセの律法、祝福、警告の最終的な再陳述。\\n\\n五は、聖書全体の神学的基盤、すなわち創造、契約、贖い、聖性、従順を築きます。\"}, \"ko\": {\"name\": \"구약성경+율법서 (오경)\", \"description\": \"오경은 모세가 성령으로 기록한 성경 전체의 기초이며, 하늘과 땅의 창조부터 모압 평원에서 가나안으로 들어가기 위한 이스라엘 백성의 준비에 이르기까지의 역사를 기록한다.\\n\\n- 창세기: 창조, 타락, 선택 - 하나님께서 아브라함을 택하사 택하신 백성을 세우셨음\\n- 출애굽: 구속, 언약 - 하나님께서 이스라엘을 애굽에서 인도하여 내시고 시내산에서 율법을 공포하셨다.\\n- 레위기: 거룩함, 예배 - 하나님의 백성들에게 거룩한 삶을 살고 거룩한 하나님을 가까이하는 방법을 가르칩니다.\\n- 숫자: 광야, 시련 - 광야에서 헤매는 이스라엘의 40년간의 충실함과 실패\\n- 신명기: 재확인, 축복 - 모세의 마지막 율법, 축복 및 경고.\\n\\n오경은 창조, 성약, 구속, 거룩함, 순종 등 성경 전체의 신학적 기초를 놓는다.\"}}"
   },
   {
     "parent": "圣经导览",
-    "name": "新约•预言书",
-    "description": "启示录是圣经的终卷：羔羊得胜、撒但被捆、新天新地。预言给受苦的教会带来盼望，给全地带来警醒。"
+    "name": "旧约+诗歌智慧书",
+    "description": "五卷诗歌智慧书是圣经的心灵之声：约伯记探讨苦难之谜，诗篇是历代圣徒的祷告赞美，箴言传授生活智慧，传道书看透日光之下的虚空，雅歌歌颂圣洁的爱情。",
+    "i18n_json": "{\"en\": {\"name\": \"Old Testament+Wisdom Book of Poetry\", \"description\": \"The five-volume Book of Songs and Wisdom is the spiritual voice of the Bible: Job explores the mystery of suffering, the Psalms are the prayers and praises of the saints of all ages, the Proverbs teach the wisdom of life, the Ecclesiastes sees through the void under the sun, and the Song of Songs praises holy love.\"}, \"ja\": {\"name\": \"旧約聖書+詩の知恵の書\", \"description\": \"五巻の歌と知恵の書は聖書の霊的な声です。ヨブは苦しみの神秘を探求し、詩篇はすべての時代の聖徒の祈りと賛美であり、箴言は人生の知恵を教え、伝道者は太陽の下の空虚を見抜き、歌の歌は聖なる愛を賛美します。\"}, \"ko\": {\"name\": \"구약성경+시의 지혜서\", \"description\": \"욥은 고난의 신비를 탐구하고, 시편은 모든 시대의 성도들의 기도와 찬양이며, 잠언은 삶의 지혜를 가르치고, 전도서는 태양 아래 공허를 통해 보며, 노래는 거룩한 사랑을 찬양합니다.\"}}"
+  },
+  {
+    "parent": "基要真理",
+    "name": "寇绍涵牧师+根基建造101",
+    "description": "**根基建造101｜寇绍涵牧师**\n\n讲员：寇绍涵牧师（美国加州曙光华人基督教会主任牧师，晨星之光基金会）\n\n信仰需要根基。正如房屋建在磐石上才能经风历雨，基督徒的生命也必须建造在稳固的真理根基上。本系列从\"救恩是什么\"等最核心的基要问题入手，带领信徒用圣经真理辨别各样信息，以永恒不变的真理检视自己的信仰和生活经历，把信仰的根基打深、打牢。\n\n适合初信者系统学习，也适合每一位渴望在真道上扎根成长的弟兄姊妹。",
+    "i18n_json": "{\"en\": {\"name\": \"Reverend Kou Shaohan+Foundation Construction 101\", \"description\": \"Foundation 101 | Reverend Kou Shaohan\\n\\nSpeaker: Pastor Kou Shaohan (Senior Pastor, Dawn Chinese Christian Church, California, USA, Morningstar Light Foundation)\\n\\nFaith needs a foundation.Just as houses are built on rocks to weather the storm, so must the Christian life be built on a firm foundation of truth.Starting with the most central and fundamental questions such as \\\"What is salvation?\\\", this series leads believers to discern various messages with biblical truths, examine their beliefs and life experiences with eternal and unchanging truths, and deepen and strengthen the foundation of their faith.\\n\\nIt is suitable for new believers to learn systematically, and it is also suitable for every brother and sister who are eager to take root and grow in the true way.\"}, \"ja\": {\"name\": \"Kou Shaohan牧師+基礎建設101\", \"description\": \"財団101 | Kou Shaohan牧師\\n\\n講演者： Kou Shaohan牧師（米国カリフォルニア州Dawn Chinese Christian Church、Morningstar Light Foundation、シニア牧師）\\n\\n信仰には基盤が必要です。家が嵐を乗り切るために岩の上に建てられているように、クリスチャンの生活も真理のしっかりした基盤の上に建てられなければなりません。このシリーズは，「救いとは何か」などの最も中心的で根本的な質問から始まり，聖書の真理でさまざまなメッセージを識別し，永遠に変わらない真理で自分の信念と人生経験を調べ，信仰の基礎を深め，強化するよう信者を導きます。\\n\\n新しい信者が体系的に学ぶのに適しており、真の方法で根付き、成長することを熱望するすべての兄弟姉妹にも適しています。\"}, \"ko\": {\"name\": \"코우 샤오한 (Kou Shaohan) 목사+기초 건축 개론\", \"description\": \"파운데이션 101 | 코우 샤오한 목사\\n\\n연사: Kou Shaohan 목사 (Morningstar Light Foundation 미국 캘리포니아 Dawn Chinese Christian Church 담임목사)\\n\\n신앙에는 기초가 필요합니다.폭풍우를 견디기 위해 바위 위에 집들이 지어지듯이 그리스도인의 삶도 진리의 굳건한 기초 위에 세워져야 합니다.이 시리즈는 \\\"구원이란 무엇인가?\\\" 와 같은 가장 중심적이고 근본적인 질문으로 시작하여 신자들이 성경적 진리로 다양한 메시지를 분별하고, 영원하고 변하지 않는 진리로 신념과 삶의 경험을 검토하며, 신앙의 기초를 심화하고 강화하도록 이끕니다.\\n\\n새로운 신자들이 체계적으로 배우기에 적합하며, 참된 방법으로 뿌리를 내리고 성장하기를 열망하는 모든 형제 자매들에게도 적합합니다.\"}}"
   }
 ]
