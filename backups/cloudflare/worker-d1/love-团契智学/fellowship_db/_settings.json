@@ -1,10 +1,22 @@
 [
   {
-    "key": "schema_v2",
-    "value": "1"
-  },
-  {
     "key": "notice",
     "value": "给弟兄姊妹的一封信｜团契智学平台  亲爱的弟兄姊妹，主内平安！  想和大家分享一个好消息：我们的线上学习平台「团契智学」最近做了一些贴心的升级，希望能陪伴大家在真道上走得更稳、更远。  ✨ 一些贴心的小功能 － 右下角「字」按钮，字太小看不清就点它放大 － 首页可按系列、子栏目折叠浏览，也可直接搜索 － 记得先写上你的名字，成绩会安安静静记在你名下 － 核对完可看每道错题的\"你的答案 vs 正确答案\"，错题自动进错题本方便复习 － 老师分享的单课链接点开即学，学完点「返回智学课程系统」回首页  不用赶进度，按自己的节奏来就好。愿我们在真道上一起扎根，一起成长。🌱"
+  },
+  {
+    "key": "notice_en",
+    "value": "A Letter to Brothers and Sisters | Dear Brothers and Sisters of the Fellowship of Wisdom Platform, Peace in the Lord! I want to share some good news with you: our online learning platform \"Fellowship Intelligence\" has recently made some thoughtful upgrades, hoping to accompany you to walk more steadily and further in the true way.  ✨ Some thoughtful small functions - The \"Word\" button in the bottom right corner, click it to enlarge if the word is too small to see it - The homepage can be folded and browsed by series and sub-columns, or directly searched - Remember to write your name first, and the grades will be quietly and quietly recorded in your name - After checking, you can see \"Your Answers vs. Correct Answers\" for each wrong question. The wrong question automatically enters the wrong question book for easy review - The teacher shares a single lesson link and clicks on it to learn, and after learning, \"Return to the Intelligence Course System\" The homepage does not need to catch up with progress, just follow your own rhythm. May we take root and grow together in the true way.🌱"
+  },
+  {
+    "key": "notice_ja",
+    "value": "兄弟姉妹への手紙|知恵プラットフォーム親愛なる兄弟姉妹の皆さん，主にある平安！良いお知らせがあります。当社のオンライン学習プラットフォーム「Fellowship Intelligence」は最近、いくつかの考え抜かれたアップグレードを行い、より着実に真の道を歩むためにあなたに同行したいと考えています。✨いくつかの思慮深い小さな機能-右下隅の「単語」ボタンをクリックして、単語が小さすぎて見えない場合は拡大します-ホームページは、シリーズとサブ列で折り畳んで閲覧することも、直接検索することもできます-最初に名前を書くことを忘れないでください。成績はあなたの名前に静かに静かに記録されます-チェックすると、間違った質問ごとに「あなたの答えと正しい答え」が表示されます。間違った質問は、簡単に確認できるように間違った質問帳に自動的に入力されます-教師は単一のレッスンリンクを共有し、それをクリックして学習し、学習後に「インテリジェンスコースシステムに戻る」ホームページは進捗状況に追いつく必要はなく、自分のリズムに従うだけです。私たちが根を張り、真の方法で共に成長しますように。🌱"
+  },
+  {
+    "key": "notice_ko",
+    "value": "형제자매들에게 보내는 편지 | 지혜의 원정대 형제자매 여러분, 주님 안에서 평화를 빕니다! 여러분과 좋은 소식을 나누고자 합니다. 저희 온라인 학습 플랫폼 \"Fellowship Intelligence\" 는 최근 몇 가지 사려 깊은 업그레이드를 진행했습니다. 여러분과 함께 진정한 방식으로 더 안정적이고 더 멀리 걸어갈 수 있기를 바랍니다.  ✨ 몇 가지 사려 깊은 작은 기능 - 오른쪽 하단의 \"단어\" 버튼을 클릭하면 단어가 너무 작아서 볼 수없는 경우 확대 할 수 있습니다. 홈페이지는 시리즈 및 하위 열별로 접어서 탐색하거나 직접 검색 할 수 있습니다. 먼저 이름을 적어 두어야하며 성적이 조용하고 조용히 이름으로 기록됩니다. 확인 후 각 잘못된 질문에 대해 \"답변 대 정답\" 을 볼 수 있습니다. 잘못된 질문은 자동으로 잘못된 질문 책에 들어가서 쉽게 복습 할 수 있습니다. - 교사는 하나의 수업 링크를 공유하고 클릭하여 배우고 학습 한 후 \"지능 과정 시스템으로 돌아가기\" 홈페이지는 진행 상황을 따라 잡을 필요가 없으며 자신의 리듬을 따르기 만하면됩니다. 참된 방법으로 뿌리를 내리고 함께 성장하길 바랍니다.🌱"
+  },
+  {
+    "key": "schema_v2",
+    "value": "1"
   }
 ]
