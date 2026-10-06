@@ -3853,8 +3853,11 @@ function i18nCourse(c) {
                     }
                     var ws = '';
                     if (t === 'essay') {
+                        var ansLen = 0;
+                        try { ansLen = String(expAnswer(q) || '').length; } catch (e) {}
+                        var wsLines = Math.max(3, Math.min(15, Math.ceil(ansLen / 30)));
                         ws = '<div class="ws">';
-                        for (var wi = 0; wi < 5; wi++) ws += '<div class="ws-line"></div>';
+                        for (var wi = 0; wi < wsLines; wi++) ws += '<div class="ws-line"></div>';
                         ws += '</div>';
                     }
                     var qtextHtml = (t === 'verse') ? '<span class="verse-text">' + qtext + '</span>' : qtext;
@@ -4530,9 +4533,14 @@ function i18nCourse(c) {
                             body += docxPara('   ' + (letters[oi] || '') + '. ' + String(opt).trim(), {color: '475569'});
                         });
                     }
-                    // 填空线
-                    if (t === 'fill' || t === 'verse') {
-                        // 已在题干中用下划线表示
+                    // 问答题：按答案长度留白
+                    if (t === 'essay') {
+                        var ansLen = 0;
+                        try { ansLen = String(expAnswer(q) || '').length; } catch (e) {}
+                        var wsLines = Math.max(3, Math.min(15, Math.ceil(ansLen / 30)));
+                        for (var wli = 0; wli < wsLines; wli++) {
+                            body += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:color="999999"/></w:pBdr><w:spacing w:after="40"/></w:pPr><w:r><w:t xml:space="preserve"> </w:t></w:r></w:p>';
+                        }
                     }
                 });
             });
