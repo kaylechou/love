@@ -329,6 +329,12 @@
 
 ---
 
+## 第97次部署（2026-10-06）
+- 课程内容多语言显示：新增 i18nCourse()，英日韩模式下课程卡片和课件内的标题、导读、课程导览、题目自动用 i18n_json 翻译，无翻译回退中文
+- 公告三语：settings 表新增 notice_en/ja/ko，/api/notice 返回三语，前端按语言自动切换
+- 第一课《第一课 人为何需要神？》三语翻译已入库（标题/导读/7章导览/19道题）
+- 新增每日自动任务 course-batch-translate（05:30），每天翻译3门课，约30天完成97门
+- 修复部署中的 notice_en 未定义 bug（renderHTML 参数传递）
 ## 第96次部署 — 英文圣经NIV/KJV可选 + 系列/子栏目英日韩翻译（deployment b4bb5f06，2026-10-06）
 - D1 新增 bible_verses 表（92处经文 NIV/KJV 全文），新增 /api/bible 公开接口
 - 语言面板新增 "📖 English Bible Version" 切换（NIV/KJV，localStorage 记住，默认NIV）
