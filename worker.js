@@ -1045,7 +1045,11 @@ function renderHTML(results, categories, opts) {
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/95 z-[70] flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-7xl h-[90vh] flex flex-col md:flex-row overflow-hidden shadow-2xl relative">
             <button onclick="toggleModal('editModal')" class="absolute top-3 right-3 z-10 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full text-xl bg-white/80">✕</button>
-            <div class="w-full md:w-1/3 p-6 border-r overflow-y-auto space-y-4 bg-slate-50">
+            <div class="md:hidden flex bg-slate-100 m-3 mb-0 rounded-xl p-1 text-sm font-bold shrink-0">
+                <button type="button" id="emTabInfo" onclick="switchEmTab('info')" class="flex-1 py-2 rounded-lg bg-white shadow">📝 基本信息</button>
+                <button type="button" id="emTabQuiz" onclick="switchEmTab('quiz')" class="flex-1 py-2 rounded-lg">🧩 题目编辑</button>
+            </div>
+            <div id="emPaneInfo" class="w-full md:w-1/3 p-6 border-r overflow-y-auto space-y-4 bg-slate-50">
                 <h2 class="font-black text-indigo-900 text-xs">内容录入</h2>
                 <textarea id="importText" class="w-full h-40 border p-3 rounded-xl text-xs" placeholder="粘贴题目...（## 开头表示章节名；填空题含 ____ 会自动识别为填空）"></textarea>
                 <button onclick="smartParse()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm">✨ 智能解析</button>
@@ -1075,7 +1079,7 @@ function renderHTML(results, categories, opts) {
                 <textarea id="f_instructions" placeholder="答题说明（留空则自动生成）..." class="w-full h-20 border p-3 rounded-xl text-sm"></textarea>
                 <textarea id="f_video" rows="3" placeholder="视频链接（可选，一行一个；格式：名称|链接，如：&#10;YouTube|https://youtu.be/xxx&#10;企业微盘|https://drive.weixin.qq.com/...&#10;只写链接也行，会自动识别网站名）" class="w-full border p-3 rounded-xl text-sm"></textarea>
             </div>
-            <div class="flex-1 p-6 flex flex-col overflow-hidden">
+            <div id="emPaneQuiz" class="flex-1 p-6 hidden md:flex flex-col overflow-hidden">
                 <div class="flex items-center gap-2 mb-3 flex-wrap">
                     <div class="flex bg-slate-100 rounded-lg p-0.5 text-xs font-bold">
                         <button type="button" id="qModeVisual" class="px-3 py-1.5 rounded-md">🧩 可视化</button>
@@ -2638,6 +2642,21 @@ function i18nCourse(c) {
             }
         }
 
+        function switchEmTab(which) {
+            var isMobile = window.innerWidth < 768;
+            var info = document.getElementById('emPaneInfo');
+            var quiz = document.getElementById('emPaneQuiz');
+            var tInfo = document.getElementById('emTabInfo');
+            var tQuiz = document.getElementById('emTabQuiz');
+            if (!isMobile) return;
+            if (which === 'quiz') {
+                info.classList.add('hidden'); quiz.classList.remove('hidden'); quiz.classList.add('flex');
+                tQuiz.classList.add('bg-white', 'shadow'); tInfo.classList.remove('bg-white', 'shadow');
+            } else {
+                quiz.classList.add('hidden'); quiz.classList.remove('flex'); info.classList.remove('hidden');
+                tInfo.classList.add('bg-white', 'shadow'); tQuiz.classList.remove('bg-white', 'shadow');
+            }
+        }
         function toggleModal(id) {
             var el = document.getElementById(id);
             el.classList.toggle('hidden');
@@ -5082,7 +5101,8 @@ function i18nCourse(c) {
             if (r.status === 403) { alert("请先登录管理端后再发布"); return; }
             if (r.ok) location.reload(); else alert("保存失败");
         }
-        function openEditModal() { document.getElementById('f_id').value = ""; document.getElementById('f_video').value = ""; document.getElementById('f_instructions').value = ""; document.getElementById('f_series_new').value = ""; document.getElementById('f_sub_new').value = ""; document.getElementById('quizList').innerHTML = ""; guideData = []; initGuideEditor(); renderGuideEditor(); renderCatForm(); addQuizRow(); document.getElementById('quizJson').value = ""; initQuizMode(); setQuizMode('visual'); document.getElementById('guideJson').value = ""; initGuideMode(); setGuideMode('visual'); toggleModal('editModal'); }
+        function openEditModal() { if (window.innerWidth < 768) switchEmTab('info');
+            document.getElementById('f_id').value = ""; document.getElementById('f_video').value = ""; document.getElementById('f_instructions').value = ""; document.getElementById('f_series_new').value = ""; document.getElementById('f_sub_new').value = ""; document.getElementById('quizList').innerHTML = ""; guideData = []; initGuideEditor(); renderGuideEditor(); renderCatForm(); addQuizRow(); document.getElementById('quizJson').value = ""; initQuizMode(); setQuizMode('visual'); document.getElementById('guideJson').value = ""; initGuideMode(); setGuideMode('visual'); toggleModal('editModal'); }
         async function editCourse(id) {
             var item = null;
             for (var k = 0; k < allData.length; k++) { if (allData[k].id === id) { item = allData[k]; break; } }
