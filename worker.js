@@ -806,7 +806,7 @@ function renderHTML(results, categories, opts) {
         #studySubmit:disabled { background-color: #cbd5e1 !important; cursor: not-allowed; transform: none !important; }
         .sopt { display: inline-flex; align-items: center; border: 2px solid #e2e8f0; border-radius: 12px; padding: 8px 18px; cursor: pointer; font-size: .95rem; color: #334155; transition: all .2s; background: #fff; }
         /* 字号调节浮钮（全站可见，含分享页） */
-        #fontFab { position: fixed; right: 1rem; bottom: 5rem; z-index: 100; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+        #fontFab { position: fixed; right: 0.5rem; bottom: 5rem; z-index: 100; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
         #fontFabBtn { height: 3rem; padding: 0 1.1rem; border-radius: 9999px; background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff; font-weight: 900; font-size: 1rem; box-shadow: 0 6px 20px rgba(124,93,250,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; }
         #fontFabBtn:active { transform: scale(.94); }
         #videoToggleBtn { width: 2.6rem; height: 2.6rem; border-radius: 9999px; background: linear-gradient(135deg,#f59e0b,#ef4444); color: #fff; font-size: 1.1rem; box-shadow: 0 6px 20px rgba(245,158,11,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; opacity: .55; transition: opacity .25s; display: flex; align-items: center; justify-content: center; }
@@ -817,7 +817,7 @@ function renderHTML(results, categories, opts) {
         #netEnvModal .netenv-opt.netenv-cur { border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 2px rgba(99,102,241,.25); }
         #fontFabBtn { opacity: .55; transition: opacity .25s; }
         #fontFab.open #fontFabBtn, #fontFabBtn:hover { opacity: 1; }
-        #viewModeFab { position: fixed; left: 1rem; bottom: 5rem; z-index: 100; }
+        #viewModeFab { position: fixed; left: 0.5rem; bottom: 5rem; z-index: 100; }
         #viewModeBtn { height: 3rem; min-width: 3rem; padding: 0 .9rem; border-radius: 9999px; background: linear-gradient(135deg,#0ea5e9,#6366f1); color: #fff; font-weight: 900; font-size: 1rem; box-shadow: 0 6px 20px rgba(14,165,233,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; opacity: .55; transition: opacity .25s; }
         #viewModeBtn:hover { opacity: 1; }
         html.view-desktop .course-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -2347,8 +2347,8 @@ function i18nCourse(c) {
                 scale = Math.max(0.3, Math.min(1, scale));
                 de.style.zoom = scale;
                 var inv = 1 / scale;
-                if (vmFab) { vmFab.style.zoom = inv; vmFab.style.left = inv + "rem"; vmFab.style.bottom = (5 * inv) + "rem"; }
-                if (fontFab) { fontFab.style.zoom = inv; fontFab.style.right = inv + "rem"; fontFab.style.bottom = (5 * inv) + "rem"; }
+                if (vmFab) { vmFab.style.zoom = inv; vmFab.style.left = "0.5rem"; vmFab.style.bottom = "5rem"; }
+                if (fontFab) { fontFab.style.zoom = inv; fontFab.style.right = "0.5rem"; fontFab.style.bottom = "5rem"; }
             } else {
                 de.classList.remove("view-desktop");
                 de.style.zoom = "";
