@@ -3847,7 +3847,8 @@ function i18nCourse(c) {
                         for (var wi = 0; wi < 5; wi++) ws += '<div class="ws-line"></div>';
                         ws += '</div>';
                     }
-                    body += '<div class="q' + (t === 'verse' ? ' q-verse' : '') + '"><div class="q-text">' + (qi + 1) + '. ' + bracket + vref + qtext + '</div>' + opts + ws + '</div>';
+                    var qtextHtml = (t === 'verse') ? '<span class="verse-text">' + qtext + '</span>' : qtext;
+                    body += '<div class="q' + (t === 'verse' ? ' q-verse' : '') + '"><div class="q-text">' + (qi + 1) + '. ' + bracket + vref + qtextHtml + '</div>' + opts + ws + '</div>';
                 });
                 body += '</section>';
             });
@@ -4151,7 +4152,7 @@ function i18nCourse(c) {
             var body = arr.map(function(x, i) {
                 return '<section class="card"><h2>第' + (i + 1) + '题 <span style="font-size:13px;color:#6366f1;">' + esc(wrongTypeNum(x)) + '</span></h2>'
                     + (wrongMeta(x) ? '<p style="font-size:12px;color:#94a3b8;margin:-8px 0 10px;">' + esc(wrongMeta(x)) + '</p>' : '')
-                    + '<div class="md"><p>' + esc(x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '')) + '</p>'
+                    + '<div class="md"><p>' + (x.type === 'verse' ? '<span class="verse-text">' + esc(stripVerseTag(x.q)) + '</span>' : esc(x.q || '')) + '</p>'
                     + '<p>' + tr("wbU") + '<b style="color:#dc2626;">' + esc(x.u || tr("wbNA")) + '</b></p>'
                     + '<p>' + tr("rightAns") + '<b style="color:#059669;">' + esc(x.expected || '') + '</b></p></div></section>';
             }).join('');
