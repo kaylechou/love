@@ -234,6 +234,16 @@ const cc = authed? "no-store, no-cache, must-revalidate": "public, max-age=60";
 return json(one, 200, { "Cache-Control": cc });
 }
 
+// API: 圣经经文（公开）：/api/bible?ref=《罗马书》1章20节 -> {ref, niv, kjv}
+if (pathname === "/api/bible") {
+const ref = (searchParams.get("ref") || "").trim();
+if (!ref) return json({ error: "missing ref" }, 400);
+const br = await env.DB.prepare("SELECT ref, niv, kjv FROM bible_verses WHERE ref=?").bind(ref).all();
+const brows = (br && br.results) || [];
+if (!brows.length) return json({ ref: ref, niv: "", kjv: "" }, 200, { "Cache-Control": "public, max-age=3600" });
+return json(brows[0], 200, { "Cache-Control": "public, max-age=3600" });
+}
+
 // API: 保存课程（管理员）
 if (pathname === "/api/save" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
@@ -305,12 +315,12 @@ return json({ success: true});
 // API: 系列/子栏目树（公开）：[{name, description, count, totalCount, subs:[{name, description, count}]}]
 // count = 直接归属该系列（无子栏目）的课程数；totalCount = 含子栏目在内的总数
 if (pathname === "/api/categories") {
-const cr = await env.DB.prepare("SELECT parent, name, description FROM categories ORDER BY parent ASC, name ASC").all();
+const cr = await env.DB.prepare("SELECT parent, name, description, i18n_json FROM categories ORDER BY parent ASC, name ASC").all();
 const rows = (cr && cr.results) || [];
 const cc = await env.DB.prepare("SELECT category, subcategory, COUNT(*) AS n FROM courses GROUP BY category, subcategory").all();
 const seriesMap = {};
 function getSeries(nm) {
-if (!seriesMap[nm]) seriesMap[nm] = { name: nm, description: "", count: 0, subs: [], _subIdx: {} };
+if (!seriesMap[nm]) seriesMap[nm] = { name: nm, description: "", count: 0, subs: [], _subIdx: {}, i18n: null };
 return seriesMap[nm];
 }
 rows.forEach(r => {
@@ -318,10 +328,12 @@ const parent = r.parent || "";
 if (!parent) {
 const s = getSeries(r.name);
 if (r.description) s.description = r.description;
+try { if (r.i18n_json) s.i18n = JSON.parse(r.i18n_json); } catch (e) {}
 } else {
 const s = getSeries(parent);
-if (!s._subIdx[r.name]) { s._subIdx[r.name] = { name: r.name, description: r.description || "", count: 0 }; s.subs.push(s._subIdx[r.name]); }
+if (!s._subIdx[r.name]) { s._subIdx[r.name] = { name: r.name, description: r.description || "", count: 0, i18n: null }; s.subs.push(s._subIdx[r.name]); }
 else if (r.description) s._subIdx[r.name].description = r.description;
+try { if (r.i18n_json) s._subIdx[r.name].i18n = JSON.parse(r.i18n_json); } catch (e) {}
 }
 });
 ((cc && cc.results) || []).forEach(r => {
@@ -335,7 +347,7 @@ const out = Object.keys(seriesMap).sort().map(k => {
 const s = seriesMap[k];
 s.subs.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 const total = s.count + s.subs.reduce((t, x) => t + x.count, 0);
-return { name: s.name, description: s.description, count: s.count, totalCount: total, subs: s.subs };
+return { name: s.name, description: s.description, count: s.count, totalCount: total, subs: s.subs, i18n: s.i18n || null };
 });
 return json(out, 200, { "Cache-Control": "public, max-age=60" });
 }
@@ -1137,8 +1149,37 @@ function renderHTML(results, categories, opts) {
     </div>` : ''}
     <script>
         var allData = [];
-        var catRows = [];  /* 系列树：[{name, description, count, totalCount, subs:[{name, description, count}]}] */
-        var catInfo = {};  /* 系列名 -> {description, subDesc:{子栏目名:简介}}（学员端展示用） */
+        var catRows = [];  /* 系列树 */
+        var catInfo = {};  /* 系列名 -> {description, subDesc, i18n, subI18n}（学员端展示用） */
+        /* 系列/子栏目名称简介多语言：en/ja/ko 用 i18n，否则用原文（tw 走 toTW） */
+        function catNameL(cat) {
+            var L = curLang();
+            if ((L === 'en' || L === 'ja' || L === 'ko') && catInfo[cat] && catInfo[cat].i18n && catInfo[cat].i18n[L]) {
+                return catInfo[cat].i18n[L].name || cat;
+            }
+            return cat;
+        }
+        function catDescL(cat) {
+            var L = curLang();
+            if ((L === 'en' || L === 'ja' || L === 'ko') && catInfo[cat] && catInfo[cat].i18n && catInfo[cat].i18n[L]) {
+                return catInfo[cat].i18n[L].description || catInfo[cat].description;
+            }
+            return catInfo[cat] ? catInfo[cat].description : "";
+        }
+        function subNameL(cat, sub) {
+            var L = curLang();
+            if ((L === 'en' || L === 'ja' || L === 'ko') && catInfo[cat] && catInfo[cat].subI18n && catInfo[cat].subI18n[sub] && catInfo[cat].subI18n[sub][L]) {
+                return catInfo[cat].subI18n[sub][L].name || sub;
+            }
+            return sub;
+        }
+        function subDescL(cat, sub) {
+            var L = curLang();
+            if ((L === 'en' || L === 'ja' || L === 'ko') && catInfo[cat] && catInfo[cat].subI18n && catInfo[cat].subI18n[sub] && catInfo[cat].subI18n[sub][L]) {
+                return catInfo[cat].subI18n[sub][L].description || "";
+            }
+            return (catInfo[cat] && catInfo[cat].subDesc) ? (catInfo[cat].subDesc[sub] || "") : "";
+        }
         var activeQuizzes = [];
         var activeLessonId = null;
         var activeCourseTitle = "";
@@ -1688,6 +1729,48 @@ function applyI18n() {
         if (lb) lb.innerHTML = '🌐 ' + langShort(curLang());
     } catch (e) {}
 }
+/* 英文圣经版本设置：NIV / KJV（localStorage 记住，默认 NIV） */
+var BIBLE_VER_KEY = "TQ_BIBLE_VER";
+function getBibleVer() { try { return localStorage.getItem(BIBLE_VER_KEY) || "NIV"; } catch(e) { return "NIV"; } }
+function setBibleVer(v) {
+    try { localStorage.setItem(BIBLE_VER_KEY, v); } catch(e) {}
+    // 刷新当前已显示的经文参考卡
+    try { document.querySelectorAll('[data-bible-ref]').forEach(function(el) { loadBibleRef(el); }); } catch(e) {}
+    // 刷新语言面板中的版本按钮状态
+    try { renderBibleVerBtns(); } catch(e) {}
+}
+/* 经文参考卡：按当前版本从 /api/bible 拉取 NIV/KJV 全文 */
+var _bibleCache = {};
+function loadBibleRef(el) {
+    var ref = el.getAttribute('data-bible-ref');
+    if (!ref) return;
+    var ver = getBibleVer();
+    var key = ver + '::' + ref;
+    var show = function(text) {
+        el.innerHTML = '<div class="text-xs font-bold text-emerald-700 mb-1">📖 ' + ver + ' ' + esc(ref) + '</div>'
+            + '<div class="text-sm text-slate-700 leading-relaxed">' + esc(text) + '</div>'
+            + '<div class="text-[10px] text-slate-400 mt-1">' + (ver === 'NIV' ? 'New International Version © Biblica' : 'King James Version (Public Domain)') + '</div>';
+    };
+    if (_bibleCache[key]) { show(_bibleCache[key]); return; }
+    el.innerHTML = '<div class="text-xs text-slate-400">加载经文中…</div>';
+    fetch('/api/bible?ref=' + encodeURIComponent(ref)).then(function(r) { return r.json(); }).then(function(d) {
+        var t = ver === 'NIV' ? d.niv : d.kjv;
+        if (t) { _bibleCache[key] = t; show(t); }
+        else el.innerHTML = '<div class="text-xs text-slate-400">暂无该经文英文版</div>';
+    }).catch(function() { el.innerHTML = '<div class="text-xs text-slate-400">经文加载失败</div>'; });
+}
+function renderBibleVerBtns() {
+    var wrap = document.getElementById('bibleVerBtns');
+    if (!wrap) return;
+    var cur = getBibleVer();
+    wrap.innerHTML = ['NIV', 'KJV'].map(function(v) {
+        var sel = cur === v;
+        return '<button data-bv="' + v + '" style="flex:1;padding:10px;border-radius:14px;font-size:13px;font-weight:700;'
+            + (sel ? 'background:#ecfdf5;border:2px solid #10b981;color:#047857;' : 'background:#f8fafc;border:2px solid transparent;color:#64748b;') + '">'
+            + (sel ? '✓ ' : '') + v + '</button>';
+    }).join('');
+    wrap.querySelectorAll('[data-bv]').forEach(function(b) { b.onclick = function() { setBibleVer(b.getAttribute('data-bv')); }; });
+}
 function openLangPanel() {
     var m = document.getElementById('langModal');
     if (!m) {
@@ -1699,6 +1782,9 @@ function openLangPanel() {
             + '<button data-close="1" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1">×</button>'
             + '<h3 style="font-weight:800;color:#1e293b;margin:0 0 16px">' + tr('langT') + '</h3>'
             + '<div id="langList"></div>'
+            + '<div id="bibleVerSection" style="margin-top:4px;padding-top:12px;border-top:1px solid #f1f5f9">'
+            + '<div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:8px">📖 English Bible Version</div>'
+            + '<div id="bibleVerBtns" style="display:flex;gap:8px"></div></div>'
             + '<button data-close="1" style="margin-top:4px;width:100%;font-size:12px;color:#94a3b8;padding:8px;background:none;border:none">' + tr('cancel') + '</button></div>';
         m.querySelectorAll('[data-close]').forEach(function(x) { x.onclick = function() { m.style.display = 'none'; }; });
         document.body.appendChild(m);
@@ -1710,6 +1796,7 @@ function openLangPanel() {
             + (sel ? '✓ ' : '<span style="display:inline-block;width:18px"></span>') + L[1] + '</button>';
     }).join('');
     m.querySelectorAll('[data-lang]').forEach(function(b) { b.onclick = function() { setLang(b.getAttribute('data-lang')); }; });
+    renderBibleVerBtns();
     m.style.display = 'flex';
 }
 /* 繁简转换（字表来源 OpenCC STCharacters，Apache-2.0） */
@@ -2178,9 +2265,9 @@ function twCourse(c) {
                 catRows = Array.isArray(cj) ? cj : [];
                 catInfo = {};
                 catRows.forEach(function(s) {
-                    var sd = {};
-                    (s.subs || []).forEach(function(x) { sd[x.name] = x.description || ""; });
-                    catInfo[s.name] = { description: s.description || "", subDesc: sd };
+                    var sd = {}, sdI18n = {};
+                    (s.subs || []).forEach(function(x) { sd[x.name] = x.description || ""; if (x.i18n) sdI18n[x.name] = x.i18n; });
+                    catInfo[s.name] = { description: s.description || "", subDesc: sd, i18n: s.i18n || null, subI18n: sdI18n };
                 });
                 if (curLang() === 'tw' && !BOOT.isAdmin) {
                     var _ci2 = {};
@@ -2308,13 +2395,13 @@ function twCourse(c) {
                             + '<div class="flex items-center gap-1 mb-3">'
                             + '<button data-tkey="' + esc(kKey) + '" data-tbody="' + kBody + '" data-tchev="' + kChev + '" onclick="toggleTree(this)" class="flex items-center gap-2 group min-w-0">'
                             + '<span id="' + kChev + '" class="text-xs text-violet-500 w-4 text-center shrink-0">' + (kCollapsed ? "▶" : "▼") + '</span>'
-                            + '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁 ' + hlSubcat(sk) + '</span>'
+                            + '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁 ' + hlSubcat(subNameL(cat, sk)) + '</span>'
                             + '<span class="text-xs text-slate-400 shrink-0">' + tf("nLessons", { n: subgroups[sk].length }) + '</span></button>'
                             + '<span class="flex items-center gap-2.5 shrink-0 ml-1">'
                             + '<button data-cat="' + esc(cat) + '" data-sub="' + esc(sk) + '" onclick="copySubLink(this.dataset.cat,this.dataset.sub)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition text-[13px]">🔗</button>'
                             + (BOOT.isAdmin ? '<button data-cat="' + esc(cat) + '" data-sub="' + esc(sk) + '" onclick="exportSub(this.dataset.cat,this.dataset.sub)" title="导出本子栏目全部课件" class="text-slate-300 hover:text-emerald-600 transition text-[13px]">📥</button>' : '')
                             + '</span></div>'
-                            + (sd ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + hlVerse(esc(stripMd(sd))) + '</p>' : '')
+                            + (subDescL(cat, sk) ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + hlVerse(esc(stripMd(subDescL(cat, sk)))) + '</p>' : '')
                             + '<div id="' + kBody + '" class="' + (kCollapsed ? "hidden" : "") + '">' + gridHtml + '</div></div>';
                     } else {
                         bodyHtml += gridHtml;
@@ -2325,13 +2412,13 @@ function twCourse(c) {
                     + '<button data-tkey="' + esc(sKey) + '" data-tbody="' + sBody + '" data-tchev="' + sChev + '" onclick="toggleTree(this)" class="flex items-center gap-3 flex-1 min-w-0 text-left group">'
                     + '<span id="' + sChev + '" class="text-sm text-violet-500 w-5 text-center shrink-0">' + (sCollapsed ? "▶" : "▼") + '</span>'
                     + '<span class="w-1.5 h-7 bg-violet-500 rounded-full shrink-0"></span>'
-                    + '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + catIcon(cat) + ' ' + esc(cat) + '</h2>'
+                    + '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + catIcon(cat) + ' ' + esc(catNameL(cat)) + '</h2>'
                     + '<span class="text-sm text-slate-400 shrink-0">' + tf("nLessons", { n: groups[cat].length }) + '</span></button>'
                     + '<span class="flex items-center gap-2.5 shrink-0 pr-1">'
                     + '<button data-cat="' + esc(cat) + '" onclick="copySeriesLink(this.dataset.cat)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition text-[15px]">🔗</button>'
                     + (BOOT.isAdmin ? '<button data-cat="' + esc(cat) + '" onclick="exportSeries(this.dataset.cat)" title="导出本系列全部课件" class="text-slate-300 hover:text-emerald-600 transition text-[15px]">📥</button>' : '')
                     + '</span></div>'
-                    + (info.description ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + hlVerse(esc(info.description)) + '</p>' : '')
+                    + (catDescL(cat) ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + hlVerse(esc(catDescL(cat))) + '</p>' : '')
                     + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + ' mt-2">' + bodyHtml + '</div></div>';
             });
             wrap.innerHTML = html;
@@ -2686,9 +2773,16 @@ function twCourse(c) {
             if (q.type === 'verse') {
                 var vq = Object.assign({}, q);
                 vq.q = stripVerseTag(q.q);
+                var bibleRef = stripEmoji(q.o || q.h || '');
+                var bibleCard = '';
+                if (curLang() === 'en' && bibleRef) {
+                    bibleCard = '<details class="mt-3 bg-emerald-50/70 border border-emerald-100 rounded-xl">'
+                        + '<summary class="text-xs font-bold text-emerald-700 px-3 py-2 cursor-pointer select-none">📖 <span class="bible-ver-label">' + getBibleVer() + '</span></summary>'
+                        + '<div class="px-3 pb-3" data-bible-ref="' + esc(bibleRef) + '"></div></details>';
+                }
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><div class="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">'
                     + ((q.h || q.o) ? '<p class="mb-3">' + hlVerse(esc(stripEmoji(q.h || q.o))) + '</p>' : '')
-                    + '<div class="text-slate-800"><span class="verse-text">' + studyPara(vq, i) + '</span></div>' + verdict + '</div></div>';
+                    + '<div class="text-slate-800"><span class="verse-text">' + studyPara(vq, i) + '</span></div>' + bibleCard + verdict + '</div></div>';
             }
             if (q.type === 'single' || q.type === 'judge' || q.type === 'multiple') {
                 var isMulti = q.type === 'multiple';
@@ -3028,6 +3122,7 @@ function twCourse(c) {
             if (idx < 0) return;
             sec.innerHTML = buildTypeSecHTML(curTypeTabs[idx], idx);
             renderedQTypes[t] = true;
+            try { sec.querySelectorAll('[data-bible-ref]').forEach(function(el) { loadBibleRef(el); }); } catch (e) {}
             updateFillHint();
             if (typeof updateStudyBar === 'function') updateStudyBar();
         }
