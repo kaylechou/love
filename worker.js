@@ -786,6 +786,7 @@ function renderHTML(results, categories, opts) {
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <style>
+        body.preview-mode .admin-only { display: none !important; }
         .quiz-card { border: 2px solid #f1f5f9; border-radius: 1.5rem; padding: 1.5rem; background: white; margin-bottom: 1.5rem; transition: all 0.3s ease; }
         .correct-ans { border-color: #10b981 !important; background-color: #f0fdf4; }
         .wrong-ans { border-color: #ef4444 !important; background-color: #fef2f2; }
@@ -857,9 +858,9 @@ function renderHTML(results, categories, opts) {
             </div>
             <div class="flex gap-2">
                 ${isAdmin
-                    ? '<a href="/" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">学员端</a>'
-                      + '<button onclick="exportSelected()" class="text-xs bg-emerald-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-emerald-200 hover:opacity-95 transition">📥 批量导出</button>'
-                      + '<button onclick="openEditModal()" class="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-violet-200 hover:opacity-95 transition">+ 创建新课件</button>'
+                    ? '<button onclick="togglePreview()" id="previewBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">👁️ 学员预览</button>'
+                      + '<button onclick="exportSelected()" class="admin-only text-xs bg-emerald-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-emerald-200 hover:opacity-95 transition">📥 批量导出</button>'
+                      + '<button onclick="openEditModal()" class="admin-only text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-violet-200 hover:opacity-95 transition">+ 创建新课件</button>'
                     : '<button onclick="openLangPanel()" id="langBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">🌐 简体</button>'
                       + '<button onclick="openWrongBook()" data-i18n="wrongBook" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">📝 错题本</button>'
                       + '<button onclick="nameBtnClick()" id="nameBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">设置姓名</button>'}
@@ -917,7 +918,7 @@ function renderHTML(results, categories, opts) {
 
         ${isAdmin ? `
         <!-- 按姓名查成绩 -->
-        <div class="bg-white rounded-3xl p-6 shadow-sm mb-6">
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
             <h3 class="font-bold text-slate-800 mb-4">🔍 按姓名查成绩</h3>
             <div class="flex gap-2">
                 <input id="scoreQueryName" placeholder="输入学员姓名" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
@@ -937,14 +938,14 @@ function renderHTML(results, categories, opts) {
         </div>
 
         <!-- 学员管理员 -->
-        <div class="bg-white rounded-3xl p-6 shadow-sm mb-6">
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
             <h3 class="font-bold text-slate-800 mb-2">👑 学员管理员</h3>
             <p class="text-xs text-slate-400 mb-3">设为管理员的学员，在学员端打开课件可直接查看答案（无需答题），按钮在课件顶部右侧。</p>
             <ul id="adminStudentList" class="space-y-2"><li class="text-sm text-slate-400">加载中…</li></ul>
         </div>
 
         <!-- 数据管理 -->
-        <div class="bg-white rounded-3xl p-6 shadow-sm mb-6">
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
             <h3 class="font-bold text-slate-800 mb-4">🗂️ 数据管理</h3>
             <div class="flex flex-wrap gap-2">
                 <button onclick="openImportModal()" class="text-xs bg-violet-100 text-violet-700 px-4 py-2.5 rounded-xl font-bold hover:bg-violet-200 transition">📥 批量导入课程</button>
@@ -955,7 +956,7 @@ function renderHTML(results, categories, opts) {
         </div>
 
         <!-- 公告设置 -->
-        <div class="bg-white rounded-3xl p-6 shadow-sm mb-6">
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
             <h3 class="font-bold text-slate-800 mb-4">📢 首页公告</h3>
             <div class="flex gap-2">
                 <input id="noticeText" placeholder="公告内容（学员端首页顶部显示，留空则不显示）" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
@@ -964,7 +965,7 @@ function renderHTML(results, categories, opts) {
         </div>
 
         <!-- 系列与子栏目管理 -->
-        <div class="bg-white rounded-3xl p-6 shadow-sm mb-6">
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
             <div class="flex items-center justify-between mb-2">
                 <h3 class="font-bold text-slate-800">📚 系列与子栏目</h3>
                 <button onclick="openCatModal('', '')" class="text-xs bg-violet-100 text-violet-700 px-4 py-2 rounded-xl font-bold hover:bg-violet-200 transition">＋ 新增系列</button>
@@ -2451,11 +2452,11 @@ function i18nCourse(c) {
             var shareBtn = '<button data-id="' + c.id + '" onclick="copyShareLink(this.dataset.id)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition">🔗</button>';
             var adminBtns = "";
             if (BOOT.isAdmin) {
-                adminBtns = '<button data-id="' + c.id + '" onclick="editCourse(this.dataset.id)" title="编辑" class="text-slate-300 hover:text-violet-600 transition">🖊️</button>'
+                adminBtns = '<button data-id="' + c.id + '" onclick="editCourse(this.dataset.id)" title="编辑" class="admin-only text-slate-300 hover:text-violet-600 transition">🖊️</button>'
                     + '<button data-id="' + c.id + '" data-dir="up" onclick="moveCourse(this.dataset.id,this.dataset.dir)" title="上移" class="text-slate-300 hover:text-violet-600 transition">⬆️</button>'
                     + '<button data-id="' + c.id + '" data-dir="down" onclick="moveCourse(this.dataset.id,this.dataset.dir)" title="下移" class="text-slate-300 hover:text-violet-600 transition">⬇️</button>'
                     + '<button data-id="' + c.id + '" onclick="exportCourse(this.dataset.id)" title="导出HTML（手机电脑可打开）" class="text-slate-300 hover:text-emerald-600 transition">📥</button>'
-                    + '<button data-id="' + c.id + '" onclick="deleteCourse(this.dataset.id)" title="删除" class="text-slate-300 hover:text-red-500 transition">🗑️</button>';
+                    + '<button data-id="' + c.id + '" onclick="deleteCourse(this.dataset.id)" title="删除" class="admin-only text-slate-300 hover:text-red-500 transition">🗑️</button>';
             }
             var cardBtns = '<div class="flex items-center gap-3 text-[15px]">' + shareBtn + adminBtns + '</div>';
             var videoBadge = parseVideoUrls(c.video_url).length ? ' <span class="video-badge text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full align-middle">' + tr("videoBadge") + '</span>' : '';
@@ -2656,6 +2657,14 @@ function i18nCourse(c) {
                 quiz.classList.add('hidden'); quiz.classList.remove('flex'); info.classList.remove('hidden');
                 tInfo.classList.add('bg-white', 'shadow'); tQuiz.classList.remove('bg-white', 'shadow');
             }
+        }
+        var previewMode = false;
+        function togglePreview() {
+            previewMode = !previewMode;
+            document.body.classList.toggle('preview-mode', previewMode);
+            document.getElementById('previewBtn').textContent = previewMode ? '⚙️ 回到管理' : '👁️ 学员预览';
+            // 重新渲染课程卡片以隐藏/显示管理按钮
+            if (typeof renderHome === 'function') renderHome();
         }
         function toggleModal(id) {
             var el = document.getElementById(id);
