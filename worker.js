@@ -2038,10 +2038,10 @@ function i18nCourse(c) {
             }
             /* 讲员名-系列名（中英日韩） */
             /* 英文顺序：Reverend Kou Shaohan - Series */
-            m = s.match(/^(Reverend|Pastor|Dr\.)\\s+([^\\s•·\-]+(?:\\s+[^\\s•·\-]+)*?)([\\s\-—•·]+)(.*)$/i);
+            m = s.match(/^(Reverend|Pastor|Dr\.)\\s+(.+?)(?:\\s+-\\s+|\\s+•\\s+|\\s+·\\s+)(.*)$/i);
             if (m) {
                 var titleEn = m[1] + ' ' + m[2];
-                var restEn = m[4] ? DOT + hollowBadge(m[4], '#6d28d9', '#ede9fe') : '';
+                var restEn = m[3] ? DOT + hollowBadge(m[3], '#6d28d9', '#ede9fe') : '';
                 return solidBadge(titleEn, 'linear-gradient(135deg,#8b5cf6,#6d28d9)') + restEn;
             }
             /* 中文顺序：寇绍涵牧师 - 系列名 */
