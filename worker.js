@@ -2213,6 +2213,11 @@ function twCourse(c) {
                 if (pm) sid = pm[1];
             }
             if (sid && allData.length > 0) startLesson(sid);
+            if (!sid) {
+                var _qs = new URLSearchParams(window.location.search);
+                var _qSeries = _qs.get('series'), _qSub = _qs.get('sub');
+                if (_qSeries && allData.length > 0) setTimeout(function() { jumpToSeries(_qSeries, _qSub); }, 350);
+            }
             try { var _w = sessionStorage.getItem('TQ_WELCOME'); if (_w) { sessionStorage.removeItem('TQ_WELCOME'); showWelcomeToast(_w); } } catch (e) {}
             applyI18n();
         }
@@ -2300,10 +2305,15 @@ function twCourse(c) {
                         var kKey = "sub:" + cat + "::" + sk, kBody = "treeBodyS" + si + "K" + ki, kChev = "treeChevS" + si + "K" + ki;
                         var kCollapsed = !!st[kKey];
                         bodyHtml += '<div class="ml-1 md:ml-5 mt-7">'
-                            + '<button data-tkey="' + esc(kKey) + '" data-tbody="' + kBody + '" data-tchev="' + kChev + '" onclick="toggleTree(this)" class="flex items-center gap-2 mb-3 group">'
-                            + '<span id="' + kChev + '" class="text-xs text-violet-500 w-4 text-center">' + (kCollapsed ? "▶" : "▼") + '</span>'
+                            + '<div class="flex items-center gap-1 mb-3">'
+                            + '<button data-tkey="' + esc(kKey) + '" data-tbody="' + kBody + '" data-tchev="' + kChev + '" onclick="toggleTree(this)" class="flex items-center gap-2 group min-w-0">'
+                            + '<span id="' + kChev + '" class="text-xs text-violet-500 w-4 text-center shrink-0">' + (kCollapsed ? "▶" : "▼") + '</span>'
                             + '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁 ' + hlSubcat(sk) + '</span>'
-                            + '<span class="text-xs text-slate-400">' + tf("nLessons", { n: subgroups[sk].length }) + '</span></button>'
+                            + '<span class="text-xs text-slate-400 shrink-0">' + tf("nLessons", { n: subgroups[sk].length }) + '</span></button>'
+                            + '<span class="flex items-center gap-2.5 shrink-0 ml-1">'
+                            + '<button data-cat="' + esc(cat) + '" data-sub="' + esc(sk) + '" onclick="copySubLink(this.dataset.cat,this.dataset.sub)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition text-[13px]">🔗</button>'
+                            + (BOOT.isAdmin ? '<button data-cat="' + esc(cat) + '" data-sub="' + esc(sk) + '" onclick="exportSub(this.dataset.cat,this.dataset.sub)" title="导出本子栏目全部课件" class="text-slate-300 hover:text-emerald-600 transition text-[13px]">📥</button>' : '')
+                            + '</span></div>'
                             + (sd ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + hlVerse(esc(stripMd(sd))) + '</p>' : '')
                             + '<div id="' + kBody + '" class="' + (kCollapsed ? "hidden" : "") + '">' + gridHtml + '</div></div>';
                     } else {
@@ -2311,11 +2321,16 @@ function twCourse(c) {
                     }
                 });
                 html += '<div class="mb-6">'
-                    + '<button data-tkey="' + esc(sKey) + '" data-tbody="' + sBody + '" data-tchev="' + sChev + '" onclick="toggleTree(this)" class="flex items-center gap-3 w-full text-left group">'
-                    + '<span id="' + sChev + '" class="text-sm text-violet-500 w-5 text-center">' + (sCollapsed ? "▶" : "▼") + '</span>'
-                    + '<span class="w-1.5 h-7 bg-violet-500 rounded-full"></span>'
+                    + '<div class="flex items-center gap-1">'
+                    + '<button data-tkey="' + esc(sKey) + '" data-tbody="' + sBody + '" data-tchev="' + sChev + '" onclick="toggleTree(this)" class="flex items-center gap-3 flex-1 min-w-0 text-left group">'
+                    + '<span id="' + sChev + '" class="text-sm text-violet-500 w-5 text-center shrink-0">' + (sCollapsed ? "▶" : "▼") + '</span>'
+                    + '<span class="w-1.5 h-7 bg-violet-500 rounded-full shrink-0"></span>'
                     + '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + catIcon(cat) + ' ' + esc(cat) + '</h2>'
-                    + '<span class="text-sm text-slate-400">' + tf("nLessons", { n: groups[cat].length }) + '</span></button>'
+                    + '<span class="text-sm text-slate-400 shrink-0">' + tf("nLessons", { n: groups[cat].length }) + '</span></button>'
+                    + '<span class="flex items-center gap-2.5 shrink-0 pr-1">'
+                    + '<button data-cat="' + esc(cat) + '" onclick="copySeriesLink(this.dataset.cat)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition text-[15px]">🔗</button>'
+                    + (BOOT.isAdmin ? '<button data-cat="' + esc(cat) + '" onclick="exportSeries(this.dataset.cat)" title="导出本系列全部课件" class="text-slate-300 hover:text-emerald-600 transition text-[15px]">📥</button>' : '')
+                    + '</span></div>'
                     + (info.description ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + hlVerse(esc(info.description)) + '</p>' : '')
                     + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + ' mt-2">' + bodyHtml + '</div></div>';
             });
@@ -2592,6 +2607,59 @@ function twCourse(c) {
         function copyShareLink(id) {
             var url = window.location.origin + "/" + id;
             navigator.clipboard.writeText(url).then(function() { alert(tr("linkCopied")); });
+        }
+        /* 系列/子栏目分享：与单个课件一致的复制链接规则 */
+        function copySeriesLink(cat) {
+            var url = window.location.origin + "/?series=" + encodeURIComponent(cat);
+            navigator.clipboard.writeText(url).then(function() { alert(tr("linkCopied")); });
+        }
+        function copySubLink(cat, sub) {
+            var url = window.location.origin + "/?series=" + encodeURIComponent(cat) + "&sub=" + encodeURIComponent(sub);
+            navigator.clipboard.writeText(url).then(function() { alert(tr("linkCopied")); });
+        }
+        /* 系列/子栏目导出：与单个课件一致的六格式导出规则（批量逐个下载） */
+        function exportSeries(cat) {
+            var ids = (allData || []).filter(function(c) { return c.category === cat; }).map(function(c) { return c.id; });
+            if (!ids.length) { alert('该系列下暂无课件'); return; }
+            openExportMenu(ids, '系列：' + cat + '（' + ids.length + '个课件）');
+        }
+        function exportSub(cat, sub) {
+            var ids = (allData || []).filter(function(c) { return c.category === cat && (c.subcategory || '') === sub; }).map(function(c) { return c.id; });
+            if (!ids.length) { alert('该子栏目下暂无课件'); return; }
+            openExportMenu(ids, '子栏目：' + sub + '（' + ids.length + '个课件）');
+        }
+        /* 分享链接打开：展开对应系列/子栏目并滚动定位 */
+        function jumpToSeries(cat, sub) {
+            if (!cat) return;
+            try {
+                var st = getTreeState();
+                delete st["ser:" + cat];
+                if (sub) delete st["sub:" + cat + "::" + sub];
+                setTreeState(st);
+            } catch (e) {}
+            var list = (BOOT.list && BOOT.list.length) ? BOOT.list : allData;
+            renderSections(list);
+            var groups = {};
+            list.forEach(function(c) { (groups[c.category] = groups[c.category] || []).push(c); });
+            var cats = Object.keys(groups), si = cats.indexOf(cat);
+            if (si < 0) return;
+            var targetId = "treeBodyS" + (si + 1);
+            if (sub) {
+                var subOrder = [], ki = 0, found = -1, i;
+                groups[cat].forEach(function(c) {
+                    var sk = c.subcategory || "";
+                    if (subOrder.indexOf(sk) < 0) subOrder.push(sk);
+                });
+                for (i = 0; i < subOrder.length; i++) {
+                    ki++;
+                    if (subOrder[i] === sub && subOrder[i]) { found = ki; break; }
+                }
+                if (found > 0) targetId = "treeBodyS" + (si + 1) + "K" + found;
+            }
+            setTimeout(function() {
+                var el = document.getElementById(targetId);
+                if (el) { el.classList.remove("hidden"); el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+            }, 150);
         }
 
         /* ===== 统一智能渲染：章节自动分组 + 题型自动识别（填空内嵌/问答文本框/单选药丸乱序/经文卡片）+ 填完核对 ===== */
@@ -3517,14 +3585,16 @@ function twCourse(c) {
             }
             return a;
         }
-        function buildExportHTML(c) {
+        /* 单个课件导出内层（含标题横幅）：多课件合并打印时复用 */
+        function courseExportInner(c) {
             var qs = [], guide = [];
             try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
             try { guide = JSON.parse(c.guide_json || '[]'); } catch (e) {}
             var title = c.title || '未命名课件';
             var meta = [c.category, c.subcategory].filter(function(x) { return x; }).join(' · ');
             var now = new Date(), ds = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
-            var body = '', i;
+            var body = '<header class="hero"><div class="meta">' + esc(meta) + '</div>'
+                + '<h1>' + esc(title) + '</h1><div class="date">导出日期：' + ds + ' · 团契智学</div></header>', i;
             if (c.content) body += '<section class="card"><h2>📚 课程导读</h2><div class="md">' + expMd(c.content) + '</div></section>';
             if (c.video_url) body += '<section class="card"><h2>🎬 课程视频</h2><p class="md"><a href="' + esc(c.video_url) + '">观看课程视频</a></p></section>';
             var realGuide = guide.filter(function(g) { return g && (g.title || (g.points || []).length); });
@@ -3577,12 +3647,33 @@ function twCourse(c) {
             /* 参考答案统一附在所有题型之后，不再每题单独出现 */
             body += buildAnswerKey(c);
             if (!hasQ && !c.content && !realGuide.length) body += '<section class="card"><p class="empty">本课件暂无内容</p></section>';
+            return { title: title, body: body };
+        }
+        function buildExportHTML(c) {
+            var inner = courseExportInner(c);
             return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
                 + '<meta name="viewport" content="width=device-width,initial-scale=1">'
-                + '<title>' + esc(title) + ' - 团契智学</title><style>' + EXP_CSS + '</style></head>'
-                + '<body><div class="wrap"><header class="hero"><div class="meta">' + esc(meta) + '</div>'
-                + '<h1>' + esc(title) + '</h1><div class="date">导出日期：' + ds + ' · 团契智学</div></header>'
-                + body + '<footer>由团契智学学习平台导出</footer></div></body></html>';
+                + '<title>' + esc(inner.title) + ' - 团契智学</title><style>' + EXP_CSS + '</style></head>'
+                + '<body><div class="wrap">' + inner.body + '<footer>由团契智学学习平台导出</footer></div></body></html>';
+        }
+        /* 多课件合并为一份打印文档（每课件另起一页） */
+        function buildMultiCourseHTML(courses, docTitle) {
+            var parts = courses.map(function(c, i) {
+                var inner = courseExportInner(c);
+                return (i > 0 ? '<div style="page-break-before:always"></div>' : '') + inner.body;
+            }).join('');
+            return '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+                + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                + '<title>' + esc(docTitle || '课件合集') + ' - 团契智学</title><style>' + EXP_CSS + '</style></head>'
+                + '<body><div class="wrap">' + parts + '<footer>由团契智学学习平台导出</footer></div></body></html>';
+        }
+        function printCourses(courses, docTitle) {
+            var w = window.open('', '_blank');
+            if (!w) { alert('浏览器阻止了新窗口，请允许弹窗后重试'); return; }
+            w.document.write(buildMultiCourseHTML(courses, docTitle));
+            w.document.close();
+            w.focus();
+            setTimeout(function() { w.print(); }, 600);
         }
         function safeFileName(s) {
             var t = String(s || '课件'), bad = ['\\\\', '/', ':', '*', '?', '"', '<', '>', '|'], i;
@@ -3616,8 +3707,10 @@ function twCourse(c) {
         /* ===== Office 导出：Word / Excel / PPTX / 打印存PDF ===== */
         var EXP_TYPE_PLAIN = { fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨', verse: '经文诵读' };
         var exportIds = [];
-        function openExportMenu(ids) {
+        var exportLabel = '';
+        function openExportMenu(ids, label) {
             exportIds = ids || [];
+            exportLabel = label || '';
             var m = document.getElementById('exportModal');
             if (!m) {
                 m = document.createElement('div');
@@ -3640,7 +3733,9 @@ function twCourse(c) {
                 document.body.appendChild(m);
             }
             var sub = document.getElementById('exportMenuSub');
-            if (exportIds.length === 1) {
+            if (exportLabel) {
+                sub.innerText = exportLabel + '，批量导出（逐个下载）';
+            } else if (exportIds.length === 1) {
                 var c0 = findCourse(exportIds[0]);
                 sub.innerText = '单个课件：' + (c0 ? c0.title : '');
             } else {
@@ -3657,9 +3752,9 @@ function twCourse(c) {
             closeExportMenu();
             if (!ids.length) return;
             if (fmt === 'print') {
-                var c = findCourse(ids[0]);
-                if (c) printCourse(c);
-                if (ids.length > 1) alert('打印每次仅支持 1 个课件，已打开第 1 个');
+                var pcs = ids.map(function(id) { return findCourse(id); }).filter(function(c) { return c; });
+                if (pcs.length === 1) printCourse(pcs[0]);
+                else if (pcs.length > 1) printCourses(pcs, exportLabel || ('批量课件（' + pcs.length + '个）'));
                 return;
             }
             ids.forEach(function(id, i) { setTimeout(function() { exportOne(id, fmt); }, i * 900); });
