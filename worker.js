@@ -2088,6 +2088,7 @@ function i18nCourse(c) {
             var isEN = (L === 'en'), isJA = (L === 'ja'), isKO = (L === 'ko');
             var JIE = (L === 'tw') ? '節' : '节';
             var JIEP = '[节節]';
+            var ZP = '[章篇]';
             var SP = ' *';
             var DASH = '[\u2013\u2014\uFF0D-]';
             /* vref：fmt=en/ja/ko/zh，输出对应语言格式的徽章 */
@@ -2100,7 +2101,8 @@ function i18nCourse(c) {
                 } else if (fmt === 'ko') {
                     numTxt = ch + '장' + (vs ? ' ' + vs + (ve ? '-' + ve : '') + '절' : '');
                 } else {
-                    numTxt = '第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + JIE : '');
+                    var unit = /诗篇|詩篇/.test(bk) ? '篇' : '章';
+                    numTxt = '第' + ch + unit + (vs ? vs + (ve ? '-' + ve : '') + JIE : '');
                     bookTxt = bookFull(bk);
                 }
                 return '<span class="verse-ref-icon">📜</span>'
@@ -2128,20 +2130,20 @@ function i18nCourse(c) {
             else if (isKO) s = passLang(s, BIBLE_BOOKS_KO, 'ko');
             /* 第二遍：中文（覆盖未翻译的fallback内容；中文模式下这是主遍） */
             var B = bibleBooks();
-            var VP = new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
+            var VP = new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)'
-                + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP + SP + '[说說]' + SP + '[：:，,]' + SP + '([^<]*)'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP + SP + '[：:]' + SP + '([^<]*)'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP
+                + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + JIEP
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + JIEP + SP + '[说說]' + SP + '[：:，,]' + SP + '([^<]*)'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + JIEP + SP + '[：:]' + SP + '([^<]*)'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + JIEP
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)'
-                + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '[：:]' + SP + '([^<]*)'
-                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章(?!' + SP + '[0-9])', 'g');
+                + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '[：:]' + SP + '([^<]*)'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + '(?!' + SP + '[0-9])', 'g');
             s = s.replace(VP, function (m) {
                 var a = arguments;
                 if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4], 'zh');
