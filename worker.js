@@ -3972,7 +3972,7 @@ function i18nCourse(c) {
             if (!c) return;
             var fn = safeFileName(c.title);
             if (fmt === 'html') downloadHTML(fn + '.html', buildExportHTML(c));
-            else if (fmt === 'word') downloadText(fn + '.doc', buildWordHTML(c), 'application/msword');
+            else if (fmt === 'word') downloadBytes(fn + '.docx', buildDocx(c), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
             else if (fmt === 'excel') downloadText(fn + '.xls', buildExcelHTML(c), 'application/vnd.ms-excel');
             else if (fmt === 'pptx1') downloadBytes(fn + '-单页版.pptx', buildPptx(c, 'single'), 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
             else if (fmt === 'pptx2') downloadBytes(fn + '-两页版.pptx', buildPptx(c, 'dual'), 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
@@ -4137,7 +4137,7 @@ function i18nCourse(c) {
             var fn = safeFileName(name + '的错题本');
             var pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
             if (fmt === 'html') downloadHTML(fn + '.html', buildWrongHTML(name, arr));
-            else if (fmt === 'word') downloadText(fn + '.doc', buildWrongWordHTML(name, arr), 'application/msword');
+            else if (fmt === 'word') downloadBytes(fn + '.docx', buildWrongDocx(name, arr), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
             else if (fmt === 'excel') downloadText(fn + '.xls', buildWrongExcelHTML(name, arr), 'application/vnd.ms-excel');
             else if (fmt === 'pptx1') downloadBytes(fn + '-单页版.pptx', buildWrongPptx(name, arr, 'single'), pptxMime);
             else if (fmt === 'pptx2') downloadBytes(fn + '-两页版.pptx', buildWrongPptx(name, arr, 'dual'), pptxMime);
@@ -4329,6 +4329,171 @@ function i18nCourse(c) {
                 + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
                 + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
                 + shapes + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+        }
+        /* ---- 真正的 .docx 生成（ZIP+WordprocessingML，兼容移动Word） ---- */
+        function docxEsc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function docxPara(text, opts) {
+            opts = opts || {};
+            var pPr = '';
+            if (opts.style) pPr += '<w:pStyle w:val="' + opts.style + '"/>';
+            if (opts.align) pPr += '<w:jc w:val="' + opts.align + '"/>';
+            if (opts.shd) pPr += '<w:shd w:fill="' + opts.shd + '" w:val="clear"/>';
+            if (pPr) pPr = '<w:pPr>' + pPr + '</w:pPr>';
+            var rPr = '';
+            if (opts.bold) rPr += '<w:b/>';
+            if (opts.color) rPr += '<w:color w:val="' + opts.color + '"/>';
+            if (opts.size) rPr += '<w:sz w:val="' + opts.size + '"/>';
+            if (opts.highlight) rPr += '<w:highlight w:val="' + opts.highlight + '"/>';
+            if (rPr) rPr = '<w:rPr>' + rPr + '</w:rPr>';
+            // 处理换行
+            var runs = String(text).split('\\n').map(function(line, i, arr) {
+                var t = '<w:t xml:space="preserve">' + docxEsc(line) + '</w:t>';
+                if (i < arr.length - 1) t += '<w:br/>';
+                return '<w:r>' + rPr + t + '</w:r>';
+            }).join('');
+            return '<w:p>' + pPr + runs + '</w:p>';
+        }
+        function buildDocx(c) {
+            var te = new TextEncoder();
+            var qs = [], guide = [];
+            try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
+            try { guide = JSON.parse(c.guide_json || '[]'); } catch (e) {}
+            var title = c.title || '未命名课件';
+            var meta = [c.category, c.subcategory].filter(function(x) { return x; }).join(' · ');
+            var now = new Date(), ds = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
+            var body = '';
+            // 标题
+            body += docxPara(title, {style: 'Heading1', align: 'center'});
+            body += docxPara(meta + '  ·  ' + ds, {align: 'center', color: '808080', size: '20'});
+            body += docxPara('', {});
+            // 导读
+            if (c.content) {
+                body += docxPara('课程导读', {style: 'Heading2'});
+                body += docxPara(stripMd(c.content || ''), {});
+            }
+            // 导览
+            var realGuide = guide.filter(function(g) { return g && (g.title || (g.points || []).length); });
+            if (realGuide.length) {
+                body += docxPara('课程导览', {style: 'Heading2'});
+                realGuide.forEach(function(g, gi) {
+                    body += docxPara((gi + 1) + '. ' + (g.title || ''), {bold: true});
+                    (g.points || []).forEach(function(pt) {
+                        if (String(pt).trim()) body += docxPara('  • ' + stripMd(String(pt)), {});
+                    });
+                });
+            }
+            // 题目
+            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay'], groups = {};
+            qs.forEach(function(q) { var t = q.type || 'fill'; (groups[t] = groups[t] || []).push(q); });
+            var TYPE_LABEL = {verse: '经文诵读', fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨'};
+            order.forEach(function(t) {
+                var list = groups[t] || [];
+                if (!list.length) return;
+                body += docxPara((TYPE_LABEL[t] || t) + '（共' + list.length + '题）', {style: 'Heading2'});
+                list.forEach(function(q, qi) {
+                    var rawQ = q.q || '';
+                    if (t === 'verse' && rawQ.charAt(0) === '【') {
+                        var ce = rawQ.indexOf('】');
+                        if (ce > 0 && ce < 12) rawQ = rawQ.slice(ce + 1);
+                    }
+                    var qtext = (qi + 1) + '. ' + stripMd(stripVerseTag(rawQ));
+                    var ref = q.o || q.h || '';
+                    if (ref) qtext += '（' + stripEmoji(ref) + '）';
+                    var isVerse = (t === 'verse');
+                    body += docxPara(qtext, isVerse ? {highlight: 'yellow'} : {bold: true});
+                    if ((t === 'single' || t === 'multiple') && q.o) {
+                        String(q.o).split(',').forEach(function(opt) {
+                            body += docxPara('   ' + String(opt).trim(), {});
+                        });
+                    }
+                });
+            });
+            // 参考答案
+            if (qs.length) {
+                body += docxPara('参考答案', {style: 'Heading1'});
+                order.forEach(function(t) {
+                    var list = groups[t] || [];
+                    if (!list.length) return;
+                    body += docxPara(TYPE_LABEL[t] || t, {bold: true});
+                    list.forEach(function(q, qi) {
+                        var ans = '';
+                        try { ans = expAnswer(q) || ''; } catch (e) {}
+                        body += docxPara((qi + 1) + '. ' + ans, {color: '047857'});
+                    });
+                });
+            }
+            var HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+            var contentTypes = HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                + '<Default Extension="xml" ContentType="application/xml"/>'
+                + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+                + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+                + '</Types>';
+            var rels = HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+                + '</Relationships>';
+            var docRels = HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+            var styles = HEAD + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:pPr><w:spacing w:after="120"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="1F4E79"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:pPr><w:spacing w:before="120" w:after="60"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="4C1D95"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:sz w:val="22"/></w:rPr></w:style>'
+                + '</w:styles>';
+            var document = HEAD + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:body>' + body
+                + '<w:sectPr><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>'
+                + '</w:body></w:document>';
+            var files = [
+                {name: '[Content_Types].xml', data: te.encode(contentTypes)},
+                {name: '_rels/.rels', data: te.encode(rels)},
+                {name: 'word/_rels/document.xml.rels', data: te.encode(docRels)},
+                {name: 'word/styles.xml', data: te.encode(styles)},
+                {name: 'word/document.xml', data: te.encode(document)},
+            ];
+            return zipStored(files);
+        }
+        function buildWrongDocx(name, arr) {
+            var te = new TextEncoder();
+            var ds = wrongDateStr();
+            var body = docxPara(name + '的错题本', {style: 'Heading1', align: 'center'});
+            body += docxPara('共' + arr.length + '题 · ' + ds, {align: 'center', color: '808080', size: '20'});
+            arr.forEach(function(x, i) {
+                body += docxPara('第' + (i + 1) + '题 · ' + (WRONG_TYPE_LABEL[x.type] || x.type || ''), {style: 'Heading2'});
+                if (wrongMeta(x)) body += docxPara(wrongMeta(x), {color: '808080', size: '20'});
+                var qtext = x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '');
+                body += docxPara(stripMd(qtext), x.type === 'verse' ? {highlight: 'yellow'} : {});
+                body += docxPara('你的答案：' + (x.u || '未作答'), {color: 'C0504D'});
+                body += docxPara('正确答案：' + (x.expected || ''), {color: '047857'});
+            });
+            var HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+            var contentTypes = HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                + '<Default Extension="xml" ContentType="application/xml"/>'
+                + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+                + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+                + '</Types>';
+            var rels = HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+                + '</Relationships>';
+            var docRels = HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+            var styles = HEAD + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="1F4E79"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="4C1D95"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:sz w:val="22"/></w:rPr></w:style>'
+                + '</w:styles>';
+            var document = HEAD + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:body>' + body
+                + '<w:sectPr><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>'
+                + '</w:body></w:document>';
+            var files = [
+                {name: '[Content_Types].xml', data: te.encode(contentTypes)},
+                {name: '_rels/.rels', data: te.encode(rels)},
+                {name: 'word/_rels/document.xml.rels', data: te.encode(docRels)},
+                {name: 'word/styles.xml', data: te.encode(styles)},
+                {name: 'word/document.xml', data: te.encode(document)},
+            ];
+            return zipStored(files);
         }
         function buildPptx(c, mode) {
             var qs = [];
