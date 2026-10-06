@@ -3995,21 +3995,15 @@ function i18nCourse(c) {
             a.click();
             setTimeout(function() { try { URL.revokeObjectURL(a.href); a.remove(); } catch (e) {} }, 1500);
         }
-        var WORD_CSS = 'body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75;color:#1e293b;font-size:14px;}'
-            + 'h1{font-size:24px;}h2{font-size:18px;color:#4c1d95;border-bottom:2px solid #a78bfa;padding-bottom:6px;}'
-            + '.hero{background:#ede9fe;padding:20px;}'
-            + '.card{margin-bottom:16px;}'
-            + '.q{margin:12px 0;}.q-text{font-weight:bold;}'
-            + '.q-verse{background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #3b82f6;border-radius:12px;padding:12px 14px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
-            + '.verse-ref-line{margin:2px 0 8px;}'
-            + '.blank{display:inline-block;min-width:70px;border-bottom:2px solid #94a3b8;}'
-            + '.ans{background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 12px;margin-top:6px;}'
-            + '.chapter{margin-bottom:10px;}.ch-title{font-weight:bold;}'
-            + '.ch-num{display:inline-block;min-width:24px;height:24px;line-height:24px;text-align:center;background:#4f46e5;color:#fff;font-size:13px;font-weight:800;border-radius:7px;margin-right:8px;}'
-            + '.md p{margin:0 0 8px;}.md ul{margin:0 0 8px;padding-left:20px;}'
-            + '.verse-ref{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.verse-ref-icon{display:inline-block;background:#d97706;color:#fff;font-weight:700;font-size:12px;padding:1px 7px;border-radius:9999px;white-space:nowrap;margin-right:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.verse-ref-book{display:inline-block;background:#7c3aed;color:#fff;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.verse-ref-num{display:inline-block;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;padding:1px 8px;border-radius:9999px;white-space:nowrap;border:1.5px solid #60a5fa;margin-left:4px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.verse-text{background:#fef3c7;color:#92400e;font-weight:700;border-radius:3px;padding:0 3px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
-            + '.ws{margin:10px 0 4px;}.ws-line{border-bottom:1px solid #cbd5e1;height:28px;}'
-            + '.answer-key{page-break-before:always;}.answer-key ol{margin:6px 0 12px;padding-left:24px;}.answer-key li{margin-bottom:6px;}';
+        var WORD_CSS = 'body{font-family:"Microsoft YaHei",sans-serif;font-size:14px;color:#000;}'
+            + 'h1{font-size:22px;}h2{font-size:18px;}'
+            + '.q{margin:10px 0;}.q-text{font-weight:bold;}'
+            + '.blank{text-decoration:underline;}'
+            + '.ans{background:#f0f0f0;padding:8px;margin-top:6px;}'
+            + '.verse-text{background:#fef3c7;}'
+            + '.verse-ref-book{background:#7c3aed;color:#fff;padding:2px 6px;}'
+            + '.verse-ref-num{color:#1d4ed8;}'
+            + '.ws-line{border-bottom:1px solid #999;height:28px;}';
         function buildAnswerKey(c) {
             var qs = [];
             try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
