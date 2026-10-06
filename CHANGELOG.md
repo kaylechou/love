@@ -329,6 +329,8 @@
 
 ---
 
+## 第110次部署（2026-10-06）
+- PDF打印经文样式修复：导出CSS的 verse-ref/verse-text 加 print-color-adjust:exact，打印时背景色正常显示
 ## 第109次部署（2026-10-06）
 - 导出场景经文徽章同步：verse-ref-book/icon 改渐变、verse-ref-num 边框 1.5px，与网页版完全一致
 ## 第108次部署（2026-10-06）
