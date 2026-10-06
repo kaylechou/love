@@ -4194,7 +4194,7 @@ function i18nCourse(c) {
                     + xlsxCell(xlsxCol(3)+rn, x.sub || '', 0)
                     + xlsxCell(xlsxCol(4)+rn, x.title || '', 0)
                     + xlsxCell(xlsxCol(5)+rn, WRONG_TYPE_LABEL[x.type] || x.type || '', 0)
-                    + xlsxRichCell(xlsxCol(6)+rn, verseSegs(stripMd(qtext)), 0)
+                    + xlsxRichCell(xlsxCol(6)+rn, verseSegs(docxStrip(qtext)), 0)
                     + xlsxCell(xlsxCol(7)+rn, x.u || '', 0)
                     + xlsxCell(xlsxCol(8)+rn, x.expected || '', 0)
                     + '</row>'); rn++;
@@ -4408,6 +4408,10 @@ function i18nCourse(c) {
         function docxEsc(s) {
             return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
+        function docxStrip(s) {
+            // 去markdown但保留下划线填空线
+            return String(s || "").replace(/[#>*~]/g, "").replace(/\\s+/g, " ").trim();
+        }
         function docxRun(text, opts) {
             opts = opts || {};
             var rPr = '';
@@ -4501,7 +4505,8 @@ function i18nCourse(c) {
                             + '</w:p>';
                         body += badgeHtml;
                     }
-                    var qtext = stripMd(stripVerseTag(rawQ));
+                    var qtext = docxStrip(stripVerseTag(rawQ));
+                    var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
                     // 题号+题干，多个run组合
                     var qp = '<w:p>';
                     if (t === 'verse') qp += '<w:pPr><w:shd w:fill="EFF6FF" w:val="clear"/><w:pBdr><w:left w:val="single" w:sz="18" w:color="3B82F6"/></w:pBdr><w:spacing w:after="80"/></w:pPr>';
@@ -4510,13 +4515,14 @@ function i18nCourse(c) {
                     if (t === 'verse') {
                         qp += docxRun(qtext, {highlight: 'yellow', bold: true});
                     } else {
-                        qp += docxRun(qtext, {bold: true});
+                        qp += docxRun(bracket + qtext, {bold: true});
                     }
                     qp += '</w:p>';
                     body += qp;
                     if ((t === 'single' || t === 'multiple') && q.o) {
-                        String(q.o).split(',').forEach(function(opt) {
-                            body += docxPara('   ' + String(opt).trim(), {color: '475569'});
+                        var letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+                        String(q.o).split(',').forEach(function(opt, oi) {
+                            body += docxPara('   ' + (letters[oi] || '') + '. ' + String(opt).trim(), {color: '475569'});
                         });
                     }
                     // 填空线
@@ -4674,10 +4680,11 @@ function i18nCourse(c) {
                 }
                 var ans = '';
                 try { ans = expAnswer(q) || ''; } catch (e) {}
+                var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
                 rows.push('<row r="' + rn + '">'
                     + xlsxCell(xlsxCol(1)+rn, String(i+1), 0)
                     + xlsxCell(xlsxCol(2)+rn, TYPE_PLAIN[t] || t, 0)
-                    + xlsxRichCell(xlsxCol(3)+rn, verseSegs(stripMd(stripVerseTag(qq))), 0)
+                    + xlsxRichCell(xlsxCol(3)+rn, verseSegs(docxStrip(stripVerseTag(bracket + qq))), 0)
                     + xlsxRichCell(xlsxCol(4)+rn, verseSegs(stripEmoji(q.o || q.h || '')), 0)
                     + xlsxCell(xlsxCol(5)+rn, ans, 0)
                     + '</row>'); rn++;
@@ -4748,9 +4755,11 @@ function i18nCourse(c) {
             var single = (mode === 'single');
             qs.forEach(function(q, i) {
                 var t = q.type || 'fill';
-                var lines = ['【' + (EXP_TYPE_PLAIN[t] || '') + '】' + (q.q || '')];
+                var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
+                var lines = ['【' + (EXP_TYPE_PLAIN[t] || '') + '】' + bracket + (q.q || '')];
                 if ((t === 'single' || t === 'multiple') && q.o) {
-                    String(q.o).split(',').forEach(function(o) { lines.push(String(o).trim()); });
+                    var letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+                    String(q.o).split(',').forEach(function(o, oi) { lines.push((letters[oi] || '') + '. ' + String(o).trim()); });
                 }
                 var qParas = lines.map(function(ln) { return pptxRichPara(ln, 1800); });
                 var ansParas = pptxAnswerParas(q);
