@@ -3973,7 +3973,7 @@ function i18nCourse(c) {
             var fn = safeFileName(c.title);
             if (fmt === 'html') downloadHTML(fn + '.html', buildExportHTML(c));
             else if (fmt === 'word') downloadBytes(fn + '.docx', buildDocx(c), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            else if (fmt === 'excel') downloadText(fn + '.xls', buildExcelHTML(c), 'application/vnd.ms-excel');
+            else if (fmt === 'excel') downloadBytes(fn + '.xlsx', buildXlsx(c), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             else if (fmt === 'pptx1') downloadBytes(fn + '-单页版.pptx', buildPptx(c, 'single'), 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
             else if (fmt === 'pptx2') downloadBytes(fn + '-两页版.pptx', buildPptx(c, 'dual'), 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
         }
@@ -4138,7 +4138,7 @@ function i18nCourse(c) {
             var pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
             if (fmt === 'html') downloadHTML(fn + '.html', buildWrongHTML(name, arr));
             else if (fmt === 'word') downloadBytes(fn + '.docx', buildWrongDocx(name, arr), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            else if (fmt === 'excel') downloadText(fn + '.xls', buildWrongExcelHTML(name, arr), 'application/vnd.ms-excel');
+            else if (fmt === 'excel') downloadBytes(fn + '.xlsx', buildWrongXlsx(name, arr), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             else if (fmt === 'pptx1') downloadBytes(fn + '-单页版.pptx', buildWrongPptx(name, arr, 'single'), pptxMime);
             else if (fmt === 'pptx2') downloadBytes(fn + '-两页版.pptx', buildWrongPptx(name, arr, 'dual'), pptxMime);
             else if (fmt === 'print') printWrongs(name, arr);
@@ -4168,6 +4168,67 @@ function i18nCourse(c) {
             var p2 = p1[1].split('</style>');
             h = p1[0] + '<style>' + WORD_CSS + '</style>' + p2[1];
             return h;
+        }
+        function buildWrongXlsx(name, arr) {
+            var te = new TextEncoder();
+            var rows = [], rn = 1;
+            rows.push('<row r="' + (rn++) + '">' + xlsxCell('A1', name + '的错题本（共' + arr.length + '题）', 1) + '</row>');
+            rows.push('<row r="' + rn + '">'
+                + xlsxCell(xlsxCol(1)+rn, '序号', 3) + xlsxCell(xlsxCol(2)+rn, '系列', 3)
+                + xlsxCell(xlsxCol(3)+rn, '子栏目', 3) + xlsxCell(xlsxCol(4)+rn, '课件', 3)
+                + xlsxCell(xlsxCol(5)+rn, '题型', 3) + xlsxCell(xlsxCol(6)+rn, '题目', 3)
+                + xlsxCell(xlsxCol(7)+rn, '你的答案', 3) + xlsxCell(xlsxCol(8)+rn, '正确答案', 3) + '</row>'); rn++;
+            arr.forEach(function(x, i) {
+                var qtext = x.type === 'verse' ? stripVerseTag(x.q) : (x.q || '');
+                rows.push('<row r="' + rn + '">'
+                    + xlsxCell(xlsxCol(1)+rn, String(i+1), 0)
+                    + xlsxCell(xlsxCol(2)+rn, x.series || '', 0)
+                    + xlsxCell(xlsxCol(3)+rn, x.sub || '', 0)
+                    + xlsxCell(xlsxCol(4)+rn, x.title || '', 0)
+                    + xlsxCell(xlsxCol(5)+rn, WRONG_TYPE_LABEL[x.type] || x.type || '', 0)
+                    + xlsxCell(xlsxCol(6)+rn, stripMd(qtext), 0)
+                    + xlsxCell(xlsxCol(7)+rn, x.u || '', 0)
+                    + xlsxCell(xlsxCol(8)+rn, x.expected || '', 0)
+                    + '</row>'); rn++;
+            });
+            var HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+            var contentTypes = HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                + '<Default Extension="xml" ContentType="application/xml"/>'
+                + '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+                + '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+                + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+                + '</Types>';
+            var rels = HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+                + '</Relationships>';
+            var wbRels = HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+                + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+                + '</Relationships>';
+            var workbook = HEAD + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                + '<sheets><sheet name="错题本" sheetId="1" r:id="rId1"/></sheets></workbook>';
+            var styles = HEAD + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                + '<fonts><font><sz val="11"/></font><font><b/><sz val="14"/><color rgb="FF1F4E79"/></font><font><sz val="11"/><color rgb="FF6D28D9"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><fill><patternFill><bgColor rgb="FF4F46E5"/></bgColor></patternFill></font></fonts>'
+                + '<fills><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+                + '<borders><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+                + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+                + '<cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+                + '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0"/>'
+                + '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>'
+                + '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0"/></cellXfs></styleSheet>';
+            var sheet = HEAD + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                + '<cols><col min="1" max="1" width="8"/><col min="2" max="4" width="16"/><col min="5" max="5" width="14"/><col min="6" max="6" width="50"/><col min="7" max="8" width="24"/></cols>'
+                + '<sheetData>' + rows.join('') + '</sheetData></worksheet>';
+            var files = [
+                {name: '[Content_Types].xml', data: te.encode(contentTypes)},
+                {name: '_rels/.rels', data: te.encode(rels)},
+                {name: 'xl/_rels/workbook.xml.rels', data: te.encode(wbRels)},
+                {name: 'xl/workbook.xml', data: te.encode(workbook)},
+                {name: 'xl/styles.xml', data: te.encode(styles)},
+                {name: 'xl/worksheets/sheet1.xml', data: te.encode(sheet)},
+            ];
+            return zipStored(files);
         }
         function buildWrongExcelHTML(name, arr) {
             var trs = arr.map(function(x, i) {
@@ -4533,6 +4594,107 @@ function i18nCourse(c) {
                 {name: 'word/_rels/document.xml.rels', data: te.encode(docRels)},
                 {name: 'word/styles.xml', data: te.encode(styles)},
                 {name: 'word/document.xml', data: te.encode(document)},
+            ];
+            return zipStored(files);
+        }
+        /* ---- 真正的 .xlsx 生成 ---- */
+        function xlsxEsc(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        function xlsxCell(ref, text, style) {
+            var s = style ? ' s="' + style + '"' : '';
+            return '<c r="' + ref + '"' + s + ' t="inlineStr"><is><t xml:space="preserve">' + xlsxEsc(text) + '</t></is></c>';
+        }
+        function xlsxCol(n) {
+            var s = '';
+            while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+            return s;
+        }
+        function buildXlsx(c) {
+            var te = new TextEncoder();
+            var qs = [], guide = [];
+            try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
+            try { guide = JSON.parse(c.guide_json || '[]'); } catch (e) {}
+            var rows = [];
+            var rn = 1;
+            // 标题行
+            rows.push('<row r="' + (rn++) + '">' + xlsxCell('A1', c.title || '', 1) + '</row>');
+            rows.push('<row r="' + (rn++) + '">' + xlsxCell('A2', [c.category, c.subcategory].filter(function(x){return x;}).join(' · '), 2) + '</row>');
+            rows.push('<row r="' + (rn++) + '"></row>');
+            // 导览
+            var realGuide = guide.filter(function(g) { return g && (g.title || (g.points || []).length); });
+            if (realGuide.length) {
+                rows.push('<row r="' + rn + '">' + xlsxCell(xlsxCol(1)+rn, '课程导览', 1) + '</row>'); rn++;
+                rows.push('<row r="' + rn + '">' + xlsxCell(xlsxCol(1)+rn, '序号', 3) + xlsxCell(xlsxCol(2)+rn, '章节', 3) + xlsxCell(xlsxCol(3)+rn, '要点', 3) + '</row>'); rn++;
+                realGuide.forEach(function(g, gi) {
+                    var pts = (g.points || []).filter(function(x){return String(x).trim();}).join('；');
+                    rows.push('<row r="' + rn + '">' + xlsxCell(xlsxCol(1)+rn, String(gi+1), 0) + xlsxCell(xlsxCol(2)+rn, stripMd(g.title||''), 0) + xlsxCell(xlsxCol(3)+rn, stripMd(pts), 0) + '</row>'); rn++;
+                });
+                rows.push('<row r="' + (rn++) + '"></row>');
+            }
+            // 题库表头
+            var TYPE_PLAIN = {verse: '经文诵读', fill: '填空题', single: '单选题', multiple: '多选题', judge: '判断题', essay: '问答题'};
+            rows.push('<row r="' + rn + '">' + xlsxCell(xlsxCol(1)+rn, '题库', 1) + '</row>'); rn++;
+            rows.push('<row r="' + rn + '">'
+                + xlsxCell(xlsxCol(1)+rn, '序号', 3) + xlsxCell(xlsxCol(2)+rn, '题型', 3)
+                + xlsxCell(xlsxCol(3)+rn, '题目', 3) + xlsxCell(xlsxCol(4)+rn, '经文出处', 3)
+                + xlsxCell(xlsxCol(5)+rn, '答案', 3) + '</row>'); rn++;
+            qs.forEach(function(q, i) {
+                var t = q.type || 'fill';
+                var qq = q.q || '';
+                if (t === 'verse' && qq.charAt(0) === '【') {
+                    var ce = qq.indexOf('】');
+                    if (ce > 0 && ce < 12) qq = qq.slice(ce + 1);
+                }
+                var ans = '';
+                try { ans = expAnswer(q) || ''; } catch (e) {}
+                rows.push('<row r="' + rn + '">'
+                    + xlsxCell(xlsxCol(1)+rn, String(i+1), 0)
+                    + xlsxCell(xlsxCol(2)+rn, TYPE_PLAIN[t] || t, 0)
+                    + xlsxCell(xlsxCol(3)+rn, stripMd(stripVerseTag(qq)), 0)
+                    + xlsxCell(xlsxCol(4)+rn, stripEmoji(q.o || q.h || ''), 0)
+                    + xlsxCell(xlsxCol(5)+rn, ans, 0)
+                    + '</row>'); rn++;
+            });
+            var HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+            var contentTypes = HEAD + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                + '<Default Extension="xml" ContentType="application/xml"/>'
+                + '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+                + '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+                + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+                + '</Types>';
+            var rels = HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+                + '</Relationships>';
+            var wbRels = HEAD + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+                + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+                + '</Relationships>';
+            var workbook = HEAD + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                + '<sheets><sheet name="题库" sheetId="1" r:id="rId1"/></sheets></workbook>';
+            var styles = HEAD + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                + '<fonts><font><sz val="11"/></font><font><b/><sz val="14"/><color rgb="FF1F4E79"/></font><font><sz val="11"/><color rgb="FF6D28D9"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><fill><patternFill><bgColor rgb="FF4F46E5"/></bgColor></patternFill></font></fonts>'
+                + '<fills><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+                + '<borders><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+                + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+                + '<cellXfs count="4">'
+                + '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+                + '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0"/>'
+                + '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>'
+                + '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0"/>'
+                + '</cellXfs></styleSheet>';
+            var sheet = HEAD + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                + '<sheetViews><sheetView workbookViewId="0"/></sheetViews>'
+                + '<cols><col min="1" max="1" width="8"/><col min="2" max="2" width="14"/><col min="3" max="3" width="60"/><col min="4" max="4" width="22"/><col min="5" max="5" width="30"/></cols>'
+                + '<sheetData>' + rows.join('') + '</sheetData></worksheet>';
+            var files = [
+                {name: '[Content_Types].xml', data: te.encode(contentTypes)},
+                {name: '_rels/.rels', data: te.encode(rels)},
+                {name: 'xl/_rels/workbook.xml.rels', data: te.encode(wbRels)},
+                {name: 'xl/workbook.xml', data: te.encode(workbook)},
+                {name: 'xl/styles.xml', data: te.encode(styles)},
+                {name: 'xl/worksheets/sheet1.xml', data: te.encode(sheet)},
             ];
             return zipStored(files);
         }
