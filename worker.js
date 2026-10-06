@@ -2037,7 +2037,15 @@ function i18nCourse(c) {
                 return solidBadge(t1, bg1) + rest;
             }
             /* 讲员名-系列名（中英日韩） */
-            m = s.match(/^([^\\s•·\-]+?)(?:牧师|老师|博士|长老|Reverend|Pastor|Dr\.|牧師|先生|목사|박사)([\\s\-—•·]+)(.*)$/i);
+            /* 英文顺序：Reverend Kou Shaohan - Series */
+            m = s.match(/^(Reverend|Pastor|Dr\.)\\s+([^\\s•·\-]+(?:\\s+[^\\s•·\-]+)*?)([\\s\-—•·]+)(.*)$/i);
+            if (m) {
+                var titleEn = m[1] + ' ' + m[2];
+                var restEn = m[4] ? DOT + hollowBadge(m[4], '#6d28d9', '#ede9fe') : '';
+                return solidBadge(titleEn, 'linear-gradient(135deg,#8b5cf6,#6d28d9)') + restEn;
+            }
+            /* 中文顺序：寇绍涵牧师 - 系列名 */
+            m = s.match(/^([^\\s•·\-]+?)(?:牧师|老师|博士|长老|牧師|先生|목사|박사)([\\s\-—•·]+)(.*)$/);
             if (m) {
                 /* title 为讲员全称（含牧师/老师等） */
                 var title = s.slice(0, s.length - m[2].length - m[3].length);
