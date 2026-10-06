@@ -2074,64 +2074,80 @@ function i18nCourse(c) {
         function hlVerse(s) {
             s = String(s == null ? "" : s);
             var L = curLang();
-            var B = bibleBooks();
             var isEN = (L === 'en'), isJA = (L === 'ja'), isKO = (L === 'ko');
-            if (isEN) B = BIBLE_BOOKS_EN;
-            else if (isJA) B = BIBLE_BOOKS_JA;
-            else if (isKO) B = BIBLE_BOOKS_KO;
             var JIE = (L === 'tw') ? '節' : '节';
             var JIEP = '[节節]';
             var SP = ' *';
-            /* 引用统一显示：中文"全称第N章M节"，英文"Book 3:16"，日韩本地格式；书名与章节分开高亮 */
-            function vref(bk, ch, vs, ve) {
-                var numTxt;
-                if (isEN) numTxt = ch + (vs ? ':' + vs + (ve ? '-' + ve : '') : '');
-                else if (isJA) numTxt = '第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + '節' : '');
-                else if (isKO) numTxt = ch + '장' + (vs ? ' ' + vs + (ve ? '-' + ve : '') + '절' : '');
-                else numTxt = '第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + JIE : '');
-                var bookTxt = (isEN || isJA || isKO) ? bk : bookFull(bk);
+            var DASH = '[\u2013\u2014\uFF0D-]';
+            /* vref：fmt=en/ja/ko/zh，输出对应语言格式的徽章 */
+            function vref(bk, ch, vs, ve, fmt) {
+                var numTxt, bookTxt = bk;
+                if (fmt === 'en') {
+                    numTxt = ch + (vs ? ':' + vs + (ve ? '-' + ve : '') : '');
+                } else if (fmt === 'ja') {
+                    numTxt = '第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + '節' : '');
+                } else if (fmt === 'ko') {
+                    numTxt = ch + '장' + (vs ? ' ' + vs + (ve ? '-' + ve : '') + '절' : '');
+                } else {
+                    numTxt = '第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + JIE : '');
+                    bookTxt = bookFull(bk);
+                }
                 return '<span class="verse-ref-icon">📜</span>'
                     + '<span class="verse-ref-book">' + bookTxt + '</span>'
                     + '<span class="verse-ref-num">' + numTxt + '</span>';
             }
-            var DASH = '[\u2013\u2014\uFF0D-]';
+            /* 英日韩遍：Book 3:16（含经文正文琥珀高亮） */
+            function passLang(text, books, fmt) {
+                var B2 = books;
+                var VP2 = new RegExp('(' + B2 + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + '[:：]' + SP + '([^<]*)'
+                    + '|(' + B2 + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)'
+                    + '|(' + B2 + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([^<]*)'
+                    + '|(' + B2 + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)', 'g');
+                return text.replace(VP2, function (m) {
+                    var a = arguments;
+                    if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4], fmt) + '<span class="verse-text">' + a[5] + '</span>';
+                    if (a[6] !== undefined) return vref(a[6], a[7], a[8], a[9], fmt);
+                    if (a[10] !== undefined) return vref(a[10], a[11], a[12], null, fmt) + '<span class="verse-text">' + a[13] + '</span>';
+                    return vref(a[14], a[15], a[16], null, fmt);
+                });
+            }
+            /* 第一遍：目标语言（英日韩） */
+            if (isEN) s = passLang(s, BIBLE_BOOKS_EN, 'en');
+            else if (isJA) s = passLang(s, BIBLE_BOOKS_JA, 'ja');
+            else if (isKO) s = passLang(s, BIBLE_BOOKS_KO, 'ko');
+            /* 第二遍：中文（覆盖未翻译的fallback内容；中文模式下这是主遍） */
+            var B = bibleBooks();
             var VP = new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)'
                 + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP + SP + '[说說]' + SP + '[：:，,]' + SP + '([^<]*)'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP + SP + '[：:]' + SP + '([^<]*)'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + JIEP
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + '[：:]' + SP + '([^<]*)'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)'
                 + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
+                + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '[：:]' + SP + '([^<]*)'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章(?!' + SP + '[0-9])', 'g');
-            /* 英日韩引用格式：Book 3:16 / Book 3:16-17（书名已按语言切换） */
-            if (isEN || isJA || isKO) {
-                var DASH2 = '[\u2013\u2014\uFF0D-]';
-                var VP2 = new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH2 + SP + '([0-9]+)'
-                    + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)', 'g');
-                s = s.replace(VP2, function (m) {
-                    var a = arguments;
-                    if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4]);
-                    return vref(a[5], a[6], a[7]);
-                });
-            }
             s = s.replace(VP, function (m) {
                 var a = arguments;
-                if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4]);
-                if (a[5] !== undefined) return vref(a[5], a[6], a[7], a[8]);
-                if (a[9] !== undefined) return vref(a[9], a[10], a[11], a[12]) + '<span class="verse-text">' + a[13] + '</span>';
-                if (a[14] !== undefined) return vref(a[14], a[15], a[16], a[17]);
-                if (a[18] !== undefined) return vref(a[18], a[19], a[20]);
-                if (a[21] !== undefined) return vref(a[21], a[22], a[23]) + '<span class="verse-text">' + a[24] + '</span>';
-                if (a[25] !== undefined) return vref(a[25], a[26], a[27]);
-                if (a[28] !== undefined) return vref(a[28], a[29], a[30]) + '<span class="verse-text">' + a[31] + '</span>';
-                if (a[32] !== undefined) return vref(a[32], a[33], a[34]);
-                if (a[35] !== undefined) return vref(a[35], a[36], a[37]);
-                if (a[38] !== undefined) return vref(a[38], a[39], a[40]);
-                return vref(a[41], a[42], null);
+                if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4], 'zh');
+                if (a[5] !== undefined) return vref(a[5], a[6], a[7], a[8], 'zh');
+                if (a[9] !== undefined) return vref(a[9], a[10], a[11], a[12], 'zh') + '<span class="verse-text">' + a[13] + '</span>';
+                if (a[14] !== undefined) return vref(a[14], a[15], a[16], a[17], 'zh');
+                if (a[18] !== undefined) return vref(a[18], a[19], a[20], 'zh');
+                if (a[21] !== undefined) return vref(a[21], a[22], a[23], null, 'zh') + '<span class="verse-text">' + a[24] + '</span>';
+                if (a[25] !== undefined) return vref(a[25], a[26], a[27], null, 'zh') + '<span class="verse-text">' + a[28] + '</span>';
+                if (a[29] !== undefined) return vref(a[29], a[30], a[31], null, 'zh');
+                if (a[32] !== undefined) return vref(a[32], a[33], a[34], null, 'zh') + '<span class="verse-text">' + a[35] + '</span>';
+                if (a[36] !== undefined) return vref(a[36], a[37], a[38], null, 'zh');
+                if (a[39] !== undefined) return vref(a[39], a[40], a[41], null, 'zh');
+                if (a[42] !== undefined) return vref(a[42], a[43], a[44], null, 'zh');
+                if (a[45] !== undefined) return vref(a[45], a[46], null, null, 'zh') + '<span class="verse-text">' + a[47] + '</span>';
+                if (a[48] !== undefined) return vref(a[48], a[49], null, null, 'zh');
+                return vref(a[48], a[49], null, null, 'zh');
             });
             return s;
         }
