@@ -251,7 +251,7 @@ const b = await request.json();
 const qJson = JSON.stringify(b.quizzes || []);
 const gJson = JSON.stringify(Array.isArray(b.guide) ? b.guide : []);
 const mode = b.mode === "study"? "study": "quiz";
-const cat = b.category || "默认", sub = ((b.subcategory || "") + "").trim();
+const cat = b.category || "默认", sub = ((b.subcategory || "") + "").trim().replace(/\+/g, "\u2022");
 if (b.id && b.id.length > 5) {
 await env.DB.prepare("UPDATE courses SET category=?, subcategory=?, title=?, content=?, quizzes_json=?, video_url=?, mode=?, guide_json=?, instructions=? WHERE id=?")
 .bind(cat, sub, b.title, b.content, qJson, b.video_url || "", mode, gJson, b.instructions || "", b.id).run();
@@ -357,7 +357,7 @@ return json(out, 200, { "Cache-Control": "public, max-age=60" });
 if (pathname === "/api/category/save" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
 const b = await request.json();
-const name = ((b.name || "") + "").trim();
+var name = ((b.name || "") + "").trim().replace(/\+/g, "\u2022");
 if (!name) return json({ error: "名称不能为空"}, 400);
 const desc = ((b.description || "") + "").trim();
 const oldName = ((b.oldName || "") + "").trim();
@@ -5075,7 +5075,7 @@ function i18nCourse(c) {
             var sv = document.getElementById('f_series').value;
             var series = sv === '__new__' ? document.getElementById('f_series_new').value.trim() : sv;
             var uv = document.getElementById('f_sub').value;
-            var sub = uv === '__new__' ? document.getElementById('f_sub_new').value.trim() : (uv || "");
+            var sub = uv === '__new__' ? document.getElementById('f_sub_new').value.trim().replace(/\+/g, '•') : (uv || "");
             if (!series) { alert("请选择或新建一个系列"); return; }
             var b = { id: document.getElementById('f_id').value, category: series, subcategory: sub, title: document.getElementById('f_title').value, content: document.getElementById('f_content').value, video_url: document.getElementById('f_video').value, guide: guideVal, instructions: document.getElementById('f_instructions').value, quizzes: quizzes };
             var r = await fetch('/api/save', { method: 'POST', body: JSON.stringify(b) });
