@@ -4519,7 +4519,10 @@ function i18nCourse(c) {
                     }
                     qp += '</w:p>';
                     body += qp;
-                    if ((t === 'single' || t === 'multiple') && q.o) {
+                    if (t === 'judge') {
+                        body += docxPara('   √. 对', {color: '475569'});
+                        body += docxPara('   ×. 错', {color: '475569'});
+                    } else if ((t === 'single' || t === 'multiple') && q.o) {
                         var letters = ['A', 'B', 'C', 'D', 'E', 'F'];
                         String(q.o).split(',').forEach(function(opt, oi) {
                             body += docxPara('   ' + (letters[oi] || '') + '. ' + String(opt).trim(), {color: '475569'});
@@ -4757,7 +4760,9 @@ function i18nCourse(c) {
                 var t = q.type || 'fill';
                 var bracket = (t === 'single' || t === 'multiple' || t === 'judge') ? '（ ）' : '';
                 var lines = ['【' + (EXP_TYPE_PLAIN[t] || '') + '】' + bracket + (q.q || '')];
-                if ((t === 'single' || t === 'multiple') && q.o) {
+                if (t === 'judge') {
+                    lines.push('√. 对'); lines.push('×. 错');
+                } else if ((t === 'single' || t === 'multiple') && q.o) {
                     var letters = ['A', 'B', 'C', 'D', 'E', 'F'];
                     String(q.o).split(',').forEach(function(o, oi) { lines.push((letters[oi] || '') + '. ' + String(o).trim()); });
                 }
