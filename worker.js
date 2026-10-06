@@ -97,7 +97,7 @@ return nc;
 }
 /* 首页列表精简字段：去掉题库/导读/说明（体积约为完整数据的 1/10），卡片与搜索只用 content */
 function briefCourse(c) {
-return { id: c.id, category: c.category, subcategory: c.subcategory, title: c.title, content: c.content, video_url: c.video_url, mode: c.mode, sort_order: c.sort_order, created_at: c.created_at };
+return { id: c.id, category: c.category, subcategory: c.subcategory, title: c.title, content: c.content, video_url: c.video_url, mode: c.mode, sort_order: c.sort_order, created_at: c.created_at, i18n_json: c.i18n_json || '' };
 }
 async function getSetting(env, key) {
 try {
@@ -2025,18 +2025,19 @@ function i18nCourse(c) {
             function hollowBadge(t, color, bg) {
                 return '<span style="' + HOLLOW + 'color:' + color + ';border-color:' + color + ';background:' + bg + ';">' + t + '</span>';
             }
-            /* 旧约/新约 */
-            var m = s.match(/^(旧約|新約|旧约|新约)([\\s•·]*)(.*)$/);
+            /* 旧约/新约（中英日韩） */
+            var m = s.match(/^(旧約|新約|旧约|新约|Old Testament|New Testament|旧約聖書|新約聖書|구약|신약)([\\s•·]*)(.*)$/i);
             if (m) {
-                var isOld = m[1].charAt(0) === '旧' || m[1].charAt(0) === '舊';
+                var t1 = m[1];
+                var isOld = /旧|舊|Old|구약/.test(t1);
                 var bg1 = isOld ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#3b82f6,#1d4ed8)';
                 var c2 = isOld ? '#b45309' : '#1d4ed8';
                 var bg2 = isOld ? '#fef3c7' : '#dbeafe';
                 var rest = m[3] ? DOT + hollowBadge(m[3], c2, bg2) : '';
-                return solidBadge(m[1], bg1) + rest;
+                return solidBadge(t1, bg1) + rest;
             }
-            /* 讲员名-系列名 */
-            m = s.match(/^([^\\s•·\-]+?)(?:牧师|老师|博士|长老)([\\s\-—•·]+)(.*)$/);
+            /* 讲员名-系列名（中英日韩） */
+            m = s.match(/^([^\\s•·\-]+?)(?:牧师|老师|博士|长老|Reverend|Pastor|Dr\.|牧師|先生|목사|박사)([\\s\-—•·]+)(.*)$/i);
             if (m) {
                 /* title 为讲员全称（含牧师/老师等） */
                 var title = s.slice(0, s.length - m[2].length - m[3].length);
