@@ -2148,7 +2148,7 @@ function i18nCourse(c) {
                 if (a[5] !== undefined) return vref(a[5], a[6], a[7], a[8], 'zh');
                 if (a[9] !== undefined) return vref(a[9], a[10], a[11], a[12], 'zh') + '<span class="verse-text">' + a[13] + '</span>';
                 if (a[14] !== undefined) return vref(a[14], a[15], a[16], a[17], 'zh');
-                if (a[18] !== undefined) return vref(a[18], a[19], a[20], 'zh');
+                if (a[18] !== undefined) return vref(a[18], a[19], a[20], null, 'zh');
                 if (a[21] !== undefined) return vref(a[21], a[22], a[23], null, 'zh') + '<span class="verse-text">' + a[24] + '</span>';
                 if (a[25] !== undefined) return vref(a[25], a[26], a[27], null, 'zh') + '<span class="verse-text">' + a[28] + '</span>';
                 if (a[29] !== undefined) return vref(a[29], a[30], a[31], null, 'zh');
