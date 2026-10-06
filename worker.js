@@ -1994,6 +1994,12 @@ function i18nCourse(c) {
         var BIBLE_BOOKS_TW = null;
         function bibleBooks() { if (!BIBLE_BOOKS_TW) BIBLE_BOOKS_TW = BIBLE_BOOKS + '|' + toTW(BIBLE_BOOKS); return BIBLE_BOOKS_TW; }
         var BIBLE_BOOKS = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|哥林多前书|哥林多后书|约翰一书|约翰二书|约翰三书|彼得前书|彼得后书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|传道书|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录|诗篇|箴言|雅歌|撒上|撒下|王上|王下|代上|代下|林前|林后|帖前|帖后|提前|提后|彼前|彼后|约壹|约贰|约叁|创|出|利|民|申|书|士|得|拉|尼|斯|伯|诗|箴|传|歌|赛|耶|哀|结|但|何|珥|摩|俄|拿|弥|鸿|哈|番|该|亚|玛|太|可|路|约|徒|罗|加|弗|腓|西|多|门|来|雅|犹|启';
+        /* 英文书名（全称+常用缩写） */
+        var BIBLE_BOOKS_EN = '1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|1 Corinthians|2 Corinthians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|1 Peter|2 Peter|1 John|2 John|3 John|Song of Solomon|Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|Galatians|Ephesians|Philippians|Colossians|Titus|Philemon|Hebrews|James|Jude|Revelation|Gen|Ex|Lev|Num|Deut|Josh|Judg|Ruth|1 Sam|2 Sam|1 Kgs|2 Kgs|1 Chr|2 Chr|Ezra|Neh|Esth|Job|Ps|Prov|Eccl|Song|Isa|Jer|Lam|Ezek|Dan|Hos|Joel|Amos|Obad|Jonah|Mic|Nah|Hab|Zeph|Hag|Zech|Mal|Matt|Mark|Luke|John|Acts|Rom|1 Cor|2 Cor|Gal|Eph|Phil|Col|1 Thess|2 Thess|1 Tim|2 Tim|Titus|Phlm|Heb|Jas|1 Pet|2 Pet|1 Jn|2 Jn|3 Jn|Jude|Rev';
+        /* 日文书名 */
+        var BIBLE_BOOKS_JA = 'サムエル記第一|サムエル記第二|列王記第一|列王記第二|歴代誌第一|歴代誌第二|コリント人への第一の手紙|コリント人への第二の手紙|テサロニケ人への第一の手紙|テサロニケ人への第二の手紙|テモテへの第一の手紙|テモテへの第二の手紙|ペテロの第一の手紙|ペテロの第二の手紙|ヨハネの第一の手紙|ヨハネの第二の手紙|ヨハネの第三の手紙|創世記|出エジプト記|レビ記|民数記|申命記|ヨシュア記|士師記|ルツ記|エズラ記|ネヘミヤ記|エステル記|ヨブ記|詩篇|箴言|伝道者の書|雅歌|イザヤ書|エレミヤ書|哀歌|エゼキエル書|ダニエル書|ホセア書|ヨエル書|アモス書|オバデヤ書|ヨナ書|ミカ書|ナホム書|ハバクク書|ゼパニヤ書|ハガイ書|ゼカリヤ書|マラキ書|マタイの福音書|マルコの福音書|ルカの福音書|ヨハネの福音書|使徒の働き|ローマ人への手紙|ガラテヤ人への手紙|エペソ人への手紙|ピリピ人への手紙|コロサイ人への手紙|テトスへの手紙|ピレモンへの手紙|ヘブル人への手紙|ヤコブの手紙|ユダの手紙|黙示録';
+        /* 韩文书名 */
+        var BIBLE_BOOKS_KO = '사무엘상|사무엘하|열왕기상|열왕기하|역대상|역대하|고린도전서|고린도후서|데살로니가전서|데살로니가후서|디모데전서|디모데후서|베드로전서|베드로후서|요한1서|요한2서|요한3서|창세기|출애굽기|레위기|민수기|신명기|여호수아|사사기|룻기|에스라|느헤미야|에스더|욥기|시편|잠언|전도서|아가|이사야|예레미야|예레미야애가|에스겔|다니엘|호세아|요엘|아모스|오바댜|요나|미가|나훔|하박국|스바냐|학개|스가랴|말라기|마태복음|마가복음|누가복음|요한복음|사도행전|로마서|갈라디아서|에베소서|빌립보서|골로새서|디도서|빌레몬서|히브리서|야고보서|유다서|요한계시록';
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
         /* 书名简称→全称（如太→马太福音），高亮徽章统一显示全称 */
         var BOOK_FULL = null;
@@ -2067,15 +2073,26 @@ function i18nCourse(c) {
         }
         function hlVerse(s) {
             s = String(s == null ? "" : s);
+            var L = curLang();
             var B = bibleBooks();
-            var JIE = (curLang() === 'tw') ? '節' : '节';
+            var isEN = (L === 'en'), isJA = (L === 'ja'), isKO = (L === 'ko');
+            if (isEN) B = BIBLE_BOOKS_EN;
+            else if (isJA) B = BIBLE_BOOKS_JA;
+            else if (isKO) B = BIBLE_BOOKS_KO;
+            var JIE = (L === 'tw') ? '節' : '节';
             var JIEP = '[节節]';
             var SP = ' *';
-            /* 引用统一显示为"全称第N章M节"，书名与章节分开高亮 */
+            /* 引用统一显示：中文"全称第N章M节"，英文"Book 3:16"，日韩本地格式；书名与章节分开高亮 */
             function vref(bk, ch, vs, ve) {
+                var numTxt;
+                if (isEN) numTxt = ch + (vs ? ':' + vs + (ve ? '-' + ve : '') : '');
+                else if (isJA) numTxt = '第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + '節' : '');
+                else if (isKO) numTxt = ch + '장' + (vs ? ' ' + vs + (ve ? '-' + ve : '') + '절' : '');
+                else numTxt = '第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + JIE : '');
+                var bookTxt = (isEN || isJA || isKO) ? bk : bookFull(bk);
                 return '<span class="verse-ref-icon">📜</span>'
-                    + '<span class="verse-ref-book">' + bookFull(bk) + '</span>'
-                    + '<span class="verse-ref-num">第' + ch + '章' + (vs ? vs + (ve ? '-' + ve : '') + JIE : '') + '</span>';
+                    + '<span class="verse-ref-book">' + bookTxt + '</span>'
+                    + '<span class="verse-ref-num">' + numTxt + '</span>';
             }
             var DASH = '[\u2013\u2014\uFF0D-]';
             var VP = new RegExp('《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + DASH + SP + '([0-9]+)' + SP + JIEP
@@ -2090,6 +2107,17 @@ function i18nCourse(c) {
                 + '|《(' + B + ')》' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章' + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + '章(?!' + SP + '[0-9])', 'g');
+            /* 英日韩引用格式：Book 3:16 / Book 3:16-17（书名已按语言切换） */
+            if (isEN || isJA || isKO) {
+                var DASH2 = '[\u2013\u2014\uFF0D-]';
+                var VP2 = new RegExp('(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)' + SP + DASH2 + SP + '([0-9]+)'
+                    + '|(' + B + ')' + SP + '([0-9]+)' + SP + '[:：]' + SP + '([0-9]+)', 'g');
+                s = s.replace(VP2, function (m) {
+                    var a = arguments;
+                    if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4]);
+                    return vref(a[5], a[6], a[7]);
+                });
+            }
             s = s.replace(VP, function (m) {
                 var a = arguments;
                 if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4]);
@@ -3350,8 +3378,8 @@ function i18nCourse(c) {
                 + '<div class="sticky top-0 z-40 -mx-3 md:-mx-6 px-3 md:px-6 pt-4 pb-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 shadow-md">'
                 + '<div class="w-full max-w-7xl mx-auto"><div class="flex items-start justify-between gap-3">'
                 + '<div class="min-w-0"><div class="flex items-center gap-2 text-[11px] font-semibold text-indigo-300 uppercase tracking-wider mb-1">'
-                + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(item.category || tr("courseWord")) + '</span>'
-                + (item.subcategory ? '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(item.subcategory) + '</span>' : '')
+                + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(catNameL(item.category) || tr("courseWord")) + '</span>'
+                + (item.subcategory ? '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(subNameL(item.category, item.subcategory)) + '</span>' : '')
                 + '<span class="shrink-0">' + tr("onlineLesson") + '</span></div>'
                 + '<h1 class="text-xl md:text-2xl font-bold text-indigo-50 leading-snug">' + esc(item.title) + '</h1>'
                 + '<p class="text-indigo-300/80 text-xs mt-1">' + subTitle + '</p></div>'
@@ -3418,7 +3446,7 @@ function i18nCourse(c) {
                 + '<p id="studyHint" class="text-rose-500 text-xs italic">' + tf("fillActive", { n: totalUnits }) + '</p>'
                 + '<button id="studySubmit" disabled onclick="studySubmitBtn()" class="shrink-0 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white font-bold py-2.5 px-6 rounded-xl shadow transition active:scale-95 text-sm">' + tr("checkBtn") + '</button>'
                 + '</div></div>'
-                + '<footer class="text-center mt-6 text-slate-400 text-xs">' + tr("srcFrom") + esc(item.category) + (item.subcategory ? ' · ' + esc(item.subcategory) : '') + ' · ' + esc(item.title) + '</footer>';
+                + '<footer class="text-center mt-6 text-slate-400 text-xs">' + tr("srcFrom") + esc(catNameL(item.category)) + (item.subcategory ? ' · ' + esc(subNameL(item.category, item.subcategory)) : '') + ' · ' + esc(item.title) + '</footer>';
             var bodyEl = document.getElementById('lessonBody');
             bodyEl.innerHTML = bodyHtml;
 
