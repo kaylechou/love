@@ -2504,9 +2504,9 @@ function i18nCourse(c) {
                         var kCollapsed = !!st[kKey];
                         bodyHtml += '<div class="ml-1 md:ml-5 mt-7">'
                             + '<div class="flex items-center gap-1 mb-3">'
-                            + '<button data-tkey="' + esc(kKey) + '" data-tbody="' + kBody + '" data-tchev="' + kChev + '" onclick="toggleTree(this)" class="flex items-center gap-2 group min-w-0">'
+                            + '<button data-tkey="' + esc(kKey) + '" data-tbody="' + kBody + '" data-tchev="' + kChev + '" onclick="toggleTree(this)" class="flex items-center gap-1 group min-w-0">'
                             + '<span id="' + kChev + '" class="text-xs text-violet-500 w-4 text-center shrink-0">' + (kCollapsed ? "▶" : "▼") + '</span>'
-                            + '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁 ' + hlSubcat(subNameL(cat, sk)) + '</span>'
+                            + '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁' + hlSubcat(subNameL(cat, sk)) + '</span>'
                             + '<span class="text-xs text-slate-400 shrink-0">' + tf("nLessons", { n: subgroups[sk].length }) + '</span></button>'
                             + '<span class="flex items-center gap-2.5 shrink-0 ml-1">'
                             + '<button data-cat="' + esc(cat) + '" data-sub="' + esc(sk) + '" onclick="copySubLink(this.dataset.cat,this.dataset.sub)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition text-[13px]">🔗</button>'
