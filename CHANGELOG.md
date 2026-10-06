@@ -329,6 +329,13 @@
 
 ---
 
+## 第96次部署 — 英文圣经NIV/KJV可选 + 系列/子栏目英日韩翻译（deployment b4bb5f06，2026-10-06）
+- D1 新增 bible_verses 表（92处经文 NIV/KJV 全文），新增 /api/bible 公开接口
+- 语言面板新增 "📖 English Bible Version" 切换（NIV/KJV，localStorage 记住，默认NIV）
+- 英文模式下经文题显示可折叠 NIV/KJV 全文参考卡，切换版本即时刷新，带版权标注
+- categories 表新增 i18n_json 列，13个系列/子栏目英日韩翻译入库；/api/categories 返回 i18n
+- 首页系列/子栏目名称简介英日韩自动切换（catNameL/catDescL/subNameL/subDescL）
+- 经文题题目本身用机器翻译保填空功能（意译题硬套原文挖空匹配率仅10%）
 ## 第95次部署 — 系列/子栏目分享导出打印与单课件规则统一（deployment 6f097728，2026-10-06）
 - 系列标题新增 🔗 分享（全员）/ 📥 导出（管理员）按钮；子栏目标题同样新增
 - 分享规则：系列分享复制 `/?series=xxx` 链接，子栏目分享复制 `/?series=xxx&sub=yyy`；打开后自动展开对应栏目并滚动定位
