@@ -4334,12 +4334,27 @@ function i18nCourse(c) {
         function docxEsc(s) {
             return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
+        function docxRun(text, opts) {
+            opts = opts || {};
+            var rPr = '';
+            if (opts.bold) rPr += '<w:b/>';
+            if (opts.italic) rPr += '<w:i/>';
+            if (opts.color) rPr += '<w:color w:val="' + opts.color + '"/>';
+            if (opts.size) rPr += '<w:sz w:val="' + opts.size + '"/>';
+            if (opts.highlight) rPr += '<w:highlight w:val="' + opts.highlight + '"/>';
+            if (opts.shd) rPr += '<w:shd w:fill="' + opts.shd + '" w:val="clear"/>';
+            if (opts.underline) rPr += '<w:u w:val="single"/>';
+            if (rPr) rPr = '<w:rPr>' + rPr + '</w:rPr>';
+            return '<w:r>' + rPr + '<w:t xml:space="preserve">' + docxEsc(text) + '</w:t></w:r>';
+        }
         function docxPara(text, opts) {
             opts = opts || {};
             var pPr = '';
             if (opts.style) pPr += '<w:pStyle w:val="' + opts.style + '"/>';
             if (opts.align) pPr += '<w:jc w:val="' + opts.align + '"/>';
-            if (opts.shd) pPr += '<w:shd w:fill="' + opts.shd + '" w:val="clear"/>';
+            if (opts.pShd) pPr += '<w:shd w:fill="' + opts.pShd + '" w:val="clear"/>';
+            if (opts.spacing) pPr += '<w:spacing w:after="' + opts.spacing + '"/>';
+            if (opts.border) pPr += '<w:pBdr><w:left w:val="single" w:sz="12" w:color="' + opts.border + '"/></w:pBdr>';
             if (pPr) pPr = '<w:pPr>' + pPr + '</w:pPr>';
             var rPr = '';
             if (opts.bold) rPr += '<w:b/>';
@@ -4365,8 +4380,9 @@ function i18nCourse(c) {
             var now = new Date(), ds = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
             var body = '';
             // 标题
-            body += docxPara(title, {style: 'Heading1', align: 'center'});
-            body += docxPara(meta + '  ·  ' + ds, {align: 'center', color: '808080', size: '20'});
+            body += docxPara(title, {style: 'Heading1', align: 'center', pShd: 'EDE9FE'});
+            body += docxPara(meta, {align: 'center', color: '6D28D9', size: '20', bold: true});
+            body += docxPara('导出日期：' + ds + ' · 团契智学', {align: 'center', color: '808080', size: '18'});
             body += docxPara('', {});
             // 导读
             if (c.content) {
@@ -4378,9 +4394,12 @@ function i18nCourse(c) {
             if (realGuide.length) {
                 body += docxPara('课程导览', {style: 'Heading2'});
                 realGuide.forEach(function(g, gi) {
-                    body += docxPara((gi + 1) + '. ' + (g.title || ''), {bold: true});
+                    body += '<w:p><w:pPr><w:spacing w:before="80" w:after="40"/></w:pPr>'
+                        + docxRun((gi + 1) + ' ', {bold: true, color: 'FFFFFF', shd: '4F46E5', size: '22'})
+                        + docxRun(' ' + (g.title || ''), {bold: true, color: '4C1D95', size: '24'})
+                        + '</w:p>';
                     (g.points || []).forEach(function(pt) {
-                        if (String(pt).trim()) body += docxPara('  • ' + stripMd(String(pt)), {});
+                        if (String(pt).trim()) body += docxPara('  •  ' + stripMd(String(pt)), {color: '475569'});
                     });
                 });
             }
@@ -4398,15 +4417,37 @@ function i18nCourse(c) {
                         var ce = rawQ.indexOf('】');
                         if (ce > 0 && ce < 12) rawQ = rawQ.slice(ce + 1);
                     }
-                    var qtext = (qi + 1) + '. ' + stripMd(stripVerseTag(rawQ));
+                    // 经文出处徽章行
                     var ref = q.o || q.h || '';
-                    if (ref) qtext += '（' + stripEmoji(ref) + '）';
-                    var isVerse = (t === 'verse');
-                    body += docxPara(qtext, isVerse ? {highlight: 'yellow'} : {bold: true});
+                    if (t === 'verse' && ref) {
+                        var refText = stripEmoji(ref);
+                        var badgeHtml = '<w:p><w:pPr><w:spacing w:after="40"/></w:pPr>'
+                            + docxRun('📜 ', {})
+                            + docxRun(refText, {bold: true, color: 'FFFFFF', shd: '7C3AED', size: '20'})
+                            + '</w:p>';
+                        body += badgeHtml;
+                    }
+                    var qtext = stripMd(stripVerseTag(rawQ));
+                    // 题号+题干，多个run组合
+                    var qp = '<w:p>';
+                    if (t === 'verse') qp += '<w:pPr><w:shd w:fill="EFF6FF" w:val="clear"/><w:pBdr><w:left w:val="single" w:sz="18" w:color="3B82F6"/></w:pBdr><w:spacing w:after="80"/></w:pPr>';
+                    else qp += '<w:pPr><w:spacing w:after="80"/></w:pPr>';
+                    qp += docxRun((qi + 1) + '. ', {bold: true});
+                    if (t === 'verse') {
+                        qp += docxRun(qtext, {highlight: 'yellow', bold: true});
+                    } else {
+                        qp += docxRun(qtext, {bold: true});
+                    }
+                    qp += '</w:p>';
+                    body += qp;
                     if ((t === 'single' || t === 'multiple') && q.o) {
                         String(q.o).split(',').forEach(function(opt) {
-                            body += docxPara('   ' + String(opt).trim(), {});
+                            body += docxPara('   ' + String(opt).trim(), {color: '475569'});
                         });
+                    }
+                    // 填空线
+                    if (t === 'fill' || t === 'verse') {
+                        // 已在题干中用下划线表示
                     }
                 });
             });
