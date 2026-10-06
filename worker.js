@@ -983,7 +983,7 @@ function renderHTML(results, categories, opts) {
                 <div id="cat_ab_wrap" class="hidden mb-3">
                     <div class="flex items-center gap-2">
                         <input id="cat_name_a" placeholder="A：如 新约" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
-                        <span class="text-slate-400 font-bold">+</span>
+                        <span class="text-slate-400 font-black">•</span>
                         <input id="cat_name_b" placeholder="B：如 保罗书信" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
                     </div>
                     <p class="text-xs text-slate-400 mt-1">A显示为实心徽章，B显示为描边徽章</p>
@@ -2027,14 +2027,15 @@ function i18nCourse(c) {
             s = esc(s);
             var SOLID = 'display:inline-block;font-weight:700;font-size:.72rem;padding:.12rem .6rem;border-radius:9999px;white-space:nowrap;vertical-align:.05em;box-shadow:0 1px 4px rgba(0,0,0,.2);color:#fff;';
             var HOLLOW = 'display:inline-block;font-weight:700;font-size:.72rem;padding:.1rem .55rem;border-radius:9999px;white-space:nowrap;vertical-align:.05em;border:1.5px solid;';
-            var DOT = '<span style="color:#94a3b8;margin:0 .3rem;">•</span>';
+            var DOT = '<span style="color:#94a3b8;margin:0 .3rem;font-weight:900;">•</span>';
             function solidBadge(t, bg) {
                 return '<span style="' + SOLID + 'background:' + bg + ';">' + t + '</span>';
             }
             function hollowBadge(t, color, bg) {
                 return '<span style="' + HOLLOW + 'color:' + color + ';border-color:' + color + ';background:' + bg + ';">' + t + '</span>';
             }
-            var pi = s.indexOf('+');
+            var pi = s.indexOf('•');
+            if (pi < 0) pi = s.indexOf('+');
             if (pi > 0) {
                 var A = s.slice(0, pi).trim(), B = s.slice(pi + 1).trim();
                 var bg1, c2, bg2;
@@ -2052,7 +2053,8 @@ function i18nCourse(c) {
         /* 子栏目徽章深色版（课件页头用）：A+B 拆分，A 实心 + B 描边 */
         function subBadgeDark(s) {
             s = String(s || '');
-            var pi = s.indexOf('+');
+            var pi = s.indexOf('•');
+            if (pi < 0) pi = s.indexOf('+');
             if (pi <= 0) return '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(s) + '</span>';
             var A = s.slice(0, pi).trim(), B = s.slice(pi + 1).trim();
             var bgA, bdB, txB;
@@ -5208,7 +5210,8 @@ function i18nCourse(c) {
                 abWrap.classList.remove('hidden');
                 nameInput.classList.add('hidden');
                 var fullName = row ? row.name : "";
-                var pi = fullName.indexOf('+');
+                var pi = fullName.indexOf('•');
+                if (pi < 0) pi = fullName.indexOf('+');
                 document.getElementById('cat_name_a').value = pi > 0 ? fullName.slice(0, pi).trim() : fullName;
                 document.getElementById('cat_name_b').value = pi > 0 ? fullName.slice(pi + 1).trim() : "";
             } else {
@@ -5231,7 +5234,7 @@ function i18nCourse(c) {
                 var a = document.getElementById('cat_name_a').value.trim();
                 var b = document.getElementById('cat_name_b').value.trim();
                 if (!a) { alert("请填写A名称"); return; }
-                name = b ? a + '+' + b : a;
+                name = b ? a + '•' + b : a;
             } else {
                 name = document.getElementById('cat_name').value.trim();
                 if (!name) { alert("请填写名称"); return; }
