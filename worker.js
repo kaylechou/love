@@ -5075,7 +5075,7 @@ function i18nCourse(c) {
             var sv = document.getElementById('f_series').value;
             var series = sv === '__new__' ? document.getElementById('f_series_new').value.trim() : sv;
             var uv = document.getElementById('f_sub').value;
-            var sub = uv === '__new__' ? document.getElementById('f_sub_new').value.trim().replace(/\+/g, '•') : (uv || "");
+            var sub = uv === '__new__' ? document.getElementById('f_sub_new').value.trim().split('+').join('•') : (uv || "");
             if (!series) { alert("请选择或新建一个系列"); return; }
             var b = { id: document.getElementById('f_id').value, category: series, subcategory: sub, title: document.getElementById('f_title').value, content: document.getElementById('f_content').value, video_url: document.getElementById('f_video').value, guide: guideVal, instructions: document.getElementById('f_instructions').value, quizzes: quizzes };
             var r = await fetch('/api/save', { method: 'POST', body: JSON.stringify(b) });
