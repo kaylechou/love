@@ -2014,6 +2014,7 @@ function i18nCourse(c) {
             return curLang() === 'tw' ? toTW(f) : f;
         }
         /* 子栏目名差异化高亮：旧约/新约/讲员实心徽章 + 分类描边徽章 */
+        /* 子栏目徽章：A+B 命名规则，A 实心徽章 + B 描边徽章 */
         function hlSubcat(s) {
             s = esc(s);
             var SOLID = 'display:inline-block;font-weight:700;font-size:.72rem;padding:.12rem .6rem;border-radius:9999px;white-space:nowrap;vertical-align:.05em;box-shadow:0 1px 4px rgba(0,0,0,.2);color:#fff;';
@@ -2025,32 +2026,18 @@ function i18nCourse(c) {
             function hollowBadge(t, color, bg) {
                 return '<span style="' + HOLLOW + 'color:' + color + ';border-color:' + color + ';background:' + bg + ';">' + t + '</span>';
             }
-            /* 旧约/新约（中英日韩） */
-            var m = s.match(/^(旧約|新約|旧约|新约|Old Testament|New Testament|旧約聖書|新約聖書|구약|신약)([\\s•·]*)(.*)$/i);
-            if (m) {
-                var t1 = m[1];
-                var isOld = /旧|舊|Old|구약/.test(t1);
-                var bg1 = isOld ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#3b82f6,#1d4ed8)';
-                var c2 = isOld ? '#b45309' : '#1d4ed8';
-                var bg2 = isOld ? '#fef3c7' : '#dbeafe';
-                var rest = m[3] ? DOT + hollowBadge(m[3], c2, bg2) : '';
-                return solidBadge(t1, bg1) + rest;
-            }
-            /* 讲员名-系列名（中英日韩） */
-            /* 英文顺序：Reverend Kou Shaohan - Series */
-            m = s.match(/^(Reverend|Pastor|Dr\.)\\s+(.+?)(?:\\s+-\\s+|\\s+•\\s+|\\s+·\\s+)(.*)$/i);
-            if (m) {
-                var titleEn = m[1] + ' ' + m[2];
-                var restEn = m[3] ? DOT + hollowBadge(m[3], '#6d28d9', '#ede9fe') : '';
-                return solidBadge(titleEn, 'linear-gradient(135deg,#8b5cf6,#6d28d9)') + restEn;
-            }
-            /* 中文顺序：寇绍涵牧师 - 系列名 */
-            m = s.match(/^([^\\s•·\-]+?)(?:牧师|老师|博士|长老|牧師|先生|목사|박사)([\\s\-—•·]+)(.*)$/);
-            if (m) {
-                /* title 为讲员全称（含牧师/老师等） */
-                var title = s.slice(0, s.length - m[2].length - m[3].length);
-                var rest2 = m[3] ? DOT + hollowBadge(m[3], '#6d28d9', '#ede9fe') : '';
-                return solidBadge(title, 'linear-gradient(135deg,#8b5cf6,#6d28d9)') + rest2;
+            var pi = s.indexOf('+');
+            if (pi > 0) {
+                var A = s.slice(0, pi).trim(), B = s.slice(pi + 1).trim();
+                var bg1, c2, bg2;
+                if (/旧|舊|Old|구약/.test(A)) {
+                    bg1 = 'linear-gradient(135deg,#f59e0b,#d97706)'; c2 = '#b45309'; bg2 = '#fef3c7';
+                } else if (/新|New|신약/.test(A)) {
+                    bg1 = 'linear-gradient(135deg,#3b82f6,#1d4ed8)'; c2 = '#1d4ed8'; bg2 = '#dbeafe';
+                } else {
+                    bg1 = 'linear-gradient(135deg,#8b5cf6,#6d28d9)'; c2 = '#6d28d9'; bg2 = '#ede9fe';
+                }
+                return solidBadge(A, bg1) + (B ? DOT + hollowBadge(B, c2, bg2) : '');
             }
             return s;
         }
