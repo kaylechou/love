@@ -2041,6 +2041,21 @@ function i18nCourse(c) {
             }
             return s;
         }
+        /* 子栏目徽章深色版（课件页头用）：A+B 拆分，A 实心 + B 描边 */
+        function subBadgeDark(s) {
+            s = String(s || '');
+            var pi = s.indexOf('+');
+            if (pi <= 0) return '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(s) + '</span>';
+            var A = s.slice(0, pi).trim(), B = s.slice(pi + 1).trim();
+            var bgA, bdB, txB;
+            if (/旧|舊|Old|구약/.test(A)) { bgA = 'background:linear-gradient(135deg,#f59e0b,#d97706)'; bdB = '#fbbf24'; txB = '#fde68a'; }
+            else if (/新|New|신약/.test(A)) { bgA = 'background:linear-gradient(135deg,#3b82f6,#1d4ed8)'; bdB = '#93c5fd'; txB = '#bfdbfe'; }
+            else { bgA = 'background:linear-gradient(135deg,#8b5cf6,#6d28d9)'; bdB = '#c4b5fd'; txB = '#ddd6fe'; }
+            return '<span class="truncate" style="display:inline-flex;align-items:center;gap:.35rem;">'
+                + '<span style="display:inline-block;font-weight:700;font-size:.72rem;padding:.12rem .6rem;border-radius:9999px;white-space:nowrap;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);' + bgA + ';">' + esc(A) + '</span>'
+                + (B ? '<span style="display:inline-block;font-weight:700;font-size:.72rem;padding:.1rem .55rem;border-radius:9999px;white-space:nowrap;border:1.5px solid ' + bdB + ';color:' + txB + ';">' + esc(B) + '</span>' : '')
+                + '</span>';
+        }
         /* 系列名匹配图标 */
         function catIcon(cat) {
             var c = String(cat || "").trim();
@@ -3391,7 +3406,7 @@ function i18nCourse(c) {
                 + '<div class="w-full max-w-7xl mx-auto"><div class="flex items-start justify-between gap-3">'
                 + '<div class="min-w-0"><div class="flex items-center gap-2 text-[11px] font-semibold text-indigo-300 uppercase tracking-wider mb-1">'
                 + '<span class="bg-indigo-900/80 px-2.5 py-0.5 rounded-full border border-indigo-700/50 truncate">' + esc(catNameL(item.category) || tr("courseWord")) + '</span>'
-                + (item.subcategory ? '<span class="bg-amber-900/60 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-600/50 truncate">📁 ' + esc(subNameL(item.category, item.subcategory)) + '</span>' : '')
+                + (item.subcategory ? subBadgeDark(subNameL(item.category, item.subcategory)) : '')
                 + '<span class="shrink-0">' + tr("onlineLesson") + '</span></div>'
                 + '<h1 class="text-xl md:text-2xl font-bold text-indigo-50 leading-snug">' + esc(item.title) + '</h1>'
                 + '<p class="text-indigo-300/80 text-xs mt-1">' + subTitle + '</p></div>'
