@@ -975,18 +975,17 @@ function renderHTML(results, categories, opts) {
 
         <!-- 系列/子栏目编辑弹窗 -->
         <div id="catModal" class="hidden fixed inset-0 bg-slate-900/95 z-[75] flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl">
-                <h2 class="font-black text-lg mb-5" id="catModalTitle">＋ 新增系列</h2>
+            <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative">
+                <button onclick="toggleModal('catModal')" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full text-lg">✕</button>
+                <h2 class="font-black text-lg mb-5 pr-8" id="catModalTitle">＋ 新增系列</h2>
                 <input id="cat_parent" type="hidden">
                 <input id="cat_old" type="hidden">
                 <input id="cat_name" placeholder="名称" class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3">
                 <div id="cat_ab_wrap" class="hidden mb-3">
-                    <div class="flex items-center gap-2">
-                        <input id="cat_name_a" placeholder="A：如 新约" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
-                        <span class="text-slate-400 font-black">•</span>
-                        <input id="cat_name_b" placeholder="B：如 保罗书信" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
-                    </div>
-                    <p class="text-xs text-slate-400 mt-1">A显示为实心徽章，B显示为描边徽章</p>
+                    <label class="text-xs font-bold text-slate-500 mb-1 block">A（实心徽章）</label>
+                    <input id="cat_name_a" placeholder="如：新约" class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-2">
+                    <label class="text-xs font-bold text-slate-500 mb-1 block">B（描边徽章）</label>
+                    <input id="cat_name_b" placeholder="如：保罗书信" class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
                 </div>
                 <textarea id="cat_desc" placeholder="简介（学员端可见，可空）" class="w-full h-32 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-5"></textarea>
                 <div class="flex gap-3">
@@ -1044,7 +1043,8 @@ function renderHTML(results, categories, opts) {
     ${isAdmin ? `
     <!-- 编辑弹窗 -->
     <div id="editModal" class="hidden fixed inset-0 bg-slate-900/95 z-[70] flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl w-full max-w-7xl h-[90vh] flex flex-col md:flex-row overflow-hidden shadow-2xl">
+        <div class="bg-white rounded-3xl w-full max-w-7xl h-[90vh] flex flex-col md:flex-row overflow-hidden shadow-2xl relative">
+            <button onclick="toggleModal('editModal')" class="absolute top-3 right-3 z-10 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full text-xl bg-white/80">✕</button>
             <div class="w-full md:w-1/3 p-6 border-r overflow-y-auto space-y-4 bg-slate-50">
                 <h2 class="font-black text-indigo-900 text-xs">内容录入</h2>
                 <textarea id="importText" class="w-full h-40 border p-3 rounded-xl text-xs" placeholder="粘贴题目...（## 开头表示章节名；填空题含 ____ 会自动识别为填空）"></textarea>
