@@ -695,9 +695,14 @@ await env.DB.prepare("UPDATE students SET pw_hash = ? WHERE username = ?").bind(
 return json({ ok: true});
 }
 
-// API: 首页公告
+// API: 首页公告（含英日韩翻译）
 if (pathname === "/api/notice" && request.method === "GET") {
-return json({ notice: (await getSetting(env, "notice")) || ""});
+return json({
+  notice: (await getSetting(env, "notice")) || "",
+  notice_en: (await getSetting(env, "notice_en")) || "",
+  notice_ja: (await getSetting(env, "notice_ja")) || "",
+  notice_ko: (await getSetting(env, "notice_ko")) || ""
+});
 }
 if (pathname === "/api/notice" && request.method === "POST") {
 if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
@@ -718,13 +723,16 @@ if (pathname === "/icon-512.png") return pwaIconResponse(PWA_ICON_512);
 if (pathname === "/icon-180.png") return pwaIconResponse(PWA_ICON_180);
 
 const notice = (await getSetting(env, "notice")) || "";
+const notice_en = (await getSetting(env, "notice_en")) || "";
+const notice_ja = (await getSetting(env, "notice_ja")) || "";
+const notice_ko = (await getSetting(env, "notice_ko")) || "";
 
 // 教师管理端页面
 if (pathname === "/admin" || pathname.indexOf("/admin/") === 0) {
 const list = await orderedCourses(env);
 const acats = [...new Set(list.map(item => item.category))];
 const data = authed? list: stripAnswers(list);
-return new Response(renderHTML(data, acats, { shareMode: false, isAdmin: true, adminAuthed: authed, notice: ""}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
+return new Response(renderHTML(data, acats, { shareMode: false, isAdmin: true, adminAuthed: authed, notice: "", notice_en: "", notice_ja: "", notice_ko: ""}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 }
 
 // 课程分享短链：/ID-xxxx
@@ -734,7 +742,7 @@ const sr = await env.DB.prepare("SELECT * FROM courses WHERE id =?").bind(shortI
 const srows = (sr && sr.results) || [];
 if (!srows.length) return new Response("课程不存在或已删除", { status: 404});
 const scats = [...new Set(srows.map(item => item.category))];
-return new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: notice}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
+return new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 }
 
 // 页面渲染（学员端）
@@ -746,7 +754,7 @@ if (shareId) {
 displayData = results.filter(item => item.id === shareId);
 isShareMode = true;
 }
-return new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
+return new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 
 } catch (e) {
 return new Response("服务器错误: " + e.message, { status: 500});
@@ -756,6 +764,7 @@ return new Response("服务器错误: " + e.message, { status: 500});
 
 function renderHTML(results, categories, opts) {
     var isShareMode = opts.shareMode, isAdmin = opts.isAdmin, adminAuthed = !!opts.adminAuthed, notice = opts.notice || "";
+    var notice_en = opts.notice_en || "", notice_ja = opts.notice_ja || "", notice_ko = opts.notice_ko || "";
   // 把服务端已过滤好的展示数据直接灌给前端（分享模式只含被分享的那一课），顺带防 </script> 注入
   // 学员端主页只注入精简字段（提速约一半），点开课件时再按需拉完整内容；管理端/分享页保持完整
   const bootList = (!isShareMode && !isAdmin) ? (results || []).map(briefCourse) : (results || []);
@@ -863,7 +872,7 @@ function renderHTML(results, categories, opts) {
         <h1 class="text-[2rem] leading-tight font-black tracking-tight" data-i18n="myCourses">我的课程</h1>
         <p class="text-slate-400 mt-1 mb-6" data-i18n="heroSub">系统学习，稳步成长</p>
 
-        ${(!isAdmin && notice) ? '<div class="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm text-amber-800 flex gap-3"><span class="text-lg">📢</span><span id="noticeBarText">' + notice.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span></div>' : ''}
+        ${(!isAdmin && notice) ? '<div class="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm text-amber-800 flex gap-3"><span class="text-lg">📢</span><span id="noticeBarText" data-notice-en="' + notice_en.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') + '" data-notice-ja="' + notice_ja.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') + '" data-notice-ko="' + notice_ko.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') + '">' + notice.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span></div>' : ''}
 
         ${!isAdmin ? `
         <!-- 统计卡片 -->
@@ -1722,7 +1731,11 @@ function applyI18n() {
         var nb = document.getElementById('noticeBarText');
         if (nb) {
             if (nb.dataset.orig === undefined) nb.dataset.orig = nb.textContent;
-            var ntx = (curLang() === 'tw') ? toTW(nb.dataset.orig) : nb.dataset.orig;
+            var L = curLang(), ntx = nb.dataset.orig;
+            if (L === 'tw') ntx = toTW(nb.dataset.orig);
+            else if (L === 'en' && nb.dataset.noticeEn) ntx = nb.dataset.noticeEn;
+            else if (L === 'ja' && nb.dataset.noticeJa) ntx = nb.dataset.noticeJa;
+            else if (L === 'ko' && nb.dataset.noticeKo) ntx = nb.dataset.noticeKo;
             nb.innerHTML = hlVerse(esc(ntx));
         }
         var lb = document.getElementById('langBtn');
@@ -1849,6 +1862,46 @@ function twCourse(c) {
         nc.quizzes_json = JSON.stringify(qs);
     } catch (e) {}
     nc._twc = 1;
+    return nc;
+}
+/* 课程内容多语言：en/ja/ko 用 i18n_json，无翻译时回退中文 */
+function i18nCourse(c) {
+    if (!c || c._i18nc) return c;
+    var L = curLang();
+    if (L !== 'en' && L !== 'ja' && L !== 'ko') return c;
+    var i18n = null;
+    try { i18n = JSON.parse(c.i18n_json || '{}'); } catch (e) {}
+    if (!i18n || !i18n[L]) return c;
+    var d = i18n[L];
+    var nc = {};
+    for (var k in c) { if (Object.prototype.hasOwnProperty.call(c, k)) nc[k] = c[k]; }
+    if (d.title) nc.title = d.title;
+    if (d.content) nc.content = d.content;
+    if (d.instructions) nc.instructions = d.instructions;
+    if (d.guide) {
+        try {
+            var g = JSON.parse(nc.guide_json || "[]");
+            // d.guide 是翻译后的数组，直接替换
+            if (Array.isArray(d.guide) && d.guide.length === g.length) {
+                nc.guide_json = JSON.stringify(d.guide);
+            }
+        } catch (e) {}
+    }
+    if (d.quizzes) {
+        try {
+            var qs = JSON.parse(nc.quizzes_json || "[]");
+            if (Array.isArray(d.quizzes) && d.quizzes.length === qs.length) {
+                // 只替换 q/s/o/h，保留 a（答案）和 id 等
+                for (var i = 0; i < qs.length; i++) {
+                    if (d.quizzes[i].q) qs[i].q = d.quizzes[i].q;
+                    if (d.quizzes[i].s) qs[i].s = d.quizzes[i].s;
+                    // o（经文出处）不翻译，保持原文用于 bible_verses 查询
+                }
+                nc.quizzes_json = JSON.stringify(qs);
+            }
+        } catch (e) {}
+    }
+    nc._i18nc = 1;
     return nc;
 }
 
@@ -2322,6 +2375,7 @@ function twCourse(c) {
 
         /* 课程卡片（新 UI） */
         function courseCard(c, idx) {
+            if (!BOOT.isAdmin) c = i18nCourse(c);
             var desc = stripMd(c.content).slice(0, 44) + "…";
             var shareBtn = '<button data-id="' + c.id + '" onclick="copyShareLink(this.dataset.id)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition">🔗</button>';
             var adminBtns = "";
@@ -3227,6 +3281,7 @@ function twCourse(c) {
             }
             if (!item || item.quizzes_json === undefined) return;
             if (curLang() === 'tw' && !BOOT.isAdmin) item = twCourse(item);
+            if (!BOOT.isAdmin) item = i18nCourse(item);
             activeLessonId = id;
             activeCourseTitle = item.title;
             activeCategory = item.category || "";
