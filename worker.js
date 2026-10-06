@@ -4033,6 +4033,8 @@ function i18nCourse(c) {
         }
         function buildWordHTML(c) {
             var h = buildExportHTML(c);
+            h = h.split('<!DOCTYPE html>').join('');
+            h = h.split('<meta name="viewport" content="width=device-width,initial-scale=1">').join('');
             h = h.split('<html lang="zh-CN">').join('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">');
             var p1 = h.split('<style>');
             var p2 = p1[1].split('</style>');
@@ -4165,6 +4167,8 @@ function i18nCourse(c) {
         }
         function buildWrongWordHTML(name, arr) {
             var h = buildWrongHTML(name, arr);
+            h = h.split('<!DOCTYPE html>').join('');
+            h = h.split('<meta name="viewport" content="width=device-width,initial-scale=1">').join('');
             h = h.split('<html lang="zh-CN">').join('<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">');
             var p1 = h.split('<style>');
             var p2 = p1[1].split('</style>');
