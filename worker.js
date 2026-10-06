@@ -980,6 +980,14 @@ function renderHTML(results, categories, opts) {
                 <input id="cat_parent" type="hidden">
                 <input id="cat_old" type="hidden">
                 <input id="cat_name" placeholder="名称" class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3">
+                <div id="cat_ab_wrap" class="hidden mb-3">
+                    <div class="flex items-center gap-2">
+                        <input id="cat_name_a" placeholder="A：如 新约" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
+                        <span class="text-slate-400 font-bold">+</span>
+                        <input id="cat_name_b" placeholder="B：如 保罗书信" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">A显示为实心徽章，B显示为描边徽章</p>
+                </div>
                 <textarea id="cat_desc" placeholder="简介（学员端可见，可空）" class="w-full h-32 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-5"></textarea>
                 <div class="flex gap-3">
                     <button onclick="saveCat()" class="flex-1 bg-indigo-900 text-white py-3 rounded-2xl font-bold">保存</button>
@@ -5178,19 +5186,42 @@ function i18nCourse(c) {
             }
             document.getElementById('cat_parent').value = parent || "";
             document.getElementById('cat_old').value = row ? row.name : "";
-            document.getElementById('cat_name').value = row ? row.name : "";
             document.getElementById('cat_desc').value = row ? (row.description || "") : "";
+            var abWrap = document.getElementById('cat_ab_wrap');
+            var nameInput = document.getElementById('cat_name');
+            if (parent) {
+                // 子栏目：显示A/B两个框
+                abWrap.classList.remove('hidden');
+                nameInput.classList.add('hidden');
+                var fullName = row ? row.name : "";
+                var pi = fullName.indexOf('+');
+                document.getElementById('cat_name_a').value = pi > 0 ? fullName.slice(0, pi).trim() : fullName;
+                document.getElementById('cat_name_b').value = pi > 0 ? fullName.slice(pi + 1).trim() : "";
+            } else {
+                // 系列：单个框
+                abWrap.classList.add('hidden');
+                nameInput.classList.remove('hidden');
+                nameInput.value = row ? row.name : "";
+            }
             document.getElementById('catModalTitle').innerText = parent
                 ? (row ? "编辑子栏目（" + parent + "）" : "＋ 新增子栏目（" + parent + "）")
                 : (row ? "编辑系列" : "＋ 新增系列");
             toggleModal('catModal');
         }
         async function saveCat() {
-            var name = document.getElementById('cat_name').value.trim();
-            var desc = document.getElementById('cat_desc').value.trim();
             var parent = document.getElementById('cat_parent').value;
+            var desc = document.getElementById('cat_desc').value.trim();
             var oldName = document.getElementById('cat_old').value;
-            if (!name) { alert("请填写名称"); return; }
+            var name;
+            if (parent) {
+                var a = document.getElementById('cat_name_a').value.trim();
+                var b = document.getElementById('cat_name_b').value.trim();
+                if (!a) { alert("请填写A名称"); return; }
+                name = b ? a + '+' + b : a;
+            } else {
+                name = document.getElementById('cat_name').value.trim();
+                if (!name) { alert("请填写名称"); return; }
+            }
             var r = await fetch('/api/category/save', { method: 'POST', body: JSON.stringify({ name: name, description: desc, parent: parent, oldName: oldName }) });
             if (r.status === 403) { alert("请先登录管理端"); return; }
             var j = await r.json().catch(function() { return {}; });
