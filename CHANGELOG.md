@@ -329,6 +329,8 @@
 
 ---
 
+## 第118次部署（2026-10-06）
+- Word导出改生成真正的.docx（ZIP+WordprocessingML），解决Android Word打不开HTML-doc问题
 ## 第117次部署（2026-10-06）
 - Word导出CSS精简：去掉圆角/阴影等移动Word不支持的样式，解决Android Word打不开
 ## 第116次部署（2026-10-06）
