@@ -4186,7 +4186,7 @@ function i18nCourse(c) {
                     + xlsxCell(xlsxCol(3)+rn, x.sub || '', 0)
                     + xlsxCell(xlsxCol(4)+rn, x.title || '', 0)
                     + xlsxCell(xlsxCol(5)+rn, WRONG_TYPE_LABEL[x.type] || x.type || '', 0)
-                    + xlsxCell(xlsxCol(6)+rn, stripMd(qtext), 0)
+                    + xlsxRichCell(xlsxCol(6)+rn, verseSegs(stripMd(qtext)), 0)
                     + xlsxCell(xlsxCol(7)+rn, x.u || '', 0)
                     + xlsxCell(xlsxCol(8)+rn, x.expected || '', 0)
                     + '</row>'); rn++;
@@ -4356,8 +4356,13 @@ function i18nCourse(c) {
         function pptxRichPara(text, sz) {
             var segs = verseSegs(esc(text));
             var runs = segs.map(function(sg) {
-                var color = sg.k === 1 ? '7C3AED' : (sg.k === 2 ? '92400E' : (sg.k === 3 ? '1D4ED8' : (sg.k === 4 ? 'D97706' : null)));
-                return pptxRun(sg.t, sz, (sg.k === 1 || sg.k === 2), color);
+                // k:0普通|1书名|2经文|3章节|4图标
+                var color = null, hl = null, bold = false;
+                if (sg.k === 1) { color = 'FFFFFF'; hl = '7C3AED'; bold = true; }
+                else if (sg.k === 2) { color = '92400E'; hl = 'FEF3C7'; bold = true; }
+                else if (sg.k === 3) { color = '1D4ED8'; hl = 'EFF6FF'; bold = true; }
+                else if (sg.k === 4) { color = 'FFFFFF'; hl = 'D97706'; bold = true; }
+                return pptxRun(sg.t, sz, bold, color, hl);
             });
             return '<a:p>' + runs.join('') + '</a:p>';
         }
@@ -4605,6 +4610,19 @@ function i18nCourse(c) {
             var s = style ? ' s="' + style + '"' : '';
             return '<c r="' + ref + '"' + s + ' t="inlineStr"><is><t xml:space="preserve">' + xlsxEsc(text) + '</t></is></c>';
         }
+        function xlsxRichCell(ref, segs, style) {
+            var s = style ? ' s="' + style + '"' : '';
+            var runs = segs.map(function(sg) {
+                var rpr = '';
+                if (sg.k === 1) rpr = '<rPr><b/><color rgb="FFFFFFFF"/><sz val="11"/></rPr>';
+                else if (sg.k === 2) rpr = '<rPr><b/><color rgb="FF92400E"/><sz val="11"/></rPr>';
+                else if (sg.k === 3) rpr = '<rPr><b/><color rgb="FF1D4ED8"/><sz val="11"/></rPr>';
+                else if (sg.k === 4) rpr = '<rPr><b/><color rgb="FFFFFFFF"/><sz val="11"/></rPr>';
+                else rpr = '<rPr><sz val="11"/></rPr>';
+                return '<r>' + rpr + '<t xml:space="preserve">' + xlsxEsc(sg.t) + '</t></r>';
+            }).join('');
+            return '<c r="' + ref + '"' + s + ' t="inlineStr"><is>' + runs + '</is></c>';
+        }
         function xlsxCol(n) {
             var s = '';
             while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
@@ -4628,7 +4646,7 @@ function i18nCourse(c) {
                 rows.push('<row r="' + rn + '">' + xlsxCell(xlsxCol(1)+rn, '序号', 3) + xlsxCell(xlsxCol(2)+rn, '章节', 3) + xlsxCell(xlsxCol(3)+rn, '要点', 3) + '</row>'); rn++;
                 realGuide.forEach(function(g, gi) {
                     var pts = (g.points || []).filter(function(x){return String(x).trim();}).join('；');
-                    rows.push('<row r="' + rn + '">' + xlsxCell(xlsxCol(1)+rn, String(gi+1), 0) + xlsxCell(xlsxCol(2)+rn, stripMd(g.title||''), 0) + xlsxCell(xlsxCol(3)+rn, stripMd(pts), 0) + '</row>'); rn++;
+                    rows.push('<row r="' + rn + '">' + xlsxCell(xlsxCol(1)+rn, String(gi+1), 0) + xlsxCell(xlsxCol(2)+rn, stripMd(g.title||''), 0) + xlsxRichCell(xlsxCol(3)+rn, verseSegs(stripMd(pts)), 0) + '</row>'); rn++;
                 });
                 rows.push('<row r="' + (rn++) + '"></row>');
             }
@@ -4651,8 +4669,8 @@ function i18nCourse(c) {
                 rows.push('<row r="' + rn + '">'
                     + xlsxCell(xlsxCol(1)+rn, String(i+1), 0)
                     + xlsxCell(xlsxCol(2)+rn, TYPE_PLAIN[t] || t, 0)
-                    + xlsxCell(xlsxCol(3)+rn, stripMd(stripVerseTag(qq)), 0)
-                    + xlsxCell(xlsxCol(4)+rn, stripEmoji(q.o || q.h || ''), 0)
+                    + xlsxRichCell(xlsxCol(3)+rn, verseSegs(stripMd(stripVerseTag(qq))), 0)
+                    + xlsxRichCell(xlsxCol(4)+rn, verseSegs(stripEmoji(q.o || q.h || '')), 0)
                     + xlsxCell(xlsxCol(5)+rn, ans, 0)
                     + '</row>'); rn++;
             });
