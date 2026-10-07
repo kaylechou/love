@@ -228,6 +228,17 @@ const course = ((cr && cr.results) || [])[0];
 if (!course) return json({ error: "课程不存在"}, 404);
 let qs = [];
 try { qs = JSON.parse(course.quizzes_json || "[]");} catch (e) {}
+/* 多语言判分：如客户端传来 lang=en/ja/ko 且有翻译答案，用翻译答案判分 */
+const uLang = b.lang || "";
+if ((uLang === "en" || uLang === "ja" || uLang === "ko") && course.i18n_json) {
+try {
+const i18n = JSON.parse(course.i18n_json);
+const tq = i18n[uLang] && i18n[uLang].quizzes;
+if (Array.isArray(tq) && tq.length === qs.length) {
+for (let i = 0; i < qs.length; i++) { if (tq[i].a) qs[i] = Object.assign({}, qs[i], { a: tq[i].a }); }
+}
+} catch (e) {}
+}
 const ansMap = {};
 b.answers.forEach(a => { ansMap[a.i] = a.u;});
 let score = 0, gradable = 0;
