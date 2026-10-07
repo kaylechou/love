@@ -229,11 +229,11 @@ function i18nCourse(c) {
         try {
             var qs = JSON.parse(nc.quizzes_json || "[]");
             if (Array.isArray(d.quizzes) && d.quizzes.length === qs.length) {
-                // 只替换 q/s/o/h，保留 a（答案）和 id 等
+                // 替换 q/s/a，保留 id 等；o（经文出处）不翻译，保持原文用于 bible_verses 查询
                 for (var i = 0; i < qs.length; i++) {
                     if (d.quizzes[i].q) qs[i].q = d.quizzes[i].q;
                     if (d.quizzes[i].s) qs[i].s = d.quizzes[i].s;
-                    // o（经文出处）不翻译，保持原文用于 bible_verses 查询
+                    if (d.quizzes[i].a) qs[i].a = d.quizzes[i].a;
                 }
                 nc.quizzes_json = JSON.stringify(qs);
             }
@@ -1417,7 +1417,7 @@ function i18nCourse(c) {
             try {
                 var r = await fetch('/api/submit', {
                     method: 'POST',
-                    body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, answers: answers, token: (function(){ try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch(e) { return ""; } })() })
+                    body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, answers: answers, lang: curLang(), token: (function(){ try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch(e) { return ""; } })() })
                 });
                 var res = await r.json();
                 if (!r.ok || !res.details) throw 0;
