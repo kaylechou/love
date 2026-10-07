@@ -1734,8 +1734,8 @@ function i18nCourse(c) {
                 }
             }
             if (!item || item.quizzes_json === undefined) return;
-            if (curLang() === 'tw' && !BOOT.isAdmin) item = twCourse(item);
-            if (!BOOT.isAdmin) item = i18nCourse(item);
+            if (curLang() === 'tw') item = twCourse(item);
+            item = i18nCourse(item);
             activeLessonId = id;
             activeCourseTitle = item.title;
             activeCategory = item.category || "";
