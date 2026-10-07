@@ -445,9 +445,28 @@ function i18nCourse(c) {
                 }
                 return BOOK_ZH2KO[nm] || nm;
             }
+            var BOOK_ZH2EN = null, BOOK_ZH2JA = null;
+            function bookZh2En(nm) {
+                if (!BOOK_ZH2EN) {
+                    var en = BIBLE_BOOKS_EN.split('|'), zh = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|哥林多前书|哥林多后书|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|彼得前书|彼得后书|约翰一书|约翰二书|约翰三书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|诗篇|箴言|传道书|雅歌|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录'.split('|');
+                    BOOK_ZH2EN = {};
+                    for (var i = 0; i < zh.length && i < en.length; i++) BOOK_ZH2EN[zh[i]] = en[i];
+                }
+                return BOOK_ZH2EN[nm] || nm;
+            }
+            function bookZh2Ja(nm) {
+                if (!BOOK_ZH2JA) {
+                    var ja = BIBLE_BOOKS_JA.split('|'), zh = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|哥林多前书|哥林多后书|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|彼得前书|彼得后书|约翰一书|约翰二书|约翰三书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|诗篇|箴言|传道书|雅歌|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录'.split('|');
+                    BOOK_ZH2JA = {};
+                    for (var i = 0; i < zh.length && i < ja.length; i++) BOOK_ZH2JA[zh[i]] = ja[i];
+                }
+                return BOOK_ZH2JA[nm] || nm;
+            }
             function vref(bk, ch, vs, ve, fmt) {
                 var numTxt, bookTxt = bk;
                 if (fmt === 'ko') bookTxt = bookZh2Ko(bookFull(bk));
+                else if (fmt === 'en') bookTxt = bookZh2En(bookFull(bk));
+                else if (fmt === 'ja') bookTxt = bookZh2Ja(bookFull(bk));
                 if (fmt === 'en') {
                     numTxt = ch + (vs ? ':' + vs + (ve ? '-' + ve : '') : '');
                 } else if (fmt === 'ja') {
@@ -498,23 +517,24 @@ function i18nCourse(c) {
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '[：:]' + SP + '([^<]*)'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + '(?!' + SP + '[0-9])', 'g');
+            var langFmt = isEN ? 'en' : isJA ? 'ja' : isKO ? 'ko' : 'zh';
             s = s.replace(VP, function (m) {
                 var a = arguments;
-                if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4], 'zh');
-                if (a[5] !== undefined) return vref(a[5], a[6], a[7], a[8], 'zh');
-                if (a[9] !== undefined) return vref(a[9], a[10], a[11], a[12], 'zh') + '<span class="verse-text">' + a[13] + '</span>';
-                if (a[14] !== undefined) return vref(a[14], a[15], a[16], a[17], 'zh');
-                if (a[18] !== undefined) return vref(a[18], a[19], a[20], null, 'zh');
-                if (a[21] !== undefined) return vref(a[21], a[22], a[23], null, 'zh') + '<span class="verse-text">' + a[24] + '</span>';
-                if (a[25] !== undefined) return vref(a[25], a[26], a[27], null, 'zh') + '<span class="verse-text">' + a[28] + '</span>';
-                if (a[29] !== undefined) return vref(a[29], a[30], a[31], null, 'zh');
-                if (a[32] !== undefined) return vref(a[32], a[33], a[34], null, 'zh') + '<span class="verse-text">' + a[35] + '</span>';
-                if (a[36] !== undefined) return vref(a[36], a[37], a[38], null, 'zh');
-                if (a[39] !== undefined) return vref(a[39], a[40], a[41], null, 'zh');
-                if (a[42] !== undefined) return vref(a[42], a[43], a[44], null, 'zh');
-                if (a[45] !== undefined) return vref(a[45], a[46], null, null, 'zh') + '<span class="verse-text">' + a[47] + '</span>';
-                if (a[48] !== undefined) return vref(a[48], a[49], null, null, 'zh');
-                return vref(a[48], a[49], null, null, 'zh');
+                if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4], langFmt);
+                if (a[5] !== undefined) return vref(a[5], a[6], a[7], a[8], langFmt);
+                if (a[9] !== undefined) return vref(a[9], a[10], a[11], a[12], langFmt) + '<span class="verse-text">' + a[13] + '</span>';
+                if (a[14] !== undefined) return vref(a[14], a[15], a[16], a[17], langFmt);
+                if (a[18] !== undefined) return vref(a[18], a[19], a[20], null, langFmt);
+                if (a[21] !== undefined) return vref(a[21], a[22], a[23], null, langFmt) + '<span class="verse-text">' + a[24] + '</span>';
+                if (a[25] !== undefined) return vref(a[25], a[26], a[27], null, langFmt) + '<span class="verse-text">' + a[28] + '</span>';
+                if (a[29] !== undefined) return vref(a[29], a[30], a[31], null, langFmt);
+                if (a[32] !== undefined) return vref(a[32], a[33], a[34], null, langFmt) + '<span class="verse-text">' + a[35] + '</span>';
+                if (a[36] !== undefined) return vref(a[36], a[37], a[38], null, langFmt);
+                if (a[39] !== undefined) return vref(a[39], a[40], a[41], null, langFmt);
+                if (a[42] !== undefined) return vref(a[42], a[43], a[44], null, langFmt);
+                if (a[45] !== undefined) return vref(a[45], a[46], null, null, langFmt) + '<span class="verse-text">' + a[47] + '</span>';
+                if (a[48] !== undefined) return vref(a[48], a[49], null, null, langFmt);
+                return vref(a[48], a[49], null, null, langFmt);
             });
             return s;
         }
