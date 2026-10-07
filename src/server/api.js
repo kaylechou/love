@@ -425,10 +425,21 @@ if (stok === expTok) allowed = true;
 }
 if (!allowed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
 const cid = searchParams.get("course_id") || "";
-const r = await env.DB.prepare("SELECT quizzes_json FROM courses WHERE id =?").bind(cid).all();
+const lang = searchParams.get("lang") || "";
+const r = await env.DB.prepare("SELECT quizzes_json, i18n_json FROM courses WHERE id =?").bind(cid).all();
 const rows = (r && r.results) || [];
 let qs = [];
 try { qs = JSON.parse((rows[0] && rows[0].quizzes_json) || "[]");} catch (e) {}
+/* 多语言：如传来 lang=en/ja/ko，用翻译答案替换 */
+if ((lang === "en" || lang === "ja" || lang === "ko") && rows[0] && rows[0].i18n_json) {
+try {
+const i18n = JSON.parse(rows[0].i18n_json);
+const tq = i18n[lang] && i18n[lang].quizzes;
+if (Array.isArray(tq) && tq.length === qs.length) {
+for (let i = 0; i < qs.length; i++) { if (tq[i].a) qs[i] = Object.assign({}, qs[i], { a: tq[i].a }); }
+}
+} catch (e) {}
+}
 return json({ quizzes: qs});
 }
 
