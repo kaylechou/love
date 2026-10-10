@@ -3023,8 +3023,9 @@ function i18nCourse(c) {
             if (sid && allData.length > 0) startLesson(sid);
             if (!sid) {
                 var _qs = new URLSearchParams(window.location.search);
-                var _qSeries = _qs.get('series'), _qSub = _qs.get('sub');
-                if (_qSeries && allData.length > 0) setTimeout(function() { jumpToSeries(_qSeries, _qSub); }, 350);
+                var _qSeries = _qs.get('series'), _qSub = _qs.get('sub'), _qPath = _qs.get('path');
+                if (_qPath) setTimeout(function() { if (typeof renderPathDetail === 'function') renderPathDetail(_qPath); }, 350);
+                else if (_qSeries && allData.length > 0) setTimeout(function() { jumpToSeries(_qSeries, _qSub); }, 350);
             }
             try { var _w = sessionStorage.getItem('TQ_WELCOME'); if (_w) { sessionStorage.removeItem('TQ_WELCOME'); showWelcomeToast(_w); } } catch (e) {}
             applyI18n();
@@ -3153,7 +3154,7 @@ function i18nCourse(c) {
                     + '<button data-cat="' + esc(cat) + '" onclick="copySeriesLink(this.dataset.cat)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition text-[15px]">🔗</button>'
                     + (BOOT.isAdmin ? '<button data-cat="' + esc(cat) + '" onclick="exportSeries(this.dataset.cat)" title="导出本系列全部课件" class="text-slate-300 hover:text-emerald-600 transition text-[15px]">📥</button>' : '')
                     + '</span></div>'
-                    + (catDescL(cat) ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + hlVerse(esc(catDescL(cat))) + '</p>' : '')
+                    + (catDescL(cat) ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + hlVerse(esc(stripMd(catDescL(cat)))) + '</p>' : '')
                     + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + ' mt-2">' + bodyHtml + '</div></div>';
             });
             wrap.innerHTML = html;
@@ -3455,6 +3456,10 @@ function i18nCourse(c) {
             navigator.clipboard.writeText(url).then(function() { alert(tr("linkCopied")); });
         }
         /* 系列/子栏目分享：与单个课件一致的复制链接规则 */
+        function copyPathLink(pid) {
+            var url = window.location.origin + "/?path=" + encodeURIComponent(pid);
+            navigator.clipboard.writeText(url).then(function() { alert(tr("linkCopied")); });
+        }
         function copySeriesLink(cat) {
             var url = window.location.origin + "/?series=" + encodeURIComponent(cat);
             navigator.clipboard.writeText(url).then(function() { alert(tr("linkCopied")); });
@@ -6153,7 +6158,8 @@ return '<div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 m
 + (pathDescrL(p) ? '<div class="text-sm text-slate-500 mt-1 leading-relaxed">' + escP(pathDescrL(p)) + '</div>' : '')
 + '<div class="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-2 rounded-full transition-all ' + (finished ? 'bg-amber-500' : 'bg-emerald-500') + '" style="width:' + pct + '%"></div></div>'
 + '<div class="flex items-center justify-between mt-2 gap-2">'
-+ '<span class="text-xs text-slate-500">' + escP(tf("path_doneOf", { a: done, b: total })) + '</span>'
++ '<span class="flex items-center gap-2"><span class="text-xs text-slate-500">' + escP(tf("path_doneOf", { a: done, b: total })) + '</span>'
++ '<button data-pid="' + escP(p.id) + '" onclick="copyPathLink(this.dataset.pid)" title="' + escP(tr("copyLinkT")) + '" class="text-slate-300 hover:text-violet-600 transition text-sm">🔗</button></span>'
 + (finished
 ? '<button onclick="renderCertificatesPage()" class="text-xs font-bold text-amber-600 hover:text-amber-700">🏆 ' + escP(tr("path_viewCert")) + '</button>'
 : '<button data-pid="' + escP(p.id) + '" onclick="renderPathDetail(this.dataset.pid)" class="px-4 py-1.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition">' + escP(btnLabel) + '</button>')
@@ -6191,7 +6197,8 @@ var total = courses.length;
 var doneCount = courses.filter(function (c) { return isDone(c.id); }).length;
 var html = '<button onclick="renderPathsPage()" class="mb-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition">' + escP(tr("path_back")) + '</button>'
 + '<div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white mb-5">'
-+ '<div class="text-xl font-bold">' + escP(pathTitleL(p)) + '</div>'
++ '<div class="flex items-center gap-2"><div class="text-xl font-bold flex-1">' + escP(pathTitleL(p)) + '</div>'
++ '<button data-pid="' + escP(p.id) + '" onclick="copyPathLink(this.dataset.pid)" title="' + escP(tr("copyLinkT")) + '" class="text-indigo-200 hover:text-white transition text-lg">🔗</button></div>'
 + (pathDescrL(p) ? '<div class="text-sm text-indigo-100 mt-1 leading-relaxed">' + escP(pathDescrL(p)) + '</div>' : '')
 + '<div class="text-xs text-indigo-100 mt-3">' + escP(tf("path_doneOf", { a: doneCount, b: total })) + '</div>'
 + '</div>';
@@ -6224,6 +6231,7 @@ return '<div class="ml-1 md:ml-5 mt-7">'
 + '<span id="' + kChev + '" class="text-xs text-violet-500 w-4 text-center shrink-0">' + (kCollapsed ? "▶" : "▼") + "</span>"
 + '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁' + hlSubcat(subNameL(cat, sk)) + "</span>"
 + '<span class="text-xs text-slate-400 shrink-0">' + escP(tf("nLessons", { n: subgroups[sk].length })) + "</span></button>"
++ '<button data-cat="' + escP(cat) + '" data-sub="' + escP(sk) + '" onclick="copySubLink(this.dataset.cat,this.dataset.sub)" title="' + escP(tr("copyLinkT")) + '" class="text-slate-300 hover:text-violet-600 transition text-[13px] ml-1">🔗</button>'
 + "</div>"
 + (sd ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + escP(sd) + "</p>" : "")
 + '<div id="' + kBody + '" class="' + (kCollapsed ? "hidden" : "") + '">' + gridHtml + "</div></div>";
@@ -6235,7 +6243,9 @@ return '<div class="mb-6">'
 + '<span class="w-1.5 h-7 bg-violet-500 rounded-full shrink-0"></span>'
 + '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + catIcon(cat) + " " + escP(catNameL(cat)) + "</h2>"
 + '<span class="text-sm text-slate-400 shrink-0">' + escP(tf("nLessons", { n: groups[cat].length })) + "</span></button>"
++ '<button data-cat="' + escP(cat) + '" onclick="copySeriesLink(this.dataset.cat)" title="' + escP(tr("copyLinkT")) + '" class="text-slate-300 hover:text-violet-600 transition text-[15px] ml-1">🔗</button>'
 + "</div>"
++ (info.description ? '<p class="text-sm text-slate-500 mt-2 mb-1 ml-8 leading-relaxed">' + escP(String(info.description).split("**").join("").split("\n").join(" ").trim()) + "</p>" : "")
 + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + '">' + bodyHtml + "</div></div>";
 }).join("");
 })();
