@@ -1,3 +1,6 @@
+# 2026-10-11 第 139 次部署：路径卡片课程数修复（worker.js 共 7361 行）
+- 修复 BOOT 内嵌路径时卡片显示"0/0门"：从 course_ids 动态计算课程数
+
 # 2026-10-11 第 138 次部署：全站速度优化（worker.js 共 7359 行）
 - 路径数据内嵌到 BOOT，首页省掉 /api/paths 请求
 - CDN preconnect（Tailwind/jsDelivr），省 DNS+握手时间
