@@ -6181,6 +6181,18 @@ if (/사역|준비/.test(t)) return "🛠";
 if (/리더|목양/.test(t)) return "⭐";
 return "🗺";
 }
+/* 路径课程数：统一从 course_count 取，缺失时从 course_ids 计算（全站通用） */
+function pathCourseCount(p) {
+if (!p) return 0;
+if (p.course_count) return p.course_count;
+if (p.course_ids) {
+try {
+var cids = typeof p.course_ids === "string" ? JSON.parse(p.course_ids) : p.course_ids;
+if (cids && cids.length) return cids.length;
+} catch (e) {}
+}
+return 0;
+}
 function pathUser() {
 try { return (typeof progName === "function" ? progName() : "") || ""; } catch (e) { return ""; }
 }
@@ -6225,9 +6237,7 @@ if (!paths.length) {
 html += '<div class="text-center text-slate-400 py-12">' + escP(tr("path_empty")) + '</div>';
 } else {
 html += paths.map(function (p) {
-var total = p.course_count || 0;
-if (!total && p.course_ids) { try { var _cids = typeof p.course_ids === "string" ? JSON.parse(p.course_ids) : p.course_ids; if (_cids && _cids.length) total = _cids.length; } catch (e) {} }
-var done = p.done_count || 0;
+var total = pathCourseCount(p), done = p.done_count || 0;
 var pct = total > 0 ? Math.round(done / total * 100) : 0;
 var finished = total > 0 && done >= total;
 var btnLabel = done > 0 ? tr("path_continue") : tr("path_start");
@@ -6465,7 +6475,7 @@ if (!paths.length) { box.innerHTML = '<div class="text-sm text-slate-400">暂无
 box.innerHTML = paths.map(function (p) {
 return '<div class="flex items-center gap-3 border border-slate-100 rounded-2xl px-4 py-3">'
 + '<div class="flex-1 min-w-0"><div class="font-bold text-slate-800 truncate">' + escP(p.title || p.id) + '</div>'
-+ '<div class="text-xs text-slate-400">' + (p.course_count || 0) + ' 门课程</div></div>'
++ '<div class="text-xs text-slate-400">' + pathCourseCount(p) + ' 门课程</div></div>' 
 + '<button data-pid="' + escP(p.id) + '" onclick="openPathEditor(this.dataset.pid)" class="text-xs bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl font-bold hover:bg-indigo-100 shrink-0">编辑</button>'
 + '</div>';
 }).join("");
