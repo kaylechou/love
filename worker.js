@@ -6225,7 +6225,9 @@ if (!paths.length) {
 html += '<div class="text-center text-slate-400 py-12">' + escP(tr("path_empty")) + '</div>';
 } else {
 html += paths.map(function (p) {
-var total = p.course_count || 0, done = p.done_count || 0;
+var total = p.course_count || 0;
+if (!total && p.course_ids) { try { var _cids = typeof p.course_ids === "string" ? JSON.parse(p.course_ids) : p.course_ids; if (_cids && _cids.length) total = _cids.length; } catch (e) {} }
+var done = p.done_count || 0;
 var pct = total > 0 ? Math.round(done / total * 100) : 0;
 var finished = total > 0 && done >= total;
 var btnLabel = done > 0 ? tr("path_continue") : tr("path_start");
