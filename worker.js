@@ -143,6 +143,11 @@ async function orderedCourses(env) {
 const r = await env.DB.prepare("SELECT * FROM courses ORDER BY sort_order ASC, category ASC, subcategory ASC, created_at DESC").all();
 return (r && r.results) || [];
 }
+/* 首页用：只取列表需要的列，不取 quizzes_json/guide_json/instructions（提速） */
+async function briefCourses(env) {
+const r = await env.DB.prepare("SELECT id, category, subcategory, title, content, video_url, mode, sort_order, created_at, i18n_json FROM courses ORDER BY sort_order ASC, category ASC, subcategory ASC, created_at DESC").all();
+return (r && r.results) || [];
+}
 
 async function migrate(env) {
 const db = env.DB;
@@ -769,10 +774,8 @@ if (pathname === "/icon-192.png") return pwaIconResponse(PWA_ICON_192);
 if (pathname === "/icon-512.png") return pwaIconResponse(PWA_ICON_512);
 if (pathname === "/icon-180.png") return pwaIconResponse(PWA_ICON_180);
 
-const notice = (await getSetting(env, "notice")) || "";
-const notice_en = (await getSetting(env, "notice_en")) || "";
-const notice_ja = (await getSetting(env, "notice_ja")) || "";
-const notice_ko = (await getSetting(env, "notice_ko")) || "";
+const _ns = await Promise.all([getSetting(env, "notice"), getSetting(env, "notice_en"), getSetting(env, "notice_ja"), getSetting(env, "notice_ko")]);
+const notice = _ns[0] || "", notice_en = _ns[1] || "", notice_ja = _ns[2] || "", notice_ko = _ns[3] || "";
 
 // 教师管理端页面
 if (pathname === "/admin" || pathname.indexOf("/admin/") === 0) {
@@ -793,7 +796,12 @@ return new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, is
 }
 
 // 页面渲染（学员端）
-const results = await orderedCourses(env);
+const _pr = await Promise.all([
+briefCourses(env),
+env.DB.prepare("SELECT * FROM paths ORDER BY sort_order, id").all().then(function(r){ return (r && r.results) || []; }).catch(function(){ return []; })
+]);
+const results = _pr[0];
+var bootPaths = _pr[1];
 const categories = [...new Set(results.map(item => item.category))];
 let displayData = results;
 let isShareMode = false;
@@ -801,11 +809,6 @@ if (shareId) {
 displayData = results.filter(item => item.id === shareId);
 isShareMode = true;
 }
-var bootPaths = [];
-try {
-var _pstmt = await env.DB.prepare("SELECT * FROM paths ORDER BY sort_order, id").all();
-if (_pstmt && _pstmt.results) bootPaths = _pstmt.results;
-} catch (e) {}
 return new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 
 } catch (e) {
