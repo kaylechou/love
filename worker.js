@@ -6109,6 +6109,50 @@ var d = p.descr || "";
 if (L === "tw" && typeof toTW === "function") return toTW(d);
 return d;
 }
+/* 路径图标：按名称语义自动匹配（中英日韩关键词），新增路径自动生效 */
+function pathIcon(p) {
+var t = String((p && p.title) || "") + " " + String((p && p.title_en) || "") + " " + String((p && p.title_ja) || "") + " " + String((p && p.title_ko) || "");
+/* 全名精确匹配 */
+var fullMap = {
+"初信者": "🌱", "门徒成长": "🌳", "服事装备": "🛠", "领袖训练": "⭐"
+};
+if (p && fullMap[p.title]) return fullMap[p.title];
+/* 中文语义匹配 */
+if (/初信|新信徒|慕道|决志/.test(t)) return "🌱";
+if (/门徒|成长|进深|栽培|造就/.test(t)) return "🌳";
+if (/服事|装备|事工|服侍|义工/.test(t)) return "🛠";
+if (/领袖|领导|牧养|牧者|组长/.test(t)) return "⭐";
+if (/敬拜|赞美|诗歌|音乐/.test(t)) return "🎵";
+if (/祷告|祈祷|代祷/.test(t)) return "🙏";
+if (/宣教|布道|差传|福音/.test(t)) return "🌍";
+if (/婚姻|家庭|亲子|夫妻/.test(t)) return "👨‍👩‍👧‍👦";
+if (/青年|青少年|少年/.test(t)) return "🧑‍🎓";
+if (/儿童|孩童|少儿/.test(t)) return "🧒";
+if (/圣经|读经|经卷/.test(t)) return "📖";
+if (/神学|教义|真理/.test(t)) return "💡";
+/* 英文语义匹配 */
+if (/new believer|seeker/i.test(t)) return "🌱";
+if (/disciple|growth|matur/i.test(t)) return "🌳";
+if (/ministry|serv|equip/i.test(t)) return "🛠";
+if (/leader|pastor|shepherd/i.test(t)) return "⭐";
+if (/worship|praise/i.test(t)) return "🎵";
+if (/prayer/i.test(t)) return "🙏";
+if (/mission|evangel/i.test(t)) return "🌍";
+if (/marriage|family|parent/i.test(t)) return "👨‍👩‍👧‍👦";
+if (/youth|teen/i.test(t)) return "🧑‍🎓";
+if (/child|kid/i.test(t)) return "🧒";
+/* 日文语义匹配 */
+if (/新信徒|求道/.test(t)) return "🌱";
+if (/弟子|成長/.test(t)) return "🌳";
+if (/奉仕|備え/.test(t)) return "🛠";
+if (/リーダー|牧会/.test(t)) return "⭐";
+/* 韩文语义匹配 */
+if (/새신자/.test(t)) return "🌱";
+if (/제자|성장/.test(t)) return "🌳";
+if (/사역|준비/.test(t)) return "🛠";
+if (/리더|목양/.test(t)) return "⭐";
+return "🗺";
+}
 function pathUser() {
 try { return (typeof progName === "function" ? progName() : "") || ""; } catch (e) { return ""; }
 }
@@ -6154,7 +6198,7 @@ var pct = total > 0 ? Math.round(done / total * 100) : 0;
 var finished = total > 0 && done >= total;
 var btnLabel = done > 0 ? tr("path_continue") : tr("path_start");
 return '<div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4">'
-+ '<div class="text-lg font-bold text-slate-900">' + escP(pathTitleL(p)) + '</div>'
++ '<div class="text-lg font-bold text-slate-900">' + pathIcon(p) + ' ' + escP(pathTitleL(p)) + '</div>'
 + (pathDescrL(p) ? '<div class="text-sm text-slate-500 mt-1 leading-relaxed">' + escP(pathDescrL(p)) + '</div>' : '')
 + '<div class="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-2 rounded-full transition-all ' + (finished ? 'bg-amber-500' : 'bg-emerald-500') + '" style="width:' + pct + '%"></div></div>'
 + '<div class="flex items-center justify-between mt-2 gap-2">'
@@ -6197,7 +6241,7 @@ var total = courses.length;
 var doneCount = courses.filter(function (c) { return isDone(c.id); }).length;
 var html = '<button onclick="renderPathsPage()" class="mb-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition">' + escP(tr("path_back")) + '</button>'
 + '<div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white mb-5">'
-+ '<div class="flex items-center gap-2"><div class="text-xl font-bold flex-1">' + escP(pathTitleL(p)) + '</div>'
++ '<div class="flex items-center gap-2"><div class="text-xl font-bold flex-1">' + pathIcon(p) + ' ' + escP(pathTitleL(p)) + '</div>'
 + '<button data-pid="' + escP(p.id) + '" onclick="copyPathLink(this.dataset.pid)" title="' + escP(tr("copyLinkT")) + '" class="text-indigo-200 hover:text-white transition text-lg">🔗</button></div>'
 + (pathDescrL(p) ? '<div class="text-sm text-indigo-100 mt-1 leading-relaxed">' + escP(pathDescrL(p)) + '</div>' : '')
 + '<div class="text-xs text-indigo-100 mt-3">' + escP(tf("path_doneOf", { a: doneCount, b: total })) + '</div>'
@@ -6245,7 +6289,7 @@ return '<div class="mb-6">'
 + '<span class="text-sm text-slate-400 shrink-0">' + escP(tf("nLessons", { n: groups[cat].length })) + "</span></button>"
 + '<button data-cat="' + escP(cat) + '" onclick="copySeriesLink(this.dataset.cat)" title="' + escP(tr("copyLinkT")) + '" class="text-slate-300 hover:text-violet-600 transition text-[15px] ml-1">🔗</button>'
 + "</div>"
-+ (info.description ? '<p class="text-sm text-slate-500 mt-2 mb-1 ml-8 leading-relaxed">' + escP(String(info.description).split("**").join("").split("\n").join(" ").trim()) + "</p>" : "")
++ (info.description ? '<p class="text-sm text-slate-500 mt-2 mb-1 ml-8 leading-relaxed">' + escP(String(info.description).split("**").join("").split(String.fromCharCode(10)).join(" ").trim()) + "</p>" : "")
 + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + '">' + bodyHtml + "</div></div>";
 }).join("");
 })();
