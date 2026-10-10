@@ -211,7 +211,15 @@ const shareId = searchParams.get('id');
 try {
 if (!env.DB) return new Response("数据库未绑定", { status: 500});
 await migrate(env);
+await migratePaths(env);
+await migrateSocial(env);
 const authed = await isAdminReq(request, env);
+
+// P1/P2 新模块路由：学习路径+证书 / 班级+徽章+统计
+const pr = await handlePathsApi(pathname, searchParams, request, env, authed, json);
+if (pr) return pr;
+const sr = await handleSocialApi(pathname, searchParams, request, env, authed, json);
+if (sr) return sr;
 
 // API: 获取全部课程（非管理员拿不到答案；?brief=1 只返回列表精简字段）
 if (pathname === "/api/data") {
@@ -253,12 +261,12 @@ const gJson = JSON.stringify(Array.isArray(b.guide) ? b.guide : []);
 const mode = b.mode === "study"? "study": "quiz";
 const cat = b.category || "默认", sub = ((b.subcategory || "") + "").trim().replace(/\+/g, "\u2022");
 if (b.id && b.id.length > 5) {
-await env.DB.prepare("UPDATE courses SET category=?, subcategory=?, title=?, content=?, quizzes_json=?, video_url=?, mode=?, guide_json=?, instructions=? WHERE id=?")
-.bind(cat, sub, b.title, b.content, qJson, b.video_url || "", mode, gJson, b.instructions || "", b.id).run();
+await env.DB.prepare("UPDATE courses SET category=?, subcategory=?, title=?, content=?, quizzes_json=?, video_url=?, mode=?, guide_json=?, instructions=?, updated_at=? WHERE id=?")
+.bind(cat, sub, b.title, b.content, qJson, b.video_url || "", mode, gJson, b.instructions || "", new Date().toISOString(), b.id).run();
 } else {
 const so = await nextSortOrder(env);
-await env.DB.prepare("INSERT INTO courses (id, category, subcategory, title, content, quizzes_json, video_url, mode, guide_json, instructions, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-.bind("ID-" + Date.now(), cat, sub, b.title, b.content, qJson, b.video_url || "", mode, gJson, b.instructions || "", so).run();
+await env.DB.prepare("INSERT INTO courses (id, category, subcategory, title, content, quizzes_json, video_url, mode, guide_json, instructions, sort_order, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+.bind("ID-" + Date.now(), cat, sub, b.title, b.content, qJson, b.video_url || "", mode, gJson, b.instructions || "", so, new Date().toISOString()).run();
 }
 // 课程的系列/子栏目自动登记（简介为空，管理端后续补填即可）
 await env.DB.prepare("INSERT OR IGNORE INTO categories (parent, name) VALUES (?,?)").bind("", cat).run();
@@ -287,8 +295,8 @@ let n = 0, so = await nextSortOrder(env);
 for (const c of arr) {
 if (!c ||!c.title) continue;
 const qs = Array.isArray(c.quizzes)? c.quizzes: [];
-await env.DB.prepare("INSERT INTO courses (id, category, subcategory, title, content, quizzes_json, video_url, mode, guide_json, instructions, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-.bind("ID-" + Date.now() + "-" + n, c.category || "默认", ((c.subcategory || "") + "").trim(), c.title, c.content || "", JSON.stringify(qs), c.video_url || "", c.mode === "study"? "study": "quiz", JSON.stringify(Array.isArray(c.guide) ? c.guide : []), c.instructions || "", so + n).run();
+await env.DB.prepare("INSERT INTO courses (id, category, subcategory, title, content, quizzes_json, video_url, mode, guide_json, instructions, sort_order, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+.bind("ID-" + Date.now() + "-" + n, c.category || "默认", ((c.subcategory || "") + "").trim(), c.title, c.content || "", JSON.stringify(qs), c.video_url || "", c.mode === "study"? "study": "quiz", JSON.stringify(Array.isArray(c.guide) ? c.guide : []), c.instructions || "", so + n, new Date().toISOString()).run();
 await env.DB.prepare("INSERT OR IGNORE INTO categories (parent, name) VALUES (?,?)").bind("", c.category || "默认").run();
 const csub = ((c.subcategory || "") + "").trim();
 if (csub) await env.DB.prepare("INSERT OR IGNORE INTO categories (parent, name) VALUES (?,?)").bind(c.category || "默认", csub).run();
@@ -364,7 +372,7 @@ const oldName = ((b.oldName || "") + "").trim();
 const parent = ((b.parent || "") + "").trim();
 const now = new Date().toISOString();
 async function upsert(p, n, d) {
-await env.DB.prepare("INSERT INTO categories (parent, name, description, created_at) VALUES (?,?,?,?) ON CONFLICT(parent, name) DO UPDATE SET description=excluded.description").bind(p, n, d, now).run();
+await env.DB.prepare("INSERT INTO categories (parent, name, description, created_at, updated_at) VALUES (?,?,?,?,?) ON CONFLICT(parent, name) DO UPDATE SET description=excluded.description, updated_at=excluded.updated_at").bind(p, n, d, now, now).run();
 }
 if (!parent) {
 if (oldName && oldName !== name) {
@@ -432,6 +440,17 @@ const course = ((cr && cr.results) || [])[0];
 if (!course) return json({ error: "课程不存在"}, 404);
 let qs = [];
 try { qs = JSON.parse(course.quizzes_json || "[]");} catch (e) {}
+/* 多语言判分：如客户端传来 lang=en/ja/ko 且有翻译答案，用翻译答案判分 */
+const uLang = b.lang || "";
+if ((uLang === "en" || uLang === "ja" || uLang === "ko") && course.i18n_json) {
+try {
+const i18n = JSON.parse(course.i18n_json);
+const tq = i18n[uLang] && i18n[uLang].quizzes;
+if (Array.isArray(tq) && tq.length === qs.length) {
+for (let i = 0; i < qs.length; i++) { if (tq[i].a) qs[i] = Object.assign({}, qs[i], { a: tq[i].a }); }
+}
+} catch (e) {}
+}
 const ansMap = {};
 b.answers.forEach(a => { ansMap[a.i] = a.u;});
 let score = 0, gradable = 0;
@@ -618,10 +637,21 @@ if (stok === expTok) allowed = true;
 }
 if (!allowed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403});
 const cid = searchParams.get("course_id") || "";
-const r = await env.DB.prepare("SELECT quizzes_json FROM courses WHERE id =?").bind(cid).all();
+const lang = searchParams.get("lang") || "";
+const r = await env.DB.prepare("SELECT quizzes_json, i18n_json FROM courses WHERE id =?").bind(cid).all();
 const rows = (r && r.results) || [];
 let qs = [];
 try { qs = JSON.parse((rows[0] && rows[0].quizzes_json) || "[]");} catch (e) {}
+/* 多语言：如传来 lang=en/ja/ko，用翻译答案替换 */
+if ((lang === "en" || lang === "ja" || lang === "ko") && rows[0] && rows[0].i18n_json) {
+try {
+const i18n = JSON.parse(rows[0].i18n_json);
+const tq = i18n[lang] && i18n[lang].quizzes;
+if (Array.isArray(tq) && tq.length === qs.length) {
+for (let i = 0; i < qs.length; i++) { if (tq[i].a) qs[i] = Object.assign({}, qs[i], { a: tq[i].a }); }
+}
+} catch (e) {}
+}
 return json({ quizzes: qs});
 }
 
@@ -761,6 +791,457 @@ return new Response("服务器错误: " + e.message, { status: 500});
 }
 }
 };
+/* ============================================================================
+ * 学习路径 + 证书系统（服务端）
+ * ----------------------------------------------------------------------------
+ * 外部依赖（由构建/Worker 组装时提供，本文件不定义）：
+ *   json(data, status, headers) — src/server/utils.js，返回 JSON Response
+ *   authed                      — 调用方（api.js）用 isAdminReq(request, env)
+ *                                 算好后传入；isAdminReq 定义见 src/server/auth.js
+ * 接入方式（在 api.js 的 fetch() 内、migrate(env) 之后加）：
+ *   await migratePaths(env);
+ *   const pr = await handlePathsApi(pathname, searchParams, request, env, authed, json);
+ *   if (pr) return pr;
+ * 表（paths / path_progress / certificates）不参与双库 D1 同步（证书涉学员隐私）。
+ * ========================================================================== */
+
+/* 建表 + 默认预置 4 条路径（空课程，管理员后续在管理端配置课程顺序） */
+async function migratePaths(env) {
+const db = env.DB;
+await db.prepare("CREATE TABLE IF NOT EXISTS paths (id TEXT PRIMARY KEY, title TEXT, title_en TEXT DEFAULT '', title_ja TEXT DEFAULT '', title_ko TEXT DEFAULT '', descr TEXT DEFAULT '', descr_en TEXT DEFAULT '', descr_ja TEXT DEFAULT '', descr_ko TEXT DEFAULT '', course_ids TEXT DEFAULT '[]', sort_order INTEGER DEFAULT 0, created_at TEXT DEFAULT '')").run();
+await db.prepare("CREATE TABLE IF NOT EXISTS path_progress (username TEXT, path_id TEXT, done_ids TEXT DEFAULT '[]', updated_at TEXT DEFAULT '', PRIMARY KEY (username, path_id))").run();
+await db.prepare("CREATE TABLE IF NOT EXISTS certificates (cert_no TEXT PRIMARY KEY, username TEXT, path_id TEXT, path_title TEXT DEFAULT '', issued_at TEXT DEFAULT '')").run();
+await db.prepare("CREATE INDEX IF NOT EXISTS idx_cert_user ON certificates(username)").run();
+try {
+const c = await db.prepare("SELECT COUNT(*) AS n FROM paths").first();
+if (c && c.n === 0) {
+const now = new Date().toISOString();
+/* [id, title, en, ja, ko, descr, descr_en, descr_ja, descr_ko] */
+const seeds = [
+["PATH-NEW", "初信者", "New Believers", "新信徒", "새신자",
+"认识救恩、建立祷告与读经生活，扎根真理的第一步。",
+"Know salvation and build a life of prayer and Bible reading — the first step of rooted faith.",
+"救いを知り、祈りと御言葉の生活を築く、信仰の第一歩。",
+"구원을 알고 기도와 말씀의 생활을 세우는 신앙의 첫걸음。"],
+["PATH-GROW", "门徒成长", "Discipleship Growth", "弟子の成長", "제자 성장",
+"在真理、品格与团契生活中持续成长，活出门徒样式。",
+"Grow continually in truth, character and fellowship life, living as a disciple.",
+"真理と品格、交わりの生活において成長し続け、弟子として生きる。",
+"진리와 인격, 교제의 삶에서 계속 성장하며 제자로 살아갑니다."],
+["PATH-SERVE", "服事装备", "Ministry Equipping", "奉仕の備え", "사역 준비",
+"发现恩赐、装备技能，以爱心参与教会服事。",
+"Discover your gifts, get equipped, and serve the church in love.",
+"賜物を発見し、備えを整え、愛をもって教会に仕える。",
+"은사를 발견하고 준비를 갖추어 사랑으로 교회를 섬깁니다."],
+["PATH-LEAD", "领袖训练", "Leadership Training", "リーダーの訓練", "리더 훈련",
+"学习仆人式领导，带领小组、牧养群羊。",
+"Learn servant leadership — lead small groups and shepherd the flock.",
+"仕えるリーダーシップを学び、小グループを導き、群れを養う。",
+"섬기는 리더십을 배워 소그룹을 인도하고 양 떼를 돌봅니다."]
+];
+for (let i = 0; i < seeds.length; i++) {
+const s = seeds[i];
+await db.prepare("INSERT INTO paths (id, title, title_en, title_ja, title_ko, descr, descr_en, descr_ja, descr_ko, course_ids, sort_order, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+.bind(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], "[]", i + 1, now).run();
+}
+}
+} catch (e) {}
+}
+
+/* 证书编号：TQ-YYYYMMDD-XXXX（XXXX 为随机大写十六进制） */
+function genCertNo() {
+const d = new Date();
+const ymd = d.getFullYear()
++ String(d.getMonth() + 1).padStart(2, "0")
++ String(d.getDate()).padStart(2, "0");
+const hex = "0123456789ABCDEF";
+let s = "";
+try {
+const buf = new Uint8Array(2);
+crypto.getRandomValues(buf);
+for (let i = 0; i < 2; i++) s += hex[buf[i] >> 4] + hex[buf[i] & 15];
+} catch (e) {
+for (let i = 0; i < 4; i++) s += hex[Math.floor(Math.random() * 16)];
+}
+return "TQ-" + ymd + "-" + s;
+}
+
+function parseIdList(s) {
+try {
+const a = JSON.parse(s || "[]");
+return Array.isArray(a) ? a.map(function (x) { return String(x); }) : [];
+} catch (e) { return []; }
+}
+
+/* 路径/证书 API。命中返回 Response，未命中返回 null（调用方继续走原有路由）。 */
+async function handlePathsApi(pathname, searchParams, request, env, authed, json) {
+const db = env.DB;
+
+/* GET /api/paths：公开。路径列表（含课程数）；带 username 时附带该学员每条路径的完成数 */
+if (pathname === "/api/paths" && request.method === "GET") {
+const r = await db.prepare("SELECT * FROM paths ORDER BY sort_order ASC, created_at ASC").all();
+const paths = (r && r.results) || [];
+const username = (searchParams.get("username") || "").trim();
+const progMap = {};
+if (username) {
+const pr = await db.prepare("SELECT path_id, done_ids FROM path_progress WHERE username=?").bind(username).all();
+((pr && pr.results) || []).forEach(function (row) {
+progMap[row.path_id] = parseIdList(row.done_ids);
+});
+}
+const out = paths.map(function (p) {
+const ids = parseIdList(p.course_ids);
+const done = progMap[p.id] || [];
+let doneCount = 0;
+done.forEach(function (id) { if (ids.indexOf(id) >= 0) doneCount++; });
+return {
+id: p.id,
+title: p.title || "", title_en: p.title_en || "", title_ja: p.title_ja || "", title_ko: p.title_ko || "",
+descr: p.descr || "", descr_en: p.descr_en || "", descr_ja: p.descr_ja || "", descr_ko: p.descr_ko || "",
+course_count: ids.length, done_count: doneCount, sort_order: p.sort_order || 0
+};
+});
+return json({ paths: out }, 200, { "Cache-Control": "public, max-age=60" });
+}
+
+/* GET /api/path?id=：公开。单路径详情，含按 course_ids 排序的课程精简信息；带 username 时附带 done_ids */
+if (pathname === "/api/path" && request.method === "GET") {
+const id = (searchParams.get("id") || "").trim();
+if (!id) return json({ error: "missing id" }, 400);
+const p = await db.prepare("SELECT * FROM paths WHERE id=?").bind(id).first();
+if (!p) return json({ error: "not found" }, 404);
+const ids = parseIdList(p.course_ids);
+let courses = [];
+if (ids.length) {
+const ph = ids.map(function () { return "?"; }).join(",");
+const cr = await db.prepare("SELECT id, title, category, subcategory, mode FROM courses WHERE id IN (" + ph + ")").bind(...ids).all();
+const cmap = {};
+((cr && cr.results) || []).forEach(function (c) { cmap[c.id] = c; });
+courses = ids.map(function (cid) {
+return cmap[cid] || { id: cid, title: "", category: "", subcategory: "", mode: "", missing: true };
+});
+}
+const username = (searchParams.get("username") || "").trim();
+let doneIds = [];
+if (username) {
+const pg = await db.prepare("SELECT done_ids FROM path_progress WHERE username=? AND path_id=?").bind(username, id).first();
+if (pg) doneIds = parseIdList(pg.done_ids);
+}
+return json({ path: p, courses: courses, done_ids: doneIds }, 200, { "Cache-Control": "public, max-age=60" });
+}
+
+/* POST /api/path/save：管理员。新增/更新路径。body: {id?, title, title_en/ja/ko, descr, descr_en/ja/ko, course_ids[], sort_order} */
+if (pathname === "/api/path/save" && request.method === "POST") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403 });
+const b = await request.json().catch(function () { return {}; });
+const title = ((b.title || "") + "").trim();
+if (!title) return json({ error: "标题不能为空" }, 400);
+let courseIds = [];
+if (Array.isArray(b.course_ids)) courseIds = b.course_ids.map(function (x) { return String(x); });
+else courseIds = parseIdList(b.course_ids);
+const now = new Date().toISOString();
+const args = [title, String(b.title_en || ""), String(b.title_ja || ""), String(b.title_ko || ""),
+String(b.descr || ""), String(b.descr_en || ""), String(b.descr_ja || ""), String(b.descr_ko || ""),
+JSON.stringify(courseIds), parseInt(b.sort_order, 10) || 0];
+const pid = String(b.id || "").trim();
+if (pid) {
+await db.prepare("UPDATE paths SET title=?, title_en=?, title_ja=?, title_ko=?, descr=?, descr_en=?, descr_ja=?, descr_ko=?, course_ids=?, sort_order=? WHERE id=?")
+.bind(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], pid).run();
+return json({ success: true, id: pid });
+}
+const nid = "PATH-" + Date.now();
+await db.prepare("INSERT INTO paths (id, title, title_en, title_ja, title_ko, descr, descr_en, descr_ja, descr_ko, course_ids, sort_order, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+.bind(nid, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], now).run();
+return json({ success: true, id: nid });
+}
+
+/* POST /api/path/delete：管理员。删除路径及其学员进度（证书为历史记录，保留）。body: {id} */
+if (pathname === "/api/path/delete" && request.method === "POST") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403 });
+const b = await request.json().catch(function () { return {}; });
+const id = String(b.id || "").trim();
+if (!id) return json({ error: "missing id" }, 400);
+await db.batch([
+db.prepare("DELETE FROM paths WHERE id=?").bind(id),
+db.prepare("DELETE FROM path_progress WHERE path_id=?").bind(id)
+]);
+return json({ success: true });
+}
+
+/* POST /api/path/progress：学员上报某课程完成。body: {path_id, course_id, username}
+ * 整条路径完成时自动颁发证书（每人每路径只发一次），返回 cert_no。
+ * 注：如需防冒名，可按 /api/submit 的 token 校验模式加签（本接口按任务规格只收 username）。 */
+if (pathname === "/api/path/progress" && request.method === "POST") {
+const b = await request.json().catch(function () { return {}; });
+const username = ((b.username || "") + "").trim();
+const pathId = String(b.path_id || "").trim();
+const courseId = String(b.course_id || "").trim();
+if (!username || !pathId || !courseId) return json({ error: "缺少参数" }, 400);
+const p = await db.prepare("SELECT * FROM paths WHERE id=?").bind(pathId).first();
+if (!p) return json({ error: "路径不存在" }, 404);
+const ids = parseIdList(p.course_ids);
+if (ids.indexOf(courseId) < 0) return json({ error: "该课程不在此路径中" }, 400);
+const now = new Date().toISOString();
+let done = [];
+const pg = await db.prepare("SELECT done_ids FROM path_progress WHERE username=? AND path_id=?").bind(username, pathId).first();
+if (pg) done = parseIdList(pg.done_ids);
+if (done.indexOf(courseId) < 0) done.push(courseId);
+await db.prepare("INSERT INTO path_progress (username, path_id, done_ids, updated_at) VALUES (?,?,?,?) ON CONFLICT(username, path_id) DO UPDATE SET done_ids=excluded.done_ids, updated_at=excluded.updated_at")
+.bind(username, pathId, JSON.stringify(done), now).run();
+let certNo = null;
+const allDone = ids.length > 0 && ids.every(function (id) { return done.indexOf(id) >= 0; });
+if (allDone) {
+const ex = await db.prepare("SELECT cert_no FROM certificates WHERE username=? AND path_id=?").bind(username, pathId).first();
+if (ex && ex.cert_no) {
+certNo = ex.cert_no;
+} else {
+certNo = genCertNo();
+await db.prepare("INSERT INTO certificates (cert_no, username, path_id, path_title, issued_at) VALUES (?,?,?,?,?)")
+.bind(certNo, username, pathId, p.title || "", now).run();
+}
+}
+return json({ success: true, done_count: done.length, course_count: ids.length, completed: allDone, cert_no: certNo });
+}
+
+/* GET /api/certificates?username=：学员查自己的证书；管理员 ?all=1 查全部 */
+if (pathname === "/api/certificates" && request.method === "GET") {
+if (searchParams.get("all") === "1") {
+if (!authed) return new Response("ADMIN_AUTH_REQUIRED", { status: 403 });
+const r = await db.prepare("SELECT * FROM certificates ORDER BY issued_at DESC LIMIT 500").all();
+return json({ certificates: (r && r.results) || [] });
+}
+const username = (searchParams.get("username") || "").trim();
+if (!username) return json({ certificates: [] });
+const r = await db.prepare("SELECT * FROM certificates WHERE username=? ORDER BY issued_at DESC").bind(username).all();
+return json({ certificates: (r && r.results) || [] });
+}
+
+/* GET /api/certificate?no=：公开，返回单证书信息（证书展示页用） */
+if (pathname === "/api/certificate" && request.method === "GET") {
+const no = (searchParams.get("no") || "").trim();
+if (!no) return json({ error: "missing no" }, 400);
+const c = await db.prepare("SELECT * FROM certificates WHERE cert_no=?").bind(no).first();
+if (!c) return json({ error: "not found" }, 404);
+return json({ certificate: c }, 200, { "Cache-Control": "public, max-age=3600" });
+}
+
+return null;
+}
+/* 团契智学 · 社交模块：班级/小组 + 积分徽章 + 使用统计
+ *
+ * 依赖（由调用方提供，本文件不定义）：
+ *   - env.DB                                D1 数据库绑定
+ *   - json(data, status, headers)           来自 src/server/utils.js
+ *   - authed                                布尔值，调用方已判定的管理员身份
+ *
+ * 调用方集成（两处，不改本文件）：
+ *   1. src/server/db.js 的 migrate(env) 末尾加：await migrateSocial(env);
+ *   2. src/server/api.js 的 fetch() 路由中加：
+ *        const sr = await handleSocialApi(pathname, searchParams, request, env, authed, json);
+ *        if (sr) return sr;
+ *
+ * 不含任何真实密码、密钥。
+ */
+
+async function migrateSocial(env) {
+const db = env.DB;
+await db.prepare("CREATE TABLE IF NOT EXISTS classes (id TEXT PRIMARY KEY, name TEXT, descr TEXT, leader TEXT, created_at TEXT)").run();
+await db.prepare("CREATE TABLE IF NOT EXISTS class_members (class_id TEXT, username TEXT, joined_at TEXT, PRIMARY KEY (class_id, username))").run();
+await db.prepare("CREATE INDEX IF NOT EXISTS idx_class_members_user ON class_members(username)").run();
+}
+
+/* 解析 progress.score（格式 "得分/总分"，如 "15/18"） */
+function parseScoreText(t) {
+const m = String(t || "").match(/^\s*([0-9]+)\s*\/\s*([0-9]+)\s*$/);
+if (!m) return null;
+const s = parseInt(m[1], 10), g = parseInt(m[2], 10);
+if (!(g > 0) || s < 0 || s > g) return null;
+return { s: s, g: g, pct: s / g };
+}
+
+/* 徽章定义：id/icon 固定；name/desc 为中文兜底，客户端优先用 tr("bdg_"+id) 做四语言 */
+function badgeDefs() {
+return [
+{ id: "first_step", icon: "🌱", name: "初涉真理", desc: "完成 1 门课程" },
+{ id: "diligent", icon: "📚", name: "勤奋好学", desc: "完成 10 门课程" },
+{ id: "scholar", icon: "🎓", name: "荣誉学员", desc: "平均分达到 90 分" },
+{ id: "persistent", icon: "🔥", name: "持之以恒", desc: "连续 7 天学习" },
+{ id: "perfect", icon: "💯", name: "完美答卷", desc: "单门课程获得满分" },
+{ id: "explorer", icon: "🌍", name: "真理探索者", desc: "完成 3 个不同系列的课程" },
+];
+}
+
+/* 计算某学员徽章 earned 状态 */
+async function computeBadges(env, username) {
+const r = await env.DB.prepare(
+"SELECT p.score, p.submitted_at, c.category FROM progress p LEFT JOIN courses c ON c.id = p.course_id WHERE p.username = ?"
+).bind(username).all();
+const rows = (r && r.results) || [];
+const defs = badgeDefs();
+const earned = { first_step: false, diligent: false, scholar: false, persistent: false, perfect: false, explorer: false };
+if (!rows.length) return defs.map(d => ({ id: d.id, name: d.name, icon: d.icon, earned: false, desc: d.desc, key: "bdg_" + d.id }));
+
+const pcts = [];
+const dates = {};
+const series = {};
+for (const row of rows) {
+const ps = parseScoreText(row.score);
+if (ps) {
+pcts.push(ps.pct);
+if (ps.s === ps.g) earned.perfect = true;
+}
+const day = String(row.submitted_at || "").slice(0, 10);
+if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day)) dates[day] = 1;
+const cat = String(row.category || "").trim();
+if (cat) series[cat] = 1;
+}
+const n = rows.length;
+earned.first_step = n >= 1;
+earned.diligent = n >= 10;
+if (pcts.length) {
+const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+earned.scholar = avg >= 0.9;
+}
+/* 连续 7 天：按日期排序找任意连续 7 天区间 */
+const ds = Object.keys(dates).sort();
+let streak = 1, best = ds.length ? 1 : 0;
+for (let i = 1; i < ds.length; i++) {
+const prev = new Date(ds[i - 1] + "T00:00:00Z").getTime();
+const cur = new Date(ds[i] + "T00:00:00Z").getTime();
+if (cur - prev === 86400000) { streak++; if (streak > best) best = streak; }
+else streak = 1;
+}
+earned.persistent = best >= 7;
+earned.explorer = Object.keys(series).length >= 3;
+return defs.map(d => ({ id: d.id, name: d.name, icon: d.icon, earned: !!earned[d.id], desc: d.desc, key: "bdg_" + d.id }));
+}
+
+async function handleSocialApi(pathname, searchParams, request, env, authed, json) {
+const db = env.DB;
+const needAdmin = () => { if (!authed) return json({ error: "forbidden" }, 403); return null; };
+
+/* 班级列表（公开，含成员数） */
+if (pathname === "/api/classes") {
+const r = await db.prepare(
+"SELECT c.id, c.name, c.descr, c.leader, c.created_at, (SELECT COUNT(*) FROM class_members m WHERE m.class_id = c.id) AS member_count FROM classes c ORDER BY c.created_at DESC"
+).all();
+return json((r && r.results) || []);
+}
+
+/* 新建/更新班级（管理员） */
+if (pathname === "/api/class/save" && request.method === "POST") {
+const adm = needAdmin(); if (adm) return adm;
+const b = await request.json();
+const name = String(b.name || "").trim();
+if (!name) return json({ error: "missing name" }, 400);
+const now = new Date().toISOString();
+let id = String(b.id || "").trim();
+if (id) {
+const ex = await db.prepare("SELECT id FROM classes WHERE id = ?").bind(id).all();
+if ((((ex || {}).results) || []).length) {
+await db.prepare("UPDATE classes SET name = ?, descr = ?, leader = ? WHERE id = ?")
+.bind(name, String(b.descr || ""), String(b.leader || "").trim(), id).run();
+return json({ success: true, id: id, updated: true });
+}
+}
+if (!id) id = "CLS-" + Date.now();
+await db.prepare("INSERT INTO classes (id, name, descr, leader, created_at) VALUES (?,?,?,?,?)")
+.bind(id, name, String(b.descr || ""), String(b.leader || "").trim(), now).run();
+return json({ success: true, id: id, updated: false });
+}
+
+/* 删除班级（管理员，连带删除成员关系） */
+if (pathname === "/api/class/delete" && request.method === "POST") {
+const adm = needAdmin(); if (adm) return adm;
+const b = await request.json();
+const classId = String(b.class_id || b.id || "").trim();
+if (!classId) return json({ error: "missing class_id" }, 400);
+await db.batch([
+db.prepare("DELETE FROM class_members WHERE class_id = ?").bind(classId),
+db.prepare("DELETE FROM classes WHERE id = ?").bind(classId),
+]);
+return json({ success: true });
+}
+
+/* 学员加入班级 */
+if (pathname === "/api/class/join" && request.method === "POST") {
+const b = await request.json();
+const classId = String(b.class_id || "").trim();
+const username = String(b.username || "").trim();
+if (!classId || !username) return json({ error: "missing class_id/username" }, 400);
+const ex = await db.prepare("SELECT id FROM classes WHERE id = ?").bind(classId).all();
+if (!(((ex || {}).results) || []).length) return json({ error: "class not found" }, 404);
+const now = new Date().toISOString();
+const r = await db.prepare("INSERT OR IGNORE INTO class_members (class_id, username, joined_at) VALUES (?,?,?)")
+.bind(classId, username, now).run();
+return json({ success: true, joined: (r && r.meta && r.meta.changes) > 0 });
+}
+
+/* 学员退出班级 */
+if (pathname === "/api/class/leave" && request.method === "POST") {
+const b = await request.json();
+const classId = String(b.class_id || "").trim();
+const username = String(b.username || "").trim();
+if (!classId || !username) return json({ error: "missing class_id/username" }, 400);
+await db.prepare("DELETE FROM class_members WHERE class_id = ? AND username = ?").bind(classId, username).run();
+return json({ success: true });
+}
+
+/* 成员列表：管理员或该班小组长可见（非管理员需传 username= 以核验 leader 身份） */
+if (pathname === "/api/class/members") {
+const classId = String(searchParams.get("class_id") || "").trim();
+if (!classId) return json({ error: "missing class_id" }, 400);
+if (!authed) {
+const username = String(searchParams.get("username") || "").trim();
+const cr = await db.prepare("SELECT leader FROM classes WHERE id = ?").bind(classId).all();
+const leader = (((((cr || {}).results) || [])[0]) || {}).leader || "";
+if (!username || username !== leader) return json({ error: "forbidden" }, 403);
+}
+const r = await db.prepare(
+"SELECT username, joined_at FROM class_members WHERE class_id = ? ORDER BY joined_at ASC"
+).bind(classId).all();
+return json((r && r.results) || []);
+}
+
+/* 徽章墙：按 username 计算 earned */
+if (pathname === "/api/badges") {
+const username = String(searchParams.get("username") || "").trim();
+if (!username) return json({ error: "missing username" }, 400);
+const list = await computeBadges(env, username);
+return json(list);
+}
+
+/* 使用统计（仅管理员） */
+if (pathname === "/api/stats") {
+const adm = needAdmin(); if (adm) return adm;
+const q = async (sql, ...args) => {
+const r = await db.prepare(sql).bind(...args).all();
+return (r && r.results) || [];
+};
+const students = (await q("SELECT COUNT(*) AS n FROM students"))[0].n || 0;
+const courses = (await q("SELECT COUNT(*) AS n FROM courses"))[0].n || 0;
+const completions = (await q("SELECT COUNT(*) AS n FROM progress"))[0].n || 0;
+let avgScore = 0;
+const scores = await q("SELECT score FROM progress");
+const pcts = [];
+for (const row of scores) { const ps = parseScoreText(row.score); if (ps) pcts.push(ps.pct); }
+if (pcts.length) avgScore = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length * 1000) / 10;
+const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+const active7 = (await q("SELECT COUNT(DISTINCT username) AS n FROM progress WHERE submitted_at >= ?", weekAgo))[0].n || 0;
+const topRows = await q("SELECT course_title AS title, COUNT(*) AS count FROM progress GROUP BY course_id, course_title ORDER BY count DESC LIMIT 5");
+const wrongRows = await q("SELECT qtype, COUNT(*) AS n FROM wrongs GROUP BY qtype");
+const wrongsByType = {};
+for (const w of wrongRows) wrongsByType[String(w.qtype || "unknown")] = w.n;
+return json({
+students: students, courses: courses, completions: completions,
+avgScore: avgScore, active7: active7,
+topCourses: topRows.map(t => ({ title: t.title || "", count: t.count })),
+wrongsByType: wrongsByType,
+});
+}
+
+return null;
+}
 
 function renderHTML(results, categories, opts) {
     var isShareMode = opts.shareMode, isAdmin = opts.isAdmin, adminAuthed = !!opts.adminAuthed, notice = opts.notice || "";
@@ -858,11 +1339,15 @@ function renderHTML(results, categories, opts) {
             </div>
             <div class="flex gap-2">
                 ${isAdmin
-                    ? '<button onclick="togglePreview()" id="previewBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">👁️ 学员预览</button>'
+                    ? '<a href="/" target="_blank" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">👁️ 学员预览</a>'
+                      + '<a href="/" class="text-xs bg-violet-100 px-3.5 py-2 rounded-xl font-medium text-violet-700 hover:bg-violet-200 transition">🎓 学员端</a>'
                       + '<button onclick="exportSelected()" class="admin-only text-xs bg-emerald-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-emerald-200 hover:opacity-95 transition">📥 批量导出</button>'
                       + '<button onclick="openEditModal()" class="admin-only text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3.5 py-2 rounded-xl font-bold shadow-md shadow-violet-200 hover:opacity-95 transition">+ 创建新课件</button>'
-                    : '<button onclick="openLangPanel()" id="langBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">🌐 简体</button>'
+                    : '<button onclick="toggleHomeView()" data-i18n="allCourses" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">📚 全部课程</button>'
+                      + '<button onclick="renderClassesPage({})" data-i18n="cls_title" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">👥 班级小组</button>'
                       + '<button onclick="openWrongBook()" data-i18n="wrongBook" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">📝 错题本</button>'
+                      + '<button onclick="renderBadgesPage(typeof progName===\'function\'?progName():\'\')" data-i18n="bdg_title" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">🏅 我的徽章</button>'
+                      + '<button onclick="openLangPanel()" id="langBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">🌐 简体</button>'
                       + '<button onclick="nameBtnClick()" id="nameBtn" class="text-xs bg-slate-100 px-3.5 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition">设置姓名</button>'}
             </div>
         </div>
@@ -917,6 +1402,84 @@ function renderHTML(results, categories, opts) {
         ` : ''}
 
         ${isAdmin ? `
+        <!-- ══════ 系统设置 ══════ -->
+        <div class="text-xs font-black text-slate-400 tracking-widest mb-3 mt-2">⚙️ 系统设置</div>
+        <!-- 公告设置 -->
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
+            <h3 class="font-bold text-slate-800 mb-4">📢 首页公告</h3>
+            <div class="flex gap-2">
+                <input id="noticeText" placeholder="公告内容（学员端首页顶部显示，留空则不显示）" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
+                <button onclick="saveNotice()" class="bg-indigo-900 text-white px-6 rounded-2xl text-sm font-bold">保存</button>
+            </div>
+        </div>
+
+        <!-- 数据管理 -->
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
+            <h3 class="font-bold text-slate-800 mb-4">🗂️ 数据管理</h3>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="openImportModal()" class="text-xs bg-violet-100 text-violet-700 px-4 py-2.5 rounded-xl font-bold hover:bg-violet-200 transition">📥 批量导入课程</button>
+                <button onclick="exportCSV()" class="text-xs bg-emerald-100 text-emerald-700 px-4 py-2.5 rounded-xl font-bold hover:bg-emerald-200 transition">📤 导出成绩 CSV</button>
+                <button onclick="openPwModal()" class="text-xs bg-amber-100 text-amber-700 px-4 py-2.5 rounded-xl font-bold hover:bg-amber-200 transition">🔑 修改管理密码</button>
+                <button onclick="adminLogout()" class="text-xs bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-300 transition">🚪 退出登录</button>
+            </div>
+        </div>
+
+
+        <!-- ══════ 教学内容 ══════ -->
+        <div class="text-xs font-black text-slate-400 tracking-widest mb-3 mt-2">📚 教学内容</div>
+        <div class="relative mb-5">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">⌕</span>
+            <input id="searchInput" oninput="debouncedFilter()" placeholder="搜索课程…（按标题/系列/子栏目）"
+                class="w-full bg-white border border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-sm shadow-sm outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition placeholder:text-slate-400">
+        </div>
+        <!-- 课程体系管理：学习路径 → 系列 → 子栏目 -->
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
+            <h3 class="font-bold text-slate-800 mb-1">🗂️ 课程体系管理</h3>
+            <p class="text-xs text-slate-400 mb-5">学习路径是学员首页入口，由系列 / 子栏目中的课程组成；系列简介会显示在学员端对应标题下方。</p>
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="font-bold text-slate-700 text-sm">🗺️ 学习路径</h4>
+                <button onclick="openPathEditor('')" class="text-xs bg-violet-100 text-violet-700 px-4 py-2 rounded-xl font-bold hover:bg-violet-200 transition">＋ 新增路径</button>
+            </div>
+            <div id="pathAdminList" class="space-y-3 mb-6"><div class="text-sm text-slate-400">加载中…</div></div>
+            <div class="border-t border-slate-100 pt-5">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="font-bold text-slate-700 text-sm">📚 系列与子栏目</h4>
+                    <button onclick="openCatModal('', '')" class="text-xs bg-violet-100 text-violet-700 px-4 py-2 rounded-xl font-bold hover:bg-violet-200 transition">＋ 新增系列</button>
+                </div>
+                <div id="catList" class="space-y-3"><div class="text-sm text-slate-400">加载中…</div></div>
+            </div>
+        </div>
+
+
+        <!-- 课程列表（带编辑按钮） -->
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
+            <h3 class="font-bold text-slate-800 mb-1">📝 课程列表</h3>
+            <p class="text-xs text-slate-400 mb-4">所有课程，卡片右上角可编辑、排序、导出、删除。</p>
+            <div id="courseSections"></div>
+            <div id="loadingState" class="text-center text-slate-400 py-16 text-sm">课程加载中…</div>
+            <div id="emptyState" class="hidden text-center text-slate-400 py-16 text-sm">没有找到匹配的课程</div>
+        </div>
+
+        <!-- ══════ 学员与班级 ══════ -->
+        <div class="text-xs font-black text-slate-400 tracking-widest mb-3 mt-8">👥 学员与班级</div>
+        <!-- 班级管理 -->
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-slate-800">👥 班级管理</h3>
+                <button onclick="adminNewClass()" class="text-xs bg-violet-100 text-violet-700 px-4 py-2 rounded-xl font-bold hover:bg-violet-200 transition">＋ 新建班级</button>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">创建班级、指定小组长，学员可加入班级一起学习。</p>
+            <div id="adminClassForm"></div>
+            <div id="adminClassesBox" class="space-y-3"><div class="text-sm text-slate-400">加载中…</div></div>
+        </div>
+
+        <!-- 学员管理员 -->
+        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
+            <h3 class="font-bold text-slate-800 mb-2">👑 学员管理员</h3>
+            <p class="text-xs text-slate-400 mb-3">设为管理员的学员，在学员端打开课件可直接查看答案（无需答题），按钮在课件顶部右侧。</p>
+            <ul id="adminStudentList" class="space-y-2"><li class="text-sm text-slate-400">加载中…</li></ul>
+        </div>
+
         <!-- 按姓名查成绩 -->
         <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
             <h3 class="font-bold text-slate-800 mb-4">🔍 按姓名查成绩</h3>
@@ -937,42 +1500,15 @@ function renderHTML(results, categories, opts) {
             <button id="viewAllWrongsBtn" onclick="adminViewAllWrongs()" class="hidden mt-3 ml-2 text-xs font-bold text-violet-600 border border-violet-200 rounded-2xl px-4 py-2">📝 查看该学员错题</button>
         </div>
 
-        <!-- 学员管理员 -->
+
+        <!-- ══════ 数据统计 ══════ -->
+        <div class="text-xs font-black text-slate-400 tracking-widest mb-3 mt-8">📊 数据统计</div>
+        <!-- 数据看板 -->
         <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
-            <h3 class="font-bold text-slate-800 mb-2">👑 学员管理员</h3>
-            <p class="text-xs text-slate-400 mb-3">设为管理员的学员，在学员端打开课件可直接查看答案（无需答题），按钮在课件顶部右侧。</p>
-            <ul id="adminStudentList" class="space-y-2"><li class="text-sm text-slate-400">加载中…</li></ul>
+            <h3 class="font-bold text-slate-800 mb-4">📊 数据看板</h3>
+            <div id="adminStatsBox"><div class="text-sm text-slate-400">加载中…</div></div>
         </div>
 
-        <!-- 数据管理 -->
-        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
-            <h3 class="font-bold text-slate-800 mb-4">🗂️ 数据管理</h3>
-            <div class="flex flex-wrap gap-2">
-                <button onclick="openImportModal()" class="text-xs bg-violet-100 text-violet-700 px-4 py-2.5 rounded-xl font-bold hover:bg-violet-200 transition">📥 批量导入课程</button>
-                <button onclick="exportCSV()" class="text-xs bg-emerald-100 text-emerald-700 px-4 py-2.5 rounded-xl font-bold hover:bg-emerald-200 transition">📤 导出成绩 CSV</button>
-                <button onclick="openPwModal()" class="text-xs bg-amber-100 text-amber-700 px-4 py-2.5 rounded-xl font-bold hover:bg-amber-200 transition">🔑 修改管理密码</button>
-                <button onclick="adminLogout()" class="text-xs bg-slate-200 text-slate-600 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-300 transition">🚪 退出登录</button>
-            </div>
-        </div>
-
-        <!-- 公告设置 -->
-        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
-            <h3 class="font-bold text-slate-800 mb-4">📢 首页公告</h3>
-            <div class="flex gap-2">
-                <input id="noticeText" placeholder="公告内容（学员端首页顶部显示，留空则不显示）" class="flex-1 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400">
-                <button onclick="saveNotice()" class="bg-indigo-900 text-white px-6 rounded-2xl text-sm font-bold">保存</button>
-            </div>
-        </div>
-
-        <!-- 系列与子栏目管理 -->
-        <div class="admin-only bg-white rounded-3xl p-6 shadow-sm mb-6">
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="font-bold text-slate-800">📚 系列与子栏目</h3>
-                <button onclick="openCatModal('', '')" class="text-xs bg-violet-100 text-violet-700 px-4 py-2 rounded-xl font-bold hover:bg-violet-200 transition">＋ 新增系列</button>
-            </div>
-            <p class="text-xs text-slate-400 mb-4">给系列（如"基要真理"）和子栏目写简介，会显示在学员端对应标题下方；新增/编辑课程时直接选择即可，无需重复填写。</p>
-            <div id="catList" class="space-y-3"><div class="text-sm text-slate-400">加载中…</div></div>
-        </div>
 
         <!-- 系列/子栏目编辑弹窗 -->
         <div id="catModal" class="hidden fixed inset-0 bg-slate-900/95 z-[75] flex items-center justify-center p-4">
@@ -997,17 +1533,30 @@ function renderHTML(results, categories, opts) {
         </div>
         ` : ''}
 
-        <!-- 搜索框 -->
+        ${!isAdmin ? `
+        <!-- 全站搜索框（学习路径上方常驻） -->
         <div class="relative mb-8">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">⌕</span>
             <input id="searchInput" oninput="debouncedFilter()" data-i18n-ph="searchPh" placeholder="搜索课程..."
                 class="w-full bg-white border border-slate-100 rounded-2xl py-3.5 pl-11 pr-4 text-sm shadow-sm outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition placeholder:text-slate-400">
         </div>
 
+        <!-- 学习路径（首页主入口） -->
+        <div id="pathsRoot" class="max-w-4xl mx-auto"></div>
+
+        <!-- 全部课程目录（默认隐藏，经导航按钮切换显示） -->
+        <div id="catalogWrap" style="display:none">
+        <div class="mb-4"><button onclick="showHomeView('paths')" data-i18n="backToPaths" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">← 学习路径</button></div>
+
         <!-- 课程分区（JS 按栏目渲染） -->
         <div id="courseSections"></div>
         <div id="loadingState" class="text-center text-slate-400 py-16 text-sm">课程加载中…</div>
         <div id="emptyState" class="hidden text-center text-slate-400 py-16 text-sm" data-i18n="emptyResult">没有找到匹配的课程</div>
+        </div><!-- /catalogWrap -->
+
+        <!-- 班级/徽章/数据看板统一渲染出口（默认隐藏） -->
+        <div id="socialRoot" class="max-w-4xl mx-auto" style="display:none"></div>
+        ` : ''}
     </main>
     ${!isAdmin ? '<footer class="max-w-7xl mx-auto px-5 mt-6 text-center"><a href="/admin" data-i18n="adminEntry" class="text-xs text-slate-300 hover:text-violet-500 transition">教师管理入口 →</a></footer>' : ''}
 
@@ -1220,6 +1769,8 @@ function setLang(l) { try { localStorage.setItem(LANG_KEY, l); } catch (e) {} lo
 function langShort(l) { for (var i = 0; i < LANGS.length; i++) if (LANGS[i][0] === l) return LANGS[i][2]; return l; }
 var I18N = {
 zh: {
+/* P0/P1/P2 学习路径+证书 */
+path_title: '学习路径', path_myCerts: '我的证书', path_continue: '继续学习', path_start: '开始学习', path_doneOf: '已完成 {a}/{b} 门', path_completed: '已完成 ✓', path_empty: '暂无学习路径', path_back: '← 返回路径列表', social_back: '← 返回', path_loginFirst: '请先设置学员姓名，进度将记在该姓名下', path_loadFail: '加载失败，请重试', path_viewCert: '查看证书', path_courseMissing: '课程已下架', cert_title: '学习证书', cert_awarded: '兹证明', cert_completedPath: '已圆满完成学习路径', cert_no: '证书编号', cert_date: '颁发日期', cert_print: '🖨 打印证书', cert_empty: '还没有证书，完成一条学习路径后将自动颁发', cert_congrats: '🎉 恭喜完成整条路径！证书已颁发', allCourses: '📚 全部课程', backToPaths: '← 学习路径',
 appName: '团契智学', wrongBook: '📝 错题本', setName: '设置姓名', langT: '选择语言', cancel: '取消',
 searchPh: '搜索课程...', statAll: '全部课程', statDone: '已完成', statDoing: '进行中', statAvg: '平均分',
 startLearning: '开始学习', loading: '加载中...', videoBadge: '🎬 视频', copyLinkT: '复制分享链接', nLessons: '{n} 课', emptyResult: '没有找到匹配的课程',
@@ -1275,6 +1826,8 @@ tchPwWrong: '密码错误', tchAnsFail: '获取答案失败', tchAnsT: '📖 教
 wbEmptyAlert: '错题本是空的', popupBlocked: '浏览器阻止了新窗口，请允许弹窗后重试'
 },
 en: {
+/* P0/P1/P2 学习路径+证书 */
+path_title: 'Learning Paths', path_myCerts: 'My Certificates', path_continue: 'Continue', path_start: 'Start Learning', path_doneOf: '{a}/{b} completed', path_completed: 'Completed ✓', path_empty: 'No learning paths yet', path_back: '← Back to Paths', social_back: '← Back', path_loginFirst: 'Please set your student name first; progress will be saved under it', path_loadFail: 'Failed to load, please retry', path_viewCert: 'View Certificate', path_courseMissing: 'Course unavailable', cert_title: 'Certificate of Completion', cert_awarded: 'This is to certify that', cert_completedPath: 'has successfully completed the learning path', cert_no: 'Certificate No.', cert_date: 'Date Issued', cert_print: '🖨 Print Certificate', cert_empty: 'No certificates yet. One will be issued automatically when you complete a path.', cert_congrats: '🎉 Congratulations on completing the path! Your certificate has been issued.', allCourses: '📚 All Courses', backToPaths: '← Learning Paths',
 appName: 'Fellowship Study',
 wrongBook: '📝 Wrong Answers',
 setName: 'Set Name',
@@ -1424,6 +1977,8 @@ tchPwWrong: 'Wrong password', tchAnsFail: 'Failed to load answers', tchAnsT: '�
 wbEmptyAlert: 'The mistake book is empty', popupBlocked: 'Popup blocked. Please allow popups and retry.'
 },
 ja: {
+/* P0/P1/P2 学习路径+证书 */
+path_title: '学習パス', path_myCerts: '私の修了証', path_continue: '学習を続ける', path_start: '学習を始める', path_doneOf: '{a}/{b} 修了', path_completed: '修了済み ✓', path_empty: '学習パスはまだありません', path_back: '← パス一覧に戻る', social_back: '← 戻る', path_loginFirst: '学習者名を先に設定してください', path_loadFail: '読み込みに失敗しました。もう一度お試しください', path_viewCert: '修了証を見る', path_courseMissing: '削除された課程', cert_title: '修了証', cert_awarded: 'ここに証明します', cert_completedPath: '学習パスを修了しました', cert_no: '証書番号', cert_date: '発行日', cert_print: '🖨 修了証を印刷', cert_empty: 'まだ修了証がありません。パスを修了すると自動発行されます。', cert_congrats: '🎉 パス修了おめでとうございます！修了証を発行しました', allCourses: '📚 すべての課程', backToPaths: '← 学習パス',
 appName: 'フェローシップ学習',
 wrongBook: '📝 間違いノート',
 setName: '名前を設定',
@@ -1573,6 +2128,8 @@ tchPwWrong: 'パスワードが正しくありません', tchAnsFail: '解答の
 wbEmptyAlert: '間違いノートは空です', popupBlocked: 'ポップアップがブロックされました。許可して再試行してください。'
 },
 ko: {
+/* P0/P1/P2 学习路径+证书 */
+path_title: '학습 경로', path_myCerts: '내 수료증', path_continue: '계속 학습', path_start: '학습 시작', path_doneOf: '{a}/{b} 완료', path_completed: '수료 완료 ✓', path_empty: '학습 경로가 아직 없습니다', path_back: '← 경로 목록으로 돌아가기', social_back: '← 돌아가기', path_loginFirst: '학습자 이름을 먼저 설정해 주세요', path_loadFail: '불러오지 못했습니다. 다시 시도해 주세요', path_viewCert: '수료증 보기', path_courseMissing: '삭제된 강의', cert_title: '수료증', cert_awarded: '이에 증명합니다', cert_completedPath: '학습 경로를 성공적으로 수료했습니다', cert_no: '증서 번호', cert_date: '발급일', cert_print: '🖨 수료증 인쇄', cert_empty: '아직 수료증이 없습니다. 경로를 수료하면 자동으로 발급됩니다.', cert_congrats: '🎉 경로 수료를 축하합니다! 수료증이 발급되었습니다.', allCourses: '📚 모든 강의', backToPaths: '← 학습 경로',
 appName: '펠로우십 학습',
 wrongBook: '📝 오답 노트',
 setName: '이름 설정',
@@ -1904,11 +2461,11 @@ function i18nCourse(c) {
         try {
             var qs = JSON.parse(nc.quizzes_json || "[]");
             if (Array.isArray(d.quizzes) && d.quizzes.length === qs.length) {
-                // 只替换 q/s/o/h，保留 a（答案）和 id 等
+                // 替换 q/s/a，保留 id 等；o（经文出处）不翻译，保持原文用于 bible_verses 查询
                 for (var i = 0; i < qs.length; i++) {
                     if (d.quizzes[i].q) qs[i].q = d.quizzes[i].q;
                     if (d.quizzes[i].s) qs[i].s = d.quizzes[i].s;
-                    // o（经文出处）不翻译，保持原文用于 bible_verses 查询
+                    if (d.quizzes[i].a) qs[i].a = d.quizzes[i].a;
                 }
                 nc.quizzes_json = JSON.stringify(qs);
             }
@@ -1997,10 +2554,11 @@ function i18nCourse(c) {
         /* 小工具 */
         function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
         function stripEmoji(s) { return String(s == null ? "" : s).replace(/^[📖📜\s]+/, ""); } /* 去掉标题开头自带的 📖，避免与固定图标重复 */
-        /* 去掉经文题干开头的"【经文填空】"等字样 */
+        /* 去掉经文题干开头的"【经文填空】"等字样（支持翻译后的[]版本） */
         function stripVerseTag(s) {
             s = String(s == null ? "" : s);
             if (s.charAt(0) === '【') { var e = s.indexOf('】'); if (e > 0 && e < 12) s = s.slice(e + 1); }
+            else if (s.charAt(0) === '[') { var e2 = s.indexOf(']'); if (e2 > 0 && e2 < 40) s = s.slice(e2 + 1); }
             return s;
         }
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
@@ -2010,9 +2568,9 @@ function i18nCourse(c) {
         /* 英文书名（全称+常用缩写） */
         var BIBLE_BOOKS_EN = '1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|1 Corinthians|2 Corinthians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|1 Peter|2 Peter|1 John|2 John|3 John|Song of Solomon|Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|Galatians|Ephesians|Philippians|Colossians|Titus|Philemon|Hebrews|James|Jude|Revelation|Gen|Ex|Lev|Num|Deut|Josh|Judg|Ruth|1 Sam|2 Sam|1 Kgs|2 Kgs|1 Chr|2 Chr|Ezra|Neh|Esth|Job|Ps|Prov|Eccl|Song|Isa|Jer|Lam|Ezek|Dan|Hos|Joel|Amos|Obad|Jonah|Mic|Nah|Hab|Zeph|Hag|Zech|Mal|Matt|Mark|Luke|John|Acts|Rom|1 Cor|2 Cor|Gal|Eph|Phil|Col|1 Thess|2 Thess|1 Tim|2 Tim|Titus|Phlm|Heb|Jas|1 Pet|2 Pet|1 Jn|2 Jn|3 Jn|Jude|Rev';
         /* 日文书名 */
-        var BIBLE_BOOKS_JA = 'サムエル記第一|サムエル記第二|列王記第一|列王記第二|歴代誌第一|歴代誌第二|コリント人への第一の手紙|コリント人への第二の手紙|テサロニケ人への第一の手紙|テサロニケ人への第二の手紙|テモテへの第一の手紙|テモテへの第二の手紙|ペテロの第一の手紙|ペテロの第二の手紙|ヨハネの第一の手紙|ヨハネの第二の手紙|ヨハネの第三の手紙|創世記|出エジプト記|レビ記|民数記|申命記|ヨシュア記|士師記|ルツ記|エズラ記|ネヘミヤ記|エステル記|ヨブ記|詩篇|箴言|伝道者の書|雅歌|イザヤ書|エレミヤ書|哀歌|エゼキエル書|ダニエル書|ホセア書|ヨエル書|アモス書|オバデヤ書|ヨナ書|ミカ書|ナホム書|ハバクク書|ゼパニヤ書|ハガイ書|ゼカリヤ書|マラキ書|マタイの福音書|マルコの福音書|ルカの福音書|ヨハネの福音書|使徒の働き|ローマ人への手紙|ガラテヤ人への手紙|エペソ人への手紙|ピリピ人への手紙|コロサイ人への手紙|テトスへの手紙|ピレモンへの手紙|ヘブル人への手紙|ヤコブの手紙|ユダの手紙|黙示録';
+        var BIBLE_BOOKS_JA = 'サムエル記第一|サムエル記第二|列王記第一|列王記第二|歴代誌第一|歴代誌第二|コリント人への第一の手紙|コリント人への第二の手紙|テサロニケ人への第一の手紙|テサロニケ人への第二の手紙|テモテへの第一の手紙|テモテへの第二の手紙|ペテロの第一の手紙|ペテロの第二の手紙|ヨハネの第一の手紙|ヨハネの第二の手紙|ヨハネの第三の手紙|創世記|出エジプト記|レビ記|民数記|申命記|ヨシュア記|士師記|ルツ記|エズラ記|ネヘミヤ記|エステル記|ヨブ記|詩篇|箴言|伝道者の書|雅歌|イザヤ書|エレミヤ書|哀歌|エゼキエル書|ダニエル書|ホセア書|ヨエル書|アモス書|オバデヤ書|ヨナ書|ミカ書|ナホム書|ハバクク書|ゼパニヤ書|ハガイ書|ゼカリヤ書|マラキ書|マタイの福音書|マルコの福音書|ルカの福音書|ヨハネの福音書|使徒の働き|ローマ人への手紙|ガラテヤ人への手紙|エペソ人への手紙|ピリピ人への手紙|コロサイ人への手紙|テトスへの手紙|ピレモンへの手紙|ヘブル人への手紙|ヤコブの手紙|ユダの手紙|黙示録|創|出|レビ|民|申|ヨシュア|士師|ルツ|サムエル上|サムエル下|列王上|列王下|歴代上|歴代下|エズラ|ネヘミヤ|エステル|ヨブ|詩|箴言|伝道|雅歌|イザヤ|エレミヤ|哀歌|エゼキエル|ダニエル|ホセア|ヨエル|アモス|オバデヤ|ヨナ|ミカ|ナホム|ハバクク|ゼパニヤ|ハガイ|ゼカリヤ|マラキ|マタイ|マルコ|ルカ|ヨハネ|使徒|ローマ|コリント上|コリント下|ガラテヤ|エペソ|ピリピ|コロサイ|テサロニケ上|テサロニケ下|テモテ上|テモテ下|テトス|ピレモン|ヘブル|ヤコブ|ペテロ上|ペテロ下|ヨハネ上|ヨハネ下|ヨハネ三|ユダ|黙示';
         /* 韩文书名 */
-        var BIBLE_BOOKS_KO = '사무엘상|사무엘하|열왕기상|열왕기하|역대상|역대하|고린도전서|고린도후서|데살로니가전서|데살로니가후서|디모데전서|디모데후서|베드로전서|베드로후서|요한1서|요한2서|요한3서|창세기|출애굽기|레위기|민수기|신명기|여호수아|사사기|룻기|에스라|느헤미야|에스더|욥기|시편|잠언|전도서|아가|이사야|예레미야|예레미야애가|에스겔|다니엘|호세아|요엘|아모스|오바댜|요나|미가|나훔|하박국|스바냐|학개|스가랴|말라기|마태복음|마가복음|누가복음|요한복음|사도행전|로마서|갈라디아서|에베소서|빌립보서|골로새서|디도서|빌레몬서|히브리서|야고보서|유다서|요한계시록';
+        var BIBLE_BOOKS_KO = '사무엘상|사무엘하|열왕기상|열왕기하|역대상|역대하|고린도전서|고린도후서|데살로니가전서|데살로니가후서|디모데전서|디모데후서|베드로전서|베드로후서|요한1서|요한2서|요한3서|창세기|출애굽기|레위기|민수기|신명기|여호수아|사사기|룻기|에스라|느헤미야|에스더|욥기|시편|잠언|전도서|아가|이사야|예레미야|예레미야애가|에스겔|다니엘|호세아|요엘|아모스|오바댜|요나|미가|나훔|하박국|스바냐|학개|스가랴|말라기|마태복음|마가복음|누가복음|요한복음|사도행전|로마서|갈라디아서|에베소서|빌립보서|골로새서|디도서|빌레몬서|히브리서|야고보서|유다서|요한계시록|삼상|삼하|왕상|왕하|대상|대하|고전|고후|살전|살후|딤전|딤후|벧전|벧후|요일|요이|요삼|창|출|레|민|신|수|삿|룻|스|느|에|욥|시|잠|전|아|사|렘|애|겔|단|호|욜|암|옵|욘|미|나|합|습|학|슥|말|마|막|눅|요|행|롬|갈|엡|빌|골|살전|살후|딤전|딤후|딛|몬|히|약|유|계';
         /* 经文高亮：引用→紫色徽章（完整显示），引用后经文正文→琥珀底纹；s须为已转义文本 */
         /* 书名简称→全称（如太→马太福音），高亮徽章统一显示全称 */
         var BOOK_FULL = null;
@@ -2107,8 +2665,40 @@ function i18nCourse(c) {
             var SP = ' *';
             var DASH = '[\u2013\u2014\uFF0D-]';
             /* vref：fmt=en/ja/ko/zh，输出对应语言格式的徽章 */
+            var BOOK_ZH2KO = null;
+            function bookZh2Ko(nm) {
+                if (!BOOK_ZH2KO) {
+                    var ko = BIBLE_BOOKS_KO.split('|'), zh = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|哥林多前书|哥林多后书|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|彼得前书|彼得后书|约翰一书|约翰二书|约翰三书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|诗篇|箴言|传道书|雅歌|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录'.split('|');
+                    BOOK_ZH2KO = {};
+                    for (var i = 0; i < zh.length && i < ko.length; i++) BOOK_ZH2KO[zh[i]] = ko[i];
+                    // 简称也映射
+                    var abbr = '撒上|撒下|王上|王下|代上|代下|林前|林后|帖前|帖后|提前|提后|彼前|彼后|约壹|约贰|约叁|创|出|利|民|申|书|士|得|拉|尼|斯|伯|诗|箴|传|歌|赛|耶|哀|结|但|何|珥|摩|俄|拿|弥|鸿|哈|番|该|亚|玛|太|可|路|约|徒|罗|加|弗|腓|西|多|门|来|雅|犹|启'.split('|');
+                    for (var j = 0; j < abbr.length && j < ko.length; j++) BOOK_ZH2KO[abbr[j]] = ko[j];
+                }
+                return BOOK_ZH2KO[nm] || nm;
+            }
+            var BOOK_ZH2EN = null, BOOK_ZH2JA = null;
+            function bookZh2En(nm) {
+                if (!BOOK_ZH2EN) {
+                    var en = BIBLE_BOOKS_EN.split('|'), zh = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|哥林多前书|哥林多后书|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|彼得前书|彼得后书|约翰一书|约翰二书|约翰三书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|诗篇|箴言|传道书|雅歌|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录'.split('|');
+                    BOOK_ZH2EN = {};
+                    for (var i = 0; i < zh.length && i < en.length; i++) BOOK_ZH2EN[zh[i]] = en[i];
+                }
+                return BOOK_ZH2EN[nm] || nm;
+            }
+            function bookZh2Ja(nm) {
+                if (!BOOK_ZH2JA) {
+                    var ja = BIBLE_BOOKS_JA.split('|'), zh = '撒母耳记上|撒母耳记下|列王纪上|列王纪下|历代志上|历代志下|哥林多前书|哥林多后书|帖撒罗尼迦前书|帖撒罗尼迦后书|提摩太前书|提摩太后书|彼得前书|彼得后书|约翰一书|约翰二书|约翰三书|创世记|出埃及记|利未记|民数记|申命记|约书亚记|士师记|路得记|以斯拉记|尼希米记|以斯帖记|约伯记|诗篇|箴言|传道书|雅歌|以赛亚书|耶利米书|耶利米哀歌|以西结书|但以理书|何西阿书|约珥书|阿摩司书|俄巴底亚书|约拿书|弥迦书|那鸿书|哈巴谷书|西番雅书|哈该书|撒迦利亚书|玛拉基书|马太福音|马可福音|路加福音|约翰福音|使徒行传|罗马书|加拉太书|以弗所书|腓立比书|歌罗西书|提多书|腓利门书|希伯来书|雅各书|犹大书|启示录'.split('|');
+                    BOOK_ZH2JA = {};
+                    for (var i = 0; i < zh.length && i < ja.length; i++) BOOK_ZH2JA[zh[i]] = ja[i];
+                }
+                return BOOK_ZH2JA[nm] || nm;
+            }
             function vref(bk, ch, vs, ve, fmt) {
                 var numTxt, bookTxt = bk;
+                if (fmt === 'ko') bookTxt = bookZh2Ko(bookFull(bk));
+                else if (fmt === 'en') bookTxt = bookZh2En(bookFull(bk));
+                else if (fmt === 'ja') bookTxt = bookZh2Ja(bookFull(bk));
                 if (fmt === 'en') {
                     numTxt = ch + (vs ? ':' + vs + (ve ? '-' + ve : '') : '');
                 } else if (fmt === 'ja') {
@@ -2159,23 +2749,24 @@ function i18nCourse(c) {
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '([0-9]+)' + SP + '(?!' + JIEP + ')'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + SP + '[：:]' + SP + '([^<]*)'
                 + '|(' + B + ')' + SP + '([0-9]+)' + SP + ZP + '(?!' + SP + '[0-9])', 'g');
+            var langFmt = isEN ? 'en' : isJA ? 'ja' : isKO ? 'ko' : 'zh';
             s = s.replace(VP, function (m) {
                 var a = arguments;
-                if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4], 'zh');
-                if (a[5] !== undefined) return vref(a[5], a[6], a[7], a[8], 'zh');
-                if (a[9] !== undefined) return vref(a[9], a[10], a[11], a[12], 'zh') + '<span class="verse-text">' + a[13] + '</span>';
-                if (a[14] !== undefined) return vref(a[14], a[15], a[16], a[17], 'zh');
-                if (a[18] !== undefined) return vref(a[18], a[19], a[20], null, 'zh');
-                if (a[21] !== undefined) return vref(a[21], a[22], a[23], null, 'zh') + '<span class="verse-text">' + a[24] + '</span>';
-                if (a[25] !== undefined) return vref(a[25], a[26], a[27], null, 'zh') + '<span class="verse-text">' + a[28] + '</span>';
-                if (a[29] !== undefined) return vref(a[29], a[30], a[31], null, 'zh');
-                if (a[32] !== undefined) return vref(a[32], a[33], a[34], null, 'zh') + '<span class="verse-text">' + a[35] + '</span>';
-                if (a[36] !== undefined) return vref(a[36], a[37], a[38], null, 'zh');
-                if (a[39] !== undefined) return vref(a[39], a[40], a[41], null, 'zh');
-                if (a[42] !== undefined) return vref(a[42], a[43], a[44], null, 'zh');
-                if (a[45] !== undefined) return vref(a[45], a[46], null, null, 'zh') + '<span class="verse-text">' + a[47] + '</span>';
-                if (a[48] !== undefined) return vref(a[48], a[49], null, null, 'zh');
-                return vref(a[48], a[49], null, null, 'zh');
+                if (a[1] !== undefined) return vref(a[1], a[2], a[3], a[4], langFmt);
+                if (a[5] !== undefined) return vref(a[5], a[6], a[7], a[8], langFmt);
+                if (a[9] !== undefined) return vref(a[9], a[10], a[11], a[12], langFmt) + '<span class="verse-text">' + a[13] + '</span>';
+                if (a[14] !== undefined) return vref(a[14], a[15], a[16], a[17], langFmt);
+                if (a[18] !== undefined) return vref(a[18], a[19], a[20], null, langFmt);
+                if (a[21] !== undefined) return vref(a[21], a[22], a[23], null, langFmt) + '<span class="verse-text">' + a[24] + '</span>';
+                if (a[25] !== undefined) return vref(a[25], a[26], a[27], null, langFmt) + '<span class="verse-text">' + a[28] + '</span>';
+                if (a[29] !== undefined) return vref(a[29], a[30], a[31], null, langFmt);
+                if (a[32] !== undefined) return vref(a[32], a[33], a[34], null, langFmt) + '<span class="verse-text">' + a[35] + '</span>';
+                if (a[36] !== undefined) return vref(a[36], a[37], a[38], null, langFmt);
+                if (a[39] !== undefined) return vref(a[39], a[40], a[41], null, langFmt);
+                if (a[42] !== undefined) return vref(a[42], a[43], a[44], null, langFmt);
+                if (a[45] !== undefined) return vref(a[45], a[46], null, null, langFmt) + '<span class="verse-text">' + a[47] + '</span>';
+                if (a[48] !== undefined) return vref(a[48], a[49], null, null, langFmt);
+                return vref(a[48], a[49], null, null, langFmt);
             });
             return s;
         }
@@ -2407,6 +2998,8 @@ function i18nCourse(c) {
             } catch (e) {}
             var list = (BOOT.list && BOOT.list.length) ? BOOT.list : (BOOT.shareMode ? [] : allData);
             renderSections(list);
+            try { if (!BOOT.isAdmin && typeof renderPathsPage === 'function') renderPathsPage(); } catch (e) {}
+            showHomeView(BOOT.isAdmin ? 'catalog' : 'paths');
             updateStats();
             if (!BOOT.isAdmin) {
                 refreshStats();
@@ -2418,6 +3011,9 @@ function i18nCourse(c) {
                 if (nt && nrt.notice) nt.value = nrt.notice;
                 renderCatList();
                 renderCatForm();
+                try { if (typeof renderPathAdminList === 'function') renderPathAdminList(); } catch (e) {}
+                try { if (typeof renderAdminStatsSection === 'function') renderAdminStatsSection(); } catch (e) {}
+                try { if (typeof renderAdminClassesSection === 'function') renderAdminClassesSection(); } catch (e) {}
             }
             var sid = new URLSearchParams(window.location.search).get('id');
             if (!sid) {
@@ -2485,6 +3081,19 @@ function i18nCourse(c) {
             var st = getTreeState();
             if (hidden) st[key] = 1; else delete st[key];
             setTreeState(st);
+        }
+        /* 首页视图切换：paths（学习路径入口，默认）/ catalog（全部课程目录） */
+        function showHomeView(v) {
+            var toCatalog = (v === 'catalog');
+            var pr = document.getElementById('pathsRoot');
+            var cw = document.getElementById('catalogWrap');
+            if (pr) pr.style.display = toCatalog ? 'none' : '';
+            if (cw) cw.style.display = toCatalog ? '' : 'none';
+            if (toCatalog) { try { window.scrollTo(0, 0); } catch (e) {} }
+        }
+        function toggleHomeView() {
+            var cw = document.getElementById('catalogWrap');
+            showHomeView(cw && cw.style.display !== 'none' ? 'paths' : 'catalog');
         }
         /* 按栏目渲染分区（树状可折叠） */
         function renderSections(list) {
@@ -2618,6 +3227,7 @@ function i18nCourse(c) {
         function debouncedFilter() { clearTimeout(_filterT); _filterT = setTimeout(filterCourses, 150); }
         function filterCourses() {
             var kw = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (kw) { try { showHomeView('catalog'); } catch (e) {} }
             var visible = 0;
             document.querySelectorAll('.course-card').forEach(function(card) {
                 var hit = !kw || card.dataset.search.indexOf(kw) >= 0;
@@ -2867,6 +3477,7 @@ function i18nCourse(c) {
         /* 分享链接打开：展开对应系列/子栏目并滚动定位 */
         function jumpToSeries(cat, sub) {
             if (!cat) return;
+            try { showHomeView('catalog'); } catch (e) {}
             try {
                 var st = getTreeState();
                 delete st["ser:" + cat];
@@ -3058,7 +3669,7 @@ function i18nCourse(c) {
             try {
                 var r = await fetch('/api/submit', {
                     method: 'POST',
-                    body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, answers: answers, token: (function(){ try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch(e) { return ""; } })() })
+                    body: JSON.stringify({ username: name, course_id: activeLessonId, courseTitle: activeCourseTitle, answers: answers, lang: curLang(), token: (function(){ try { return localStorage.getItem(STUDENT_TOKEN_KEY) || ""; } catch(e) { return ""; } })() })
                 });
                 var res = await r.json();
                 if (!r.ok || !res.details) throw 0;
@@ -3375,8 +3986,8 @@ function i18nCourse(c) {
                 }
             }
             if (!item || item.quizzes_json === undefined) return;
-            if (curLang() === 'tw' && !BOOT.isAdmin) item = twCourse(item);
-            if (!BOOT.isAdmin) item = i18nCourse(item);
+            if (curLang() === 'tw') item = twCourse(item);
+            item = i18nCourse(item);
             activeLessonId = id;
             activeCourseTitle = item.title;
             activeCategory = item.category || "";
@@ -4871,7 +5482,7 @@ function i18nCourse(c) {
                 document.getElementById('teacherBtn').innerText = tr("teacherBtn");
                 return;
             }
-            var ansUrl = '/api/answers?course_id=' + encodeURIComponent(activeLessonId || "");
+            var ansUrl = '/api/answers?course_id=' + encodeURIComponent(activeLessonId || "") + '&lang=' + encodeURIComponent(curLang());
             var isStuAdmin = !BOOT.isAdmin && studentIsAdmin();
             if (isStuAdmin) ansUrl += '&username=' + encodeURIComponent(progName()) + '&token=' + encodeURIComponent(studentToken());
             var r = await fetch(ansUrl);
@@ -5435,7 +6046,1225 @@ function i18nCourse(c) {
         <button id="viewModeBtn" onclick="toggleViewMode()" data-i18n-title="toDesk" title="切换到桌面版">🖥️</button>
     </div>
 <script>
+/* ============================================================================
+ * 学习路径 + 证书系统（客户端 UI）
+ * ----------------------------------------------------------------------------
+ * 外部依赖（由构建/页面组装时提供，本文件不定义）：
+ *   tr(k), tf(k, obj), curLang() — src/client/i18n.js + main.js（多语言）
+ *   progName()                   — src/client/main.js（学员姓名，localStorage）
+ *   startLesson(courseId)        — src/client/main.js（打开课程学习）
+ *   fetch                        — 浏览器原生
+ * 本文件自带：escP()（HTML 转义，避免与现有 esc() 重名冲突）。
+ *
+ * I18N-KEYS: 以下 key 需并入 src/client/i18n.js 的 zh/en/ja/ko 四节
+ * （主 agent 合并时直接取用；tw 繁体走 toTW 自动转换，无需手写）
+ * ----------------------------------------------------------------------------
+ * path_title      | 学习路径 | Learning Paths | 学習パス | 학습 경로
+ * path_myCerts    | 我的证书 | My Certificates | 私の修了証 | 내 수료증
+ * path_continue   | 继续学习 | Continue | 学習を続ける | 계속 학습
+ * path_start      | 开始学习 | Start Learning | 学習を始める | 학습 시작
+ * path_doneOf     | 已完成 {a}/{b} 门 | {a}/{b} completed | {a}/{b} 修了 | {a}/{b} 완료
+ * path_completed  | 已完成 ✓ | Completed ✓ | 修了済み ✓ | 수료 완료 ✓
+ * path_empty      | 暂无学习路径 | No learning paths yet | 学習パスはまだありません | 학습 경로가 아직 없습니다
+ * path_back       | ← 返回路径列表 | ← Back to Paths | ← パス一覧に戻る | ← 경로 목록으로 돌아가기
+ * path_loginFirst | 请先设置学员姓名，进度将记在该姓名下 | Please set your student name first; progress will be saved under it | 学習者名を先に設定してください | 학습자 이름을 먼저 설정해 주세요
+ * path_loadFail   | 加载失败，请重试 | Failed to load, please retry | 読み込みに失敗しました。もう一度お試しください | 불러오지 못했습니다. 다시 시도해 주세요
+ * path_viewCert   | 查看证书 | View Certificate | 修了証を見る | 수료증 보기
+ * path_courseMissing | 课程已下架 | Course unavailable | 削除された課程 | 삭제된 강의
+ * cert_title      | 学习证书 | Certificate of Completion | 修了証 | 수료증
+ * cert_awarded    | 兹证明 | This is to certify that | ここに証明します | 이에 증명합니다
+ * cert_completedPath | 已圆满完成学习路径 | has successfully completed the learning path | 学習パスを修了しました | 학습 경로를 성공적으로 수료했습니다
+ * cert_no         | 证书编号 | Certificate No. | 証書番号 | 증서 번호
+ * cert_date       | 颁发日期 | Date Issued | 発行日 | 발급일
+ * cert_print      | 🖨 打印证书 | 🖨 Print Certificate | 🖨 修了証を印刷 | 🖨 수료증 인쇄
+ * cert_empty      | 还没有证书，完成一条学习路径后将自动颁发 | No certificates yet. One will be issued automatically when you complete a path. | まだ修了証がありません。パスを修了すると自動発行されます。 | 아직 수료증이 없습니다. 경로를 수료하면 자동으로 발급됩니다.
+ * cert_congrats   | 🎉 恭喜完成整条路径！证书已颁发 | 🎉 Congratulations on completing the path! Your certificate has been issued. | 🎉 パス修了おめでとうございます！修了証を発行しました | 🎉 경로 수료를 축하합니다! 수료증이 발급되었습니다.
+ * ========================================================================== */
+
+function escP(s) {
+return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/* 按当前语言取路径标题/简介（无翻译回退中文；繁体走 toTW 实时转换） */
+function pathTitleL(p) {
+var L = (typeof curLang === "function") ? curLang() : "zh";
+if (L === "en" && p.title_en) return p.title_en;
+if (L === "ja" && p.title_ja) return p.title_ja;
+if (L === "ko" && p.title_ko) return p.title_ko;
+var t = p.title || "";
+if (L === "tw" && typeof toTW === "function") return toTW(t);
+return t;
+}
+function pathDescrL(p) {
+var L = (typeof curLang === "function") ? curLang() : "zh";
+if (L === "en" && p.descr_en) return p.descr_en;
+if (L === "ja" && p.descr_ja) return p.descr_ja;
+if (L === "ko" && p.descr_ko) return p.descr_ko;
+var d = p.descr || "";
+if (L === "tw" && typeof toTW === "function") return toTW(d);
+return d;
+}
+function pathUser() {
+try { return (typeof progName === "function" ? progName() : "") || ""; } catch (e) { return ""; }
+}
+
+/* 渲染容器：复用 #pathsRoot，不存在则创建（由接入方决定在页面中的位置） */
+function pathsRoot() {
+var el = document.getElementById("pathsRoot");
+if (!el) {
+el = document.createElement("div");
+el.id = "pathsRoot";
+el.className = "max-w-4xl mx-auto px-4 py-6";
+document.body.appendChild(el);
+}
+return el;
+}
+function pathsLoading() {
+return '<div class="text-center text-slate-400 py-12">' + escP(tr("loading")) + '</div>';
+}
+function pathsLoadFail() {
+return '<div class="text-center text-red-400 py-12">' + escP(tr("path_loadFail")) + '</div>';
+}
+
+/* 路径列表页：标题（当前语言）、简介、进度条（已完成 X/Y 门）、继续学习按钮 */
+async function renderPathsPage() {
+var root = pathsRoot();
+root.innerHTML = pathsLoading();
+var username = pathUser();
+try {
+var url = "/api/paths" + (username ? "?username=" + encodeURIComponent(username) : "");
+var r = await fetch(url);
+var j = await r.json();
+var paths = j.paths || [];
+var html = '<div class="flex items-center justify-between mb-5">'
++ '<h2 class="text-xl font-bold text-slate-900">🗺 ' + escP(tr("path_title")) + '</h2>'
++ '<button onclick="renderCertificatesPage()" class="px-4 py-2 text-sm font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition">🏆 ' + escP(tr("path_myCerts")) + '</button>'
++ '</div>';
+if (!paths.length) {
+html += '<div class="text-center text-slate-400 py-12">' + escP(tr("path_empty")) + '</div>';
+} else {
+html += paths.map(function (p) {
+var total = p.course_count || 0, done = p.done_count || 0;
+var pct = total > 0 ? Math.round(done / total * 100) : 0;
+var finished = total > 0 && done >= total;
+var btnLabel = done > 0 ? tr("path_continue") : tr("path_start");
+return '<div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4">'
++ '<div class="text-lg font-bold text-slate-900">' + escP(pathTitleL(p)) + '</div>'
++ (pathDescrL(p) ? '<div class="text-sm text-slate-500 mt-1 leading-relaxed">' + escP(pathDescrL(p)) + '</div>' : '')
++ '<div class="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-2 rounded-full transition-all ' + (finished ? 'bg-amber-500' : 'bg-emerald-500') + '" style="width:' + pct + '%"></div></div>'
++ '<div class="flex items-center justify-between mt-2 gap-2">'
++ '<span class="text-xs text-slate-500">' + escP(tf("path_doneOf", { a: done, b: total })) + '</span>'
++ (finished
+? '<button onclick="renderCertificatesPage()" class="text-xs font-bold text-amber-600 hover:text-amber-700">🏆 ' + escP(tr("path_viewCert")) + '</button>'
+: '<button data-pid="' + escP(p.id) + '" onclick="renderPathDetail(this.dataset.pid)" class="px-4 py-1.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition">' + escP(btnLabel) + '</button>')
++ '</div></div>';
+}).join("");
+}
+root.innerHTML = html;
+try { if (typeof applyI18n === "function") applyI18n(); } catch (e) {}
+} catch (e) {
+root.innerHTML = pathsLoadFail();
+}
+}
+
+/* 路径详情页：按顺序列课程，每门显示完成状态（✓/○），点击进课程学习 */
+async function renderPathDetail(pathId) {
+var root = pathsRoot();
+root.innerHTML = pathsLoading();
+var username = pathUser();
+try {
+var url = "/api/path?id=" + encodeURIComponent(pathId) + (username ? "&username=" + encodeURIComponent(username) : "");
+var r = await fetch(url);
+var j = await r.json();
+if (!j.path) { root.innerHTML = pathsLoadFail(); return; }
+var p = j.path;
+var courses = j.courses || [];
+/* 用首页已加载的完整课程数据补齐 content/video_url，使卡片与目录展示一致 */
+courses = courses.map(function (c) {
+var full = null;
+try { full = _peCourseById(c.id); } catch (e) {}
+return full || c;
+});
+var doneIds = j.done_ids || [];
+function isDone(cid) { return doneIds.indexOf(cid) >= 0; }
+var total = courses.length;
+var doneCount = courses.filter(function (c) { return isDone(c.id); }).length;
+var html = '<button onclick="renderPathsPage()" class="mb-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition">' + escP(tr("path_back")) + '</button>'
++ '<div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white mb-5">'
++ '<div class="text-xl font-bold">' + escP(pathTitleL(p)) + '</div>'
++ (pathDescrL(p) ? '<div class="text-sm text-indigo-100 mt-1 leading-relaxed">' + escP(pathDescrL(p)) + '</div>' : '')
++ '<div class="text-xs text-indigo-100 mt-3">' + escP(tf("path_doneOf", { a: doneCount, b: total })) + '</div>'
++ '</div>';
+if (!username) {
+html += '<div class="text-center text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl py-2.5 mb-4">' + escP(tr("path_loginFirst")) + '</div>';
+}
+if (!courses.length) {
+html += '<div class="text-center text-slate-400 py-10">' + escP(tr("path_empty")) + '</div>';
+} else {
+html += (function () {
+var groups = {}, catOrder = [];
+courses.forEach(function (c) { var k = c.category || ""; if (!groups[k]) { groups[k] = []; catOrder.push(k); } groups[k].push(c); });
+var st = (typeof getTreeState === "function") ? getTreeState() : {};
+return catOrder.map(function (cat, si) {
+var info = (typeof catInfo !== "undefined" && catInfo[cat]) || { description: "", subDesc: {} };
+var subgroups = {}, subOrder = [];
+groups[cat].forEach(function (c) { var sk = c.subcategory || ""; if (!subgroups[sk]) { subgroups[sk] = []; subOrder.push(sk); } subgroups[sk].push(c); });
+var sKey = "path:" + p.id + ":ser:" + cat, sBody = "pathTreeB" + si, sChev = "pathTreeC" + si;
+var sCollapsed = !!st[sKey];
+var bodyHtml = subOrder.map(function (sk, ki) {
+var cards = subgroups[sk].map(function (c, idx) { return courseCard(c, idx); }).join("");
+var gridHtml = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 course-cards">' + cards + "</div>";
+if (!sk) return gridHtml;
+var kKey = "path:" + p.id + ":sub:" + cat + "::" + sk, kBody = sBody + "K" + ki, kChev = sChev + "K" + ki;
+var kCollapsed = !!st[kKey];
+var sd = info.subDesc[sk] || "";
+return '<div class="ml-1 md:ml-5 mt-7">'
++ '<div class="flex items-center gap-1 mb-3">'
++ '<button data-tkey="' + escP(kKey) + '" data-tbody="' + kBody + '" data-tchev="' + kChev + '" onclick="toggleTree(this)" class="flex items-center gap-1 group min-w-0">'
++ '<span id="' + kChev + '" class="text-xs text-violet-500 w-4 text-center shrink-0">' + (kCollapsed ? "▶" : "▼") + "</span>"
++ '<span class="text-[15px] font-bold text-slate-700 group-hover:text-violet-700">📁' + hlSubcat(subNameL(cat, sk)) + "</span>"
++ '<span class="text-xs text-slate-400 shrink-0">' + escP(tf("nLessons", { n: subgroups[sk].length })) + "</span></button>"
++ "</div>"
++ (sd ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + escP(sd) + "</p>" : "")
++ '<div id="' + kBody + '" class="' + (kCollapsed ? "hidden" : "") + '">' + gridHtml + "</div></div>";
+}).join("");
+return '<div class="mb-6">'
++ '<div class="flex items-center gap-1">'
++ '<button data-tkey="' + escP(sKey) + '" data-tbody="' + sBody + '" data-tchev="' + sChev + '" onclick="toggleTree(this)" class="flex items-center gap-3 flex-1 min-w-0 text-left group">'
++ '<span id="' + sChev + '" class="text-sm text-violet-500 w-5 text-center shrink-0">' + (sCollapsed ? "▶" : "▼") + "</span>"
++ '<span class="w-1.5 h-7 bg-violet-500 rounded-full shrink-0"></span>'
++ '<h2 class="text-xl font-black tracking-tight group-hover:text-violet-700">' + catIcon(cat) + " " + escP(catNameL(cat)) + "</h2>"
++ '<span class="text-sm text-slate-400 shrink-0">' + escP(tf("nLessons", { n: groups[cat].length })) + "</span></button>"
++ "</div>"
++ '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + '">' + bodyHtml + "</div></div>";
+}).join("");
+})();
+}
+root.innerHTML = html;
+try { if (typeof applyI18n === "function") applyI18n(); } catch (e) {}
+} catch (e) {
+root.innerHTML = pathsLoadFail();
+}
+}
+
+/* 我的证书列表页 */
+async function renderCertificatesPage() {
+var root = pathsRoot();
+root.innerHTML = pathsLoading();
+var username = pathUser();
+try {
+var url = "/api/certificates" + (username ? "?username=" + encodeURIComponent(username) : "");
+var r = await fetch(url);
+var j = await r.json();
+var certs = j.certificates || [];
+var html = '<button onclick="renderPathsPage()" class="mb-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition">' + escP(tr("path_back")) + '</button>'
++ '<h2 class="text-xl font-bold text-slate-900 mb-5">🏆 ' + escP(tr("path_myCerts")) + '</h2>';
+if (!certs.length) {
+html += '<div class="text-center text-slate-400 py-12 leading-relaxed">' + escP(tr("cert_empty")) + '</div>';
+} else {
+html += '<div class="grid gap-3">' + certs.map(function (c) {
+var d = String(c.issued_at || "").slice(0, 10);
+return '<button data-cno="' + escP(c.cert_no) + '" onclick="renderCertificateView(this.dataset.cno)"'
++ ' class="flex items-center gap-4 bg-white rounded-2xl border border-amber-200 shadow-sm p-4 text-left hover:shadow-md transition">'
++ '<span class="text-3xl">🎓</span>'
++ '<span class="flex-1 min-w-0">'
++ '<span class="block font-bold text-slate-900 truncate">' + escP(c.path_title || "") + '</span>'
++ '<span class="block text-xs text-slate-400 mt-0.5">' + escP(tr("cert_no")) + ': ' + escP(c.cert_no) + ' · ' + escP(d) + '</span>'
++ '</span><span class="text-slate-300">→</span></button>';
+}).join("") + '</div>';
+}
+root.innerHTML = html;
+try { if (typeof applyI18n === "function") applyI18n(); } catch (e) {}
+} catch (e) {
+root.innerHTML = pathsLoadFail();
+}
+}
+
+/* 证书展示页：可打印（A4 横向、金色边框、学员名、路径名、颁发日期、证书编号） */
+function pathsPrintStyle() {
+if (document.getElementById("pathsPrintStyle")) return;
+var st = document.createElement("style");
+st.id = "pathsPrintStyle";
+st.textContent = "@media print{"
++ "body *{visibility:hidden !important;}"
++ "#pathsCertCard,#pathsCertCard *{visibility:visible !important;}"
++ "#pathsCertCard{position:absolute !important;left:0;top:0;width:100%;margin:0;box-shadow:none !important;}"
++ "#pathsCertActions{display:none !important;}"
++ "@page{size:A4 landscape;margin:12mm;}"
++ "}";
+document.head.appendChild(st);
+}
+
+async function renderCertificateView(certNo) {
+var root = pathsRoot();
+root.innerHTML = pathsLoading();
+pathsPrintStyle();
+try {
+var r = await fetch("/api/certificate?no=" + encodeURIComponent(certNo));
+var j = await r.json();
+if (!j.certificate) { root.innerHTML = pathsLoadFail(); return; }
+var c = j.certificate;
+var d = String(c.issued_at || "").slice(0, 10);
+var html = '<div id="pathsCertActions" class="flex items-center justify-between mb-4 print:hidden">'
++ '<button onclick="renderCertificatesPage()" class="text-sm font-bold text-slate-500 hover:text-slate-700 transition">' + escP(tr("path_back")) + '</button>'
++ '<button onclick="window.print()" class="px-4 py-2 text-sm font-bold text-white bg-amber-600 rounded-xl hover:bg-amber-700 transition">' + escP(tr("cert_print")) + '</button>'
++ '</div>'
++ '<div id="pathsCertCard" class="bg-white rounded-lg p-[6px] shadow-xl" style="border:6px double #b8860b;">'
++ '<div class="px-8 py-10 text-center" style="border:2px solid #d4af37;">'
++ '<div class="text-5xl mb-3">🎓</div>'
++ '<div class="text-2xl font-bold tracking-widest text-amber-800 mb-6">' + escP(tr("cert_title")) + '</div>'
++ '<div class="text-sm text-slate-500 mb-2">' + escP(tr("cert_awarded")) + '</div>'
++ '<div class="text-3xl font-bold text-slate-900 my-3">' + escP(c.username || "") + '</div>'
++ '<div class="text-sm text-slate-500 mb-2">' + escP(tr("cert_completedPath")) + '</div>'
++ '<div class="text-xl font-bold text-indigo-800 my-3">「' + escP(c.path_title || "") + '」</div>'
++ '<div class="flex items-center justify-center gap-8 mt-8 text-xs text-slate-500">'
++ '<span>' + escP(tr("cert_no")) + ': <b class="text-slate-700">' + escP(c.cert_no) + '</b></span>'
++ '<span>' + escP(tr("cert_date")) + ': <b class="text-slate-700">' + escP(d) + '</b></span>'
++ '</div>'
++ '<div class="mt-6 text-sm font-bold text-amber-700 tracking-widest">✦ ' + escP(tr("appName")) + ' ✦</div>'
++ '</div></div>';
+root.innerHTML = html;
+try { if (typeof applyI18n === "function") applyI18n(); } catch (e) {}
+} catch (e) {
+root.innerHTML = pathsLoadFail();
+}
+}
+
+/* 学员完成某课程后上报路径进度（由课程提交成功回调里调用）。
+ * 返回服务端结果 {success, done_count, course_count, completed, cert_no}；
+ * 若整条路径刚完成且拿到新证书，弹窗祝贺并可直接查看证书。 */
+async function markPathCourseDone(pathId, courseId) {
+var username = pathUser();
+if (!username || !pathId || !courseId) return null;
+try {
+var r = await fetch("/api/path/progress", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ path_id: pathId, course_id: courseId, username: username })
+});
+var j = await r.json().catch(function () { return {}; });
+if (j && j.completed && j.cert_no) {
+if (confirm(tr("cert_congrats"))) renderCertificateView(j.cert_no);
+}
+return j;
+} catch (e) { return null; }
+}
+
+/* ================= 管理端：学习路径编辑器 ================= */
+var _peState = null;
+
+function _peParseIds(v) {
+try { if (Array.isArray(v)) return v.slice(); var a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : []; }
+catch (e) { return []; }
+}
+
+function _peCourseById(cid) {
+var arr = (typeof allData !== "undefined" && allData) || [];
+for (var i = 0; i < arr.length; i++) if (String(arr[i].id) === String(cid)) return arr[i];
+return null;
+}
+
+async function renderPathAdminList() {
+var box = document.getElementById("pathAdminList");
+if (!box) return;
+box.innerHTML = '<div class="text-sm text-slate-400">加载中…</div>';
+try {
+var r = await fetch("/api/paths");
+var j = await r.json();
+var paths = j.paths || [];
+if (!paths.length) { box.innerHTML = '<div class="text-sm text-slate-400">暂无路径，点击右上角新增</div>'; return; }
+box.innerHTML = paths.map(function (p) {
+return '<div class="flex items-center gap-3 border border-slate-100 rounded-2xl px-4 py-3">'
++ '<div class="flex-1 min-w-0"><div class="font-bold text-slate-800 truncate">' + escP(p.title || p.id) + '</div>'
++ '<div class="text-xs text-slate-400">' + (p.course_count || 0) + ' 门课程</div></div>'
++ '<button data-pid="' + escP(p.id) + '" onclick="openPathEditor(this.dataset.pid)" class="text-xs bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl font-bold hover:bg-indigo-100 shrink-0">编辑</button>'
++ '</div>';
+}).join("");
+} catch (e) {
+box.innerHTML = '<div class="text-sm text-red-400">加载失败，请重试</div>';
+}
+}
+
+function _peEnsureModal() {
+var m = document.getElementById("pathEditorModal");
+if (m) return m;
+m = document.createElement("div");
+m.id = "pathEditorModal";
+m.className = "hidden fixed inset-0 z-[90]";
+m.innerHTML = '<div class="absolute inset-0 bg-slate-900/90" onclick="closePathEditor()"></div>'
++ '<div class="relative bg-white w-full max-w-4xl mx-auto my-3 rounded-3xl max-h-[95vh] overflow-y-auto p-6 md:p-8">'
++ '<div id="peBody"></div></div>';
+document.body.appendChild(m);
+return m;
+}
+
+function closePathEditor() {
+var m = document.getElementById("pathEditorModal");
+if (m) m.classList.add("hidden");
+try { document.body.style.overflow = ""; } catch (e) {}
+_peState = null;
+}
+
+async function openPathEditor(pid) {
+var m = _peEnsureModal();
+document.getElementById("peBody").innerHTML = '<div class="text-sm text-slate-400 py-10 text-center">加载中…</div>';
+m.classList.remove("hidden");
+try { document.body.style.overflow = "hidden"; } catch (e) {}
+var p = null;
+if (pid) {
+try { var r = await fetch("/api/path?id=" + encodeURIComponent(pid)); var j = await r.json(); p = j.path || null; } catch (e) {}
+}
+_peState = {
+id: pid || "",
+title: p ? (p.title || "") : "",
+title_en: p ? (p.title_en || "") : "", title_ja: p ? (p.title_ja || "") : "", title_ko: p ? (p.title_ko || "") : "",
+descr: p ? (p.descr || "") : "",
+descr_en: p ? (p.descr_en || "") : "", descr_ja: p ? (p.descr_ja || "") : "", descr_ko: p ? (p.descr_ko || "") : "",
+sort_order: p ? (p.sort_order || 0) : 0,
+courseIds: _peParseIds(p && p.course_ids),
+filter: "",
+treeCollapsed: {}
+};
+_peRender();
+}
+
+/* 已选课程：按系列→子栏目树状展示（与学员端分组规则一致），序号为路径全局顺序 */
+function _peSelectedTreeHtml() {
+var st = _peState;
+if (!st || !st.courseIds.length) return "";
+var cats = {}, catOrder = [];
+st.courseIds.forEach(function (cid, idx) {
+var c = _peCourseById(cid);
+var cat = c ? (c.category || "未分类") : "未知";
+var sub = c ? (c.subcategory || "") : "";
+if (!cats[cat]) { cats[cat] = { subs: {}, subOrder: [], count: 0 }; catOrder.push(cat); }
+if (!cats[cat].subs[sub]) { cats[cat].subs[sub] = []; cats[cat].subOrder.push(sub); }
+cats[cat].subs[sub].push({ cid: cid, idx: idx, c: c });
+cats[cat].count++;
+});
+if (!st.treeCollapsed) st.treeCollapsed = {};
+return catOrder.map(function (cat) {
+var g = cats[cat];
+var ck = "c:" + cat;
+var cCollapsed = !!st.treeCollapsed[ck];
+var subHtml = g.subOrder.map(function (sub) {
+var items = g.subs[sub];
+var rows = items.map(function (it) {
+var t = it.c ? (it.c.title || it.cid) : (it.cid + "（已下架）");
+return '<div class="flex items-center gap-2 border border-slate-100 rounded-xl px-3 py-2 bg-white mb-1">'
++ '<span class="w-6 h-6 shrink-0 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">' + (it.idx + 1) + '</span>'
++ '<span class="flex-1 min-w-0 truncate text-sm font-medium text-slate-700">' + escP(t) + '</span>'
++ '<button data-i="' + it.idx + '" onclick="peMove(this.dataset.i,-1)" class="text-slate-400 hover:text-indigo-600 px-1.5 text-xs" title="上移">▲</button>'
++ '<button data-i="' + it.idx + '" onclick="peMove(this.dataset.i,1)" class="text-slate-400 hover:text-indigo-600 px-1.5 text-xs" title="下移">▼</button>'
++ '<button data-i="' + it.idx + '" onclick="peRemove(this.dataset.i)" class="text-slate-400 hover:text-red-500 px-1.5" title="移除">✕</button>'
++ '</div>';
+}).join("");
+if (!sub) return '<div class="ml-1">' + rows + '</div>';
+var sk = "s:" + cat + "||" + sub;
+var sCollapsed = !!st.treeCollapsed[sk];
+return '<div class="ml-1 md:ml-4 mb-2">'
++ '<div class="flex items-center gap-1.5 mb-1.5">'
++ '<button data-k="' + escP(sk).replace(/"/g, "&quot;") + '" onclick="peToggleTree(this.dataset.k)" class="text-xs text-violet-500 w-4 text-center shrink-0">' + (sCollapsed ? "▶" : "▼") + '</button>'
++ '<span class="text-xs font-bold text-slate-600 flex-1 min-w-0 truncate">📁 ' + escP(sub) + '（' + items.length + '）</span>'
++ '<button data-cat="' + escP(cat).replace(/"/g, "&quot;") + '" data-sub="' + escP(sub).replace(/"/g, "&quot;") + '" onclick="peRemoveSub(this.dataset.cat,this.dataset.sub)" class="text-xs text-red-400 hover:text-red-600 shrink-0">移除本组</button>'
++ '</div>'
++ (sCollapsed ? '' : rows) + '</div>';
+}).join("");
+return '<div class="mb-3 border border-slate-100 rounded-2xl p-3 bg-white">'
++ '<div class="flex items-center gap-1.5 mb-2">'
++ '<button data-k="' + escP(ck).replace(/"/g, "&quot;") + '" onclick="peToggleTree(this.dataset.k)" class="text-sm text-violet-500 w-5 text-center shrink-0">' + (cCollapsed ? "▶" : "▼") + '</button>'
++ '<span class="text-sm font-bold text-slate-800 flex-1 min-w-0 truncate">' + escP(cat) + '（' + g.count + ' 门）</span>'
++ '<button data-cat="' + escP(cat).replace(/"/g, "&quot;") + '" onclick="peRemoveCat(this.dataset.cat)" class="text-xs text-red-400 hover:text-red-600 shrink-0">移除整系列</button>'
++ '</div>'
++ (cCollapsed ? '' : subHtml) + '</div>';
+}).join("");
+}
+
+function peToggleTree(k) {
+if (!_peState) return;
+if (!_peState.treeCollapsed) _peState.treeCollapsed = {};
+if (_peState.treeCollapsed[k]) delete _peState.treeCollapsed[k]; else _peState.treeCollapsed[k] = 1;
+_peRender();
+}
+
+function _peRender() {
+var st = _peState;
+if (!st) return;
+var body = document.getElementById("peBody");
+if (!body) return;
+var selHtml = _peSelectedTreeHtml();
+var kw = (st.filter || "").toLowerCase();
+var groups = {}, order = [];
+((typeof allData !== "undefined" && allData) || []).forEach(function (c) {
+if (st.courseIds.indexOf(String(c.id)) >= 0) return;
+if (kw && ((c.title || "") + "|" + (c.category || "") + "|" + (c.subcategory || "")).toLowerCase().indexOf(kw) < 0) return;
+var k = c.category || "未分类";
+if (!groups[k]) { groups[k] = { list: [], subs: {}, subOrder: [] }; order.push(k); }
+groups[k].list.push(c);
+var sk = c.subcategory || "";
+if (!groups[k].subs[sk]) { groups[k].subs[sk] = []; groups[k].subOrder.push(sk); }
+groups[k].subs[sk].push(c);
+});
+var pickHtml = order.map(function (k) {
+var g = groups[k];
+var allIds = g.list.map(function (c) { return String(c.id); }).join(",");
+var subHtml = g.subOrder.map(function (sk) {
+var ids = g.subs[sk].map(function (c) { return String(c.id); }).join(",");
+var label = sk || "（无子栏目）";
+return '<div class="ml-3 mb-2"><div class="flex items-center gap-2 mb-1">'
++ '<span class="text-xs text-slate-500 flex-1 min-w-0 truncate">📁 ' + escP(label) + '（' + g.subs[sk].length + '）</span>'
++ '<button data-ids="' + escP(ids) + '" onclick="peAddMany(this.dataset.ids)" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold shrink-0">＋ 加入本组</button></div>'
++ '<div class="space-y-1">' + g.subs[sk].map(function (c) {
+return '<div class="flex items-center gap-2 text-sm border border-slate-50 rounded-lg px-3 py-1.5">'
++ '<span class="flex-1 min-w-0 truncate text-slate-600">' + escP(c.title || c.id) + '</span>'
++ '<button data-cid="' + escP(c.id) + '" onclick="peAdd(this.dataset.cid)" class="text-indigo-600 hover:text-indigo-800 font-bold px-2" title="加入路径">＋</button>'
++ '</div>';
+}).join("") + '</div></div>';
+}).join("");
+return '<div class="mb-3 border border-slate-100 rounded-2xl p-3"><div class="flex items-center gap-2 mb-2">'
++ '<span class="text-sm font-bold text-slate-700 flex-1 min-w-0 truncate">' + escP(k) + '（' + g.list.length + ' 门未加入）</span>'
++ '<button data-ids="' + escP(allIds) + '" onclick="peAddMany(this.dataset.ids)" class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-100 shrink-0">＋ 整系列加入</button></div>'
++ subHtml + '</div>';
+}).join("") || '<div class="text-sm text-slate-400 py-4 text-center">没有可添加的课程</div>';
+body.innerHTML = '<div class="flex items-center justify-between mb-5">'
++ '<h2 class="font-black text-lg">' + (st.id ? "编辑学习路径" : "新增学习路径") + '</h2>'
++ '<button onclick="closePathEditor()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full text-lg">✕</button></div>'
++ '<label class="text-xs font-bold text-slate-500 mb-1 block">标题（中文）</label>'
++ '<input id="peTitle" value="' + escP(st.title).replace(/"/g, "&quot;") + '" placeholder="如：初信者" class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3">'
++ '<label class="text-xs font-bold text-slate-500 mb-1 block">简介（中文）</label>'
++ '<textarea id="peDescr" placeholder="一句话介绍这条路径" class="w-full h-20 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3">' + escP(st.descr) + '</textarea>'
++ '<details class="mb-4"><summary class="text-xs font-bold text-slate-500 cursor-pointer">多语言标题 / 简介（英日韩，可空，空则显示中文）</summary>'
++ '<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">'
++ '<div><label class="text-xs text-slate-400 block mb-1">English title</label><input id="peTitleEn" value="' + escP(st.title_en).replace(/"/g, "&quot;") + '" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mb-2">'
++ '<label class="text-xs text-slate-400 block mb-1">English intro</label><textarea id="peDescrEn" class="w-full h-16 border border-slate-200 rounded-xl px-3 py-2 text-sm">' + escP(st.descr_en) + '</textarea></div>'
++ '<div><label class="text-xs text-slate-400 block mb-1">日本語タイトル</label><input id="peTitleJa" value="' + escP(st.title_ja).replace(/"/g, "&quot;") + '" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mb-2">'
++ '<label class="text-xs text-slate-400 block mb-1">日本語紹介</label><textarea id="peDescrJa" class="w-full h-16 border border-slate-200 rounded-xl px-3 py-2 text-sm">' + escP(st.descr_ja) + '</textarea></div>'
++ '<div><label class="text-xs text-slate-400 block mb-1">한국어 제목</label><input id="peTitleKo" value="' + escP(st.title_ko).replace(/"/g, "&quot;") + '" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mb-2">'
++ '<label class="text-xs text-slate-400 block mb-1">한국어 소개</label><textarea id="peDescrKo" class="w-full h-16 border border-slate-200 rounded-xl px-3 py-2 text-sm">' + escP(st.descr_ko) + '</textarea></div>'
++ '</div></details>'
++ '<div class="flex items-center justify-between mb-2"><h3 class="font-bold text-slate-800">路径课程（' + st.courseIds.length + ' 门，按顺序学习）</h3></div>' 
++ '<div id="peSelected" class="space-y-1.5 mb-6 max-h-72 overflow-y-auto border border-slate-100 rounded-2xl p-2 bg-slate-50/50">'
++ (selHtml || '<div class="text-sm text-slate-400 py-6 text-center">暂无课程，从下方添加</div>') + '</div>'
++ '<h3 class="font-bold text-slate-800 mb-2">添加课程</h3>'
++ '<input id="peFilter" value="' + escP(st.filter).replace(/"/g, "&quot;") + '" oninput="peFilter(this.value)" placeholder="搜索课程标题…" class="w-full border border-slate-200 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 mb-3">'
++ '<div class="max-h-72 overflow-y-auto border border-slate-100 rounded-2xl p-3 mb-6">' + pickHtml + '</div>'
++ '<div class="flex gap-3">'
++ '<button id="peSaveBtn" onclick="peSave()" class="flex-1 bg-indigo-900 text-white py-3 rounded-2xl font-bold">保存</button>'
++ (st.id ? '<button onclick="peDelete()" class="bg-red-50 text-red-600 px-6 py-3 rounded-2xl font-bold">删除</button>' : '')
++ '<button onclick="closePathEditor()" class="bg-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold">取消</button>'
++ '</div>';
+var fi = document.getElementById("peFilter");
+}
+
+function peAdd(cid) {
+peAddMany(String(cid));
+}
+function peAddMany(ids) {
+if (!_peState) return;
+var arr = String(ids || "").split(",").map(function (x) { return x.trim(); }).filter(function (x) { return !!x; });
+var added = 0;
+arr.forEach(function (cid) {
+if (_peState.courseIds.indexOf(cid) < 0) { _peState.courseIds.push(cid); added++; }
+});
+if (added > 0) _peRender();
+var fi = document.getElementById("peFilter");
+if (fi) { try { fi.focus(); fi.setSelectionRange(fi.value.length, fi.value.length); } catch (e) {} }
+}
+
+function peRemove(i) {
+if (!_peState) return;
+i = parseInt(i, 10);
+_peState.courseIds.splice(i, 1);
+_peRender();
+}
+
+
+
+function peRemoveCat(cat) {
+if (!_peState) return;
+var keep = [];
+_peState.courseIds.forEach(function (cid) {
+var c = _peCourseById(cid);
+var cc = c ? (c.category || "未分类") : "未知";
+if (cc !== cat) keep.push(cid);
+});
+var n = _peState.courseIds.length - keep.length;
+if (n > 0 && confirm("确定从路径中移除系列「" + cat + "」的 " + n + " 门课程吗？")) {
+_peState.courseIds = keep;
+_peRender();
+}
+}
+
+function peRemoveSub(cat, sub) {
+if (!_peState) return;
+var keep = [];
+_peState.courseIds.forEach(function (cid) {
+var c = _peCourseById(cid);
+var cc = c ? (c.category || "未分类") : "未知";
+var cs = c ? (c.subcategory || "") : "";
+if (!(cc === cat && cs === sub)) keep.push(cid);
+});
+var n = _peState.courseIds.length - keep.length;
+if (n > 0 && confirm("确定从路径中移除子栏目「" + sub + "」的 " + n + " 门课程吗？")) {
+_peState.courseIds = keep;
+_peRender();
+}
+}
+
+function peMove(i, dir) {
+if (!_peState) return;
+i = parseInt(i, 10);
+var a = _peState.courseIds, j = i + dir;
+if (i < 0 || i >= a.length || j < 0 || j >= a.length) return;
+var t = a[i]; a[i] = a[j]; a[j] = t;
+_peRender();
+}
+
+var _peFilterT = null;
+function peFilter(v) {
+if (!_peState) return;
+_peState.filter = v;
+clearTimeout(_peFilterT);
+_peFilterT = setTimeout(function () {
+var sel = document.getElementById("peSelected");
+var selHtml = sel ? sel.innerHTML : "";
+_peRender();
+}, 200);
+}
+
+function _peCollect() {
+var st = _peState;
+var g = function (id) { var e = document.getElementById(id); return e ? e.value : ""; };
+st.title = g("peTitle").trim();
+st.title_en = g("peTitleEn").trim(); st.title_ja = g("peTitleJa").trim(); st.title_ko = g("peTitleKo").trim();
+st.descr = g("peDescr").trim();
+st.descr_en = g("peDescrEn").trim(); st.descr_ja = g("peDescrJa").trim(); st.descr_ko = g("peDescrKo").trim();
+return st;
+}
+
+async function peSave() {
+var st = _peCollect();
+if (!st.title) { alert("标题不能为空"); return; }
+var btn = document.getElementById("peSaveBtn");
+if (btn) { btn.disabled = true; btn.innerText = "保存中…"; }
+try {
+var r = await fetch("/api/path/save", {
+method: "POST", headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+id: st.id || undefined,
+title: st.title, title_en: st.title_en, title_ja: st.title_ja, title_ko: st.title_ko,
+descr: st.descr, descr_en: st.descr_en, descr_ja: st.descr_ja, descr_ko: st.descr_ko,
+course_ids: st.courseIds, sort_order: st.sort_order
+})
+});
+var j = await r.json();
+if (j && j.success) {
+closePathEditor();
+renderPathAdminList();
+try { if (typeof BOOT === "undefined" || !BOOT.isAdmin) { if (typeof renderPathsPage === "function") renderPathsPage(); } } catch (e) {}
+} else {
+alert("保存失败：" + ((j && j.error) || "未知错误"));
+if (btn) { btn.disabled = false; btn.innerText = "保存"; }
+}
+} catch (e) {
+alert("保存失败：网络错误");
+if (btn) { btn.disabled = false; btn.innerText = "保存"; }
+}
+}
+
+async function peDelete() {
+var st = _peState;
+if (!st || !st.id) return;
+if (!confirm("确定删除路径「" + st.title + "」吗？学员在这条路径上的学习进度将被清除（已颁发的证书保留）。")) return;
+try {
+var r = await fetch("/api/path/delete", {
+method: "POST", headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ id: st.id })
+});
+var j = await r.json();
+if (j && j.success) {
+closePathEditor();
+renderPathAdminList();
+try { if (typeof BOOT === "undefined" || !BOOT.isAdmin) { if (typeof renderPathsPage === "function") renderPathsPage(); } } catch (e) {}
+} else {
+alert("删除失败：" + ((j && j.error) || "未知错误"));
+}
+} catch (e) { alert("删除失败：网络错误"); }
+}
+/* ================= 社交页面统一渲染出口 ================= */
+function showSocialPage(html) {
+var sr = document.getElementById("socialRoot");
+if (!sr) return;
+var pr = document.getElementById("pathsRoot");
+var cw = document.getElementById("catalogWrap");
+if (pr) pr.style.display = "none";
+if (cw) cw.style.display = "none";
+sr.style.display = "";
+var backLabel = "← 返回";
+try { if (typeof tr === "function") backLabel = tr("social_back") || backLabel; } catch (e) {}
+sr.innerHTML = '<div class="mb-4"><button onclick="hideSocialPage()" class="text-sm font-bold text-slate-500 hover:text-slate-700 transition">' + backLabel + '</button></div>' + html;
+try { sr.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+try { if (typeof applyI18n === "function") applyI18n(); } catch (e) {}
+}
+
+function hideSocialPage() {
+var sr = document.getElementById("socialRoot");
+if (sr) { sr.style.display = "none"; sr.innerHTML = ""; }
+var isAdmin = false;
+try { isAdmin = !!(typeof BOOT !== "undefined" && BOOT.isAdmin); } catch (e) {}
+if (!isAdmin && typeof showHomeView === "function") {
+showHomeView("paths");
+} else {
+var pr = document.getElementById("pathsRoot");
+var cw = document.getElementById("catalogWrap");
+if (pr) pr.style.display = "";
+if (cw) cw.style.display = "none";
+}
+}
+
+// I18N-KEYS: 新增文案（zh / en / ja / ko），集成时已由本文件自动合并进全局 I18N，无需改 i18n.js
+// cls_title: 班级小组 / Classes & Groups / クラス・グループ / 반・그룹
+// cls_my: 我的班级 / My Classes / マイクラス / 내 반
+// cls_all: 全部班级 / All Classes / すべてのクラス / 모든 반
+// cls_join: 加入 / Join / 参加する / 가입하기
+// cls_leave: 退出 / Leave / 退会する / 탈퇴하기
+// cls_members: 成员 / Members / メンバー / 구성원
+// cls_leader: 小组长 / Leader / リーダー / 조장
+// cls_count: {n} 人 / {n} members / {n} 人 / {n}명
+// cls_noDesc: 暂无简介 / No description / 紹介なし / 소개 없음
+// cls_empty: 还没有班级 / No classes yet / クラスはまだありません / 반이 아직 없습니다
+// cls_needLogin: 请先设置学员姓名 / Please set your student name first / 学習者名を先に設定してください / 학습자 이름을 먼저 설정해 주세요
+// cls_joined: 已加入 / Joined / 参加済み / 가입됨
+// cls_joinOk: 加入成功 / Joined successfully / 参加しました / 가입했습니다
+// cls_leaveOk: 已退出 / Left successfully / 退会しました / 탈퇴했습니다
+// cls_confirmLeave: 确定退出该班级？ / Leave this class? / このクラスを退会しますか？ / 이 반에서 탈퇴하시겠습니까?
+// cls_new: 新建班级 / New Class / 新規クラス / 새 반 만들기
+// cls_edit: 编辑 / Edit / 編集 / 편집
+// cls_delete: 删除 / Delete / 削除 / 삭제
+// cls_name: 班级名称 / Class Name / クラス名 / 반 이름
+// cls_descr: 简介 / Description / 紹介 / 소개
+// cls_leaderPh: 小组长用户名（可选） / Leader username (optional) / リーダーのユーザー名（任意） / 조장 사용자 이름 (선택 사항)
+// cls_save: 保存 / Save / 保存 / 저장
+// cls_confirmDel: 确定删除该班级？成员关系将一并删除 / Delete this class? All memberships will be removed too / このクラスを削除しますか？メンバーシップも一緒に削除されます / 이 반을 삭제하시겠습니까? 구성원 관계도 함께 삭제됩니다
+// cls_viewMembers: 查看成员 / View Members / メンバーを見る / 구성원 보기
+// cls_adminTitle: 班级管理 / Class Management / クラス管理 / 반 관리
+// cls_noLeader: 暂无 / None / なし / 없음
+// cls_opFail: 操作失败，请重试 / Operation failed, please try again / 操作に失敗しました、もう一度お試しください / 작업 실패, 다시 시도해 주세요
+// bdg_title: 我的徽章 / My Badges / マイバッジ / 내 배지
+// bdg_earned: 已获得 / Earned / 獲得済み / 획득함
+// bdg_locked: 未解锁 / Locked / 未解除 / 잠김
+// bdg_count: 已获得 {a} / {b} / {a} of {b} earned / {a} / {b} 獲得済み / {a} / {b} 획득
+// bdg_first_step: 初涉真理 / First Step / はじめの一歩 / 첫걸음
+// bdg_first_step_desc: 完成 1 门课程 / Complete 1 course / コースを1つ修了する / 과정 1개 완료
+// bdg_diligent: 勤奋好学 / Diligent Learner / 勤勉な学習者 / 근면한 학습자
+// bdg_diligent_desc: 完成 10 门课程 / Complete 10 courses / コースを10個修了する / 과정 10개 완료
+// bdg_scholar: 荣誉学员 / Honor Scholar / 優等生 / 우등생
+// bdg_scholar_desc: 平均分达到 90 分 / Average score of 90 or above / 平均点90点以上 / 평균 90점 이상
+// bdg_persistent: 持之以恒 / Persistent / 継続は力なり / 꾸준함의 힘
+// bdg_persistent_desc: 连续 7 天学习 / Study 7 days in a row / 7日間連続で学習する / 7일 연속 학습
+// bdg_perfect: 完美答卷 / Perfect Score / 満点 / 만점
+// bdg_perfect_desc: 单门课程获得满分 / Score full marks in one course / 1つのコースで満点を取る / 한 과정에서 만점 받기
+// bdg_explorer: 真理探索者 / Truth Explorer / 真理の探求者 / 진리 탐험가
+// bdg_explorer_desc: 完成 3 个不同系列的课程 / Complete courses from 3 different series / 3つの異なるシリーズのコースを修了する / 서로 다른 3개 시리즈의 과정 완료
+// stat_title: 使用统计 / Usage Statistics / 利用統計 / 사용 통계
+// stat_students: 学员总数 / Total Students / 学習者総数 / 전체 학습자 수
+// stat_courses: 课程总数 / Total Courses / コース総数 / 전체 과정 수
+// stat_completions: 完成人次 / Completions / 修了延べ人数 / 완료 횟수
+// stat_avgScore: 平均分 / Average Score / 平均点 / 평균 점수
+// stat_active7: 近7天活跃 / Active in 7 Days / 直近7日間のアクティブ / 최근 7일 활성
+// stat_topCourses: 热门课程 TOP5 / Top 5 Courses / 人気コースTOP5 / 인기 과정 TOP5
+// stat_wrongsByType: 错题题型分布 / Wrong Answers by Type / タイプ別ミス分布 / 유형별 오답 분포
+// stat_times: {n} 人次 / {n} completions / 延べ {n} 人 / {n}회
+// stat_noData: 暂无数据 / No data / データなし / 데이터 없음
+// stat_needAdmin: 需要管理员权限 / Admin access required / 管理者権限が必要です / 관리자 권한이 필요합니다
+
+/* 团契智学 · 社交 UI：班级页 + 徽章页 + 管理端统计看板
+ *
+ * 外部依赖（调用方/宿主页面提供，本文件不定义）：
+ *   - tr(k), tf(k, obj)        来自 src/client/main.js + src/client/i18n.js（四语言文案）
+ *   - fetch                    浏览器原生
+ *   - localStorage             浏览器原生（读学员姓名，key "FELLOW_V12"；优先用宿主的 progName()）
+ * 本文件自带 SOCIAL_I18N 并在加载时自动合并进全局 I18N，无需改动 i18n.js。
+ *
+ * 集成方式：
+ *   - 构建时把本文件拼进下发脚本（参考 build.py 处理 client/*.js 的方式），或在页面中用 script 标签引入
+ *   - 班级页：  document.getElementById("page").innerHTML = await renderClassesPage({ admin: isAdmin })
+ *   - 徽章页：  document.getElementById("page").innerHTML = await renderBadgesPage(username)
+ *   - 统计页：  document.getElementById("page").innerHTML = await renderStatsPage()
+ *   - 全局动作函数 socialJoin / socialLeave / socialToggleMembers / socialDelClass / socialEditClass / socialSaveClass
+ *     需挂在 window 上（本文件末尾已挂载），供 onclick 调用
+ */
+
+var SOCIAL_I18N = {
+zh: {
+cls_title: "班级小组", cls_my: "我的班级", cls_all: "全部班级", cls_join: "加入", cls_leave: "退出",
+cls_members: "成员", cls_leader: "小组长", cls_count: "{n} 人", cls_noDesc: "暂无简介", cls_empty: "还没有班级",
+cls_needLogin: "请先设置学员姓名", cls_joined: "已加入", cls_joinOk: "加入成功", cls_leaveOk: "已退出",
+cls_confirmLeave: "确定退出该班级？", cls_new: "新建班级", cls_edit: "编辑", cls_delete: "删除",
+cls_name: "班级名称", cls_descr: "简介", cls_leaderPh: "小组长用户名（可选）", cls_save: "保存",
+cls_confirmDel: "确定删除该班级？成员关系将一并删除", cls_viewMembers: "查看成员", cls_adminTitle: "班级管理", cls_noLeader: "暂无", cls_opFail: "操作失败，请重试",
+bdg_title: "我的徽章", bdg_earned: "已获得", bdg_locked: "未解锁", bdg_count: "已获得 {a} / {b}",
+bdg_first_step: "初涉真理", bdg_first_step_desc: "完成 1 门课程",
+bdg_diligent: "勤奋好学", bdg_diligent_desc: "完成 10 门课程",
+bdg_scholar: "荣誉学员", bdg_scholar_desc: "平均分达到 90 分",
+bdg_persistent: "持之以恒", bdg_persistent_desc: "连续 7 天学习",
+bdg_perfect: "完美答卷", bdg_perfect_desc: "单门课程获得满分",
+bdg_explorer: "真理探索者", bdg_explorer_desc: "完成 3 个不同系列的课程",
+stat_title: "使用统计", stat_students: "学员总数", stat_courses: "课程总数", stat_completions: "完成人次",
+stat_avgScore: "平均分", stat_active7: "近7天活跃", stat_topCourses: "热门课程 TOP5",
+stat_wrongsByType: "错题题型分布", stat_times: "{n} 人次", stat_noData: "暂无数据", stat_needAdmin: "需要管理员权限"
+},
+en: {
+cls_title: "Classes & Groups", cls_my: "My Classes", cls_all: "All Classes", cls_join: "Join", cls_leave: "Leave",
+cls_members: "Members", cls_leader: "Leader", cls_count: "{n} members", cls_noDesc: "No description", cls_empty: "No classes yet",
+cls_needLogin: "Please set your student name first", cls_joined: "Joined", cls_joinOk: "Joined successfully", cls_leaveOk: "Left successfully",
+cls_confirmLeave: "Leave this class?", cls_new: "New Class", cls_edit: "Edit", cls_delete: "Delete",
+cls_name: "Class Name", cls_descr: "Description", cls_leaderPh: "Leader username (optional)", cls_save: "Save",
+cls_confirmDel: "Delete this class? All memberships will be removed too", cls_viewMembers: "View Members", cls_adminTitle: "Class Management", cls_noLeader: "None", cls_opFail: "Operation failed, please try again",
+bdg_title: "My Badges", bdg_earned: "Earned", bdg_locked: "Locked", bdg_count: "{a} of {b} earned",
+bdg_first_step: "First Step", bdg_first_step_desc: "Complete 1 course",
+bdg_diligent: "Diligent Learner", bdg_diligent_desc: "Complete 10 courses",
+bdg_scholar: "Honor Scholar", bdg_scholar_desc: "Average score of 90 or above",
+bdg_persistent: "Persistent", bdg_persistent_desc: "Study 7 days in a row",
+bdg_perfect: "Perfect Score", bdg_perfect_desc: "Score full marks in one course",
+bdg_explorer: "Truth Explorer", bdg_explorer_desc: "Complete courses from 3 different series",
+stat_title: "Usage Statistics", stat_students: "Total Students", stat_courses: "Total Courses", stat_completions: "Completions",
+stat_avgScore: "Average Score", stat_active7: "Active in 7 Days", stat_topCourses: "Top 5 Courses",
+stat_wrongsByType: "Wrong Answers by Type", stat_times: "{n} completions", stat_noData: "No data", stat_needAdmin: "Admin access required"
+},
+ja: {
+cls_title: "クラス・グループ", cls_my: "マイクラス", cls_all: "すべてのクラス", cls_join: "参加する", cls_leave: "退会する",
+cls_members: "メンバー", cls_leader: "リーダー", cls_count: "{n} 人", cls_noDesc: "紹介なし", cls_empty: "クラスはまだありません",
+cls_needLogin: "学習者名を先に設定してください", cls_joined: "参加済み", cls_joinOk: "参加しました", cls_leaveOk: "退会しました",
+cls_confirmLeave: "このクラスを退会しますか？", cls_new: "新規クラス", cls_edit: "編集", cls_delete: "削除",
+cls_name: "クラス名", cls_descr: "紹介", cls_leaderPh: "リーダーのユーザー名（任意）", cls_save: "保存",
+cls_confirmDel: "このクラスを削除しますか？メンバーシップも一緒に削除されます", cls_viewMembers: "メンバーを見る", cls_adminTitle: "クラス管理", cls_noLeader: "なし", cls_opFail: "操作に失敗しました、もう一度お試しください",
+bdg_title: "マイバッジ", bdg_earned: "獲得済み", bdg_locked: "未解除", bdg_count: "{a} / {b} 獲得済み",
+bdg_first_step: "はじめの一歩", bdg_first_step_desc: "コースを1つ修了する",
+bdg_diligent: "勤勉な学習者", bdg_diligent_desc: "コースを10個修了する",
+bdg_scholar: "優等生", bdg_scholar_desc: "平均点90点以上",
+bdg_persistent: "継続は力なり", bdg_persistent_desc: "7日間連続で学習する",
+bdg_perfect: "満点", bdg_perfect_desc: "1つのコースで満点を取る",
+bdg_explorer: "真理の探求者", bdg_explorer_desc: "3つの異なるシリーズのコースを修了する",
+stat_title: "利用統計", stat_students: "学習者総数", stat_courses: "コース総数", stat_completions: "修了延べ人数",
+stat_avgScore: "平均点", stat_active7: "直近7日間のアクティブ", stat_topCourses: "人気コースTOP5",
+stat_wrongsByType: "タイプ別ミス分布", stat_times: "延べ {n} 人", stat_noData: "データなし", stat_needAdmin: "管理者権限が必要です"
+},
+ko: {
+cls_title: "반・그룹", cls_my: "내 반", cls_all: "모든 반", cls_join: "가입하기", cls_leave: "탈퇴하기",
+cls_members: "구성원", cls_leader: "조장", cls_count: "{n}명", cls_noDesc: "소개 없음", cls_empty: "반이 아직 없습니다",
+cls_needLogin: "학습자 이름을 먼저 설정해 주세요", cls_joined: "가입됨", cls_joinOk: "가입했습니다", cls_leaveOk: "탈퇴했습니다",
+cls_confirmLeave: "이 반에서 탈퇴하시겠습니까?", cls_new: "새 반 만들기", cls_edit: "편집", cls_delete: "삭제",
+cls_name: "반 이름", cls_descr: "소개", cls_leaderPh: "조장 사용자 이름 (선택 사항)", cls_save: "저장",
+cls_confirmDel: "이 반을 삭제하시겠습니까? 구성원 관계도 함께 삭제됩니다", cls_viewMembers: "구성원 보기", cls_adminTitle: "반 관리", cls_noLeader: "없음", cls_opFail: "작업 실패, 다시 시도해 주세요",
+bdg_title: "내 배지", bdg_earned: "획득함", bdg_locked: "잠김", bdg_count: "{a} / {b} 획득",
+bdg_first_step: "첫걸음", bdg_first_step_desc: "과정 1개 완료",
+bdg_diligent: "근면한 학습자", bdg_diligent_desc: "과정 10개 완료",
+bdg_scholar: "우등생", bdg_scholar_desc: "평균 90점 이상",
+bdg_persistent: "꾸준함의 힘", bdg_persistent_desc: "7일 연속 학습",
+bdg_perfect: "만점", bdg_perfect_desc: "한 과정에서 만점 받기",
+bdg_explorer: "진리 탐험가", bdg_explorer_desc: "서로 다른 3개 시리즈의 과정 완료",
+stat_title: "사용 통계", stat_students: "전체 학습자 수", stat_courses: "전체 과정 수", stat_completions: "완료 횟수",
+stat_avgScore: "평균 점수", stat_active7: "최근 7일 활성", stat_topCourses: "인기 과정 TOP5",
+stat_wrongsByType: "유형별 오답 분포", stat_times: "{n}회", stat_noData: "데이터 없음", stat_needAdmin: "관리자 권한이 필요합니다"
+}
+};
+
+/* 自动合并进全局 I18N（若宿主已定义） */
+(function () {
+try {
+if (typeof I18N === "undefined") return;
+var langs = ["zh", "en", "ja", "ko"];
+for (var i = 0; i < langs.length; i++) {
+var L = langs[i];
+I18N[L] = I18N[L] || {};
+for (var k in SOCIAL_I18N[L]) {
+if (Object.prototype.hasOwnProperty.call(SOCIAL_I18N[L], k)) I18N[L][k] = SOCIAL_I18N[L][k];
+}
+}
+} catch (e) {}
+})();
+
+/* ---------- 小工具 ---------- */
+function socialUser() {
+try {
+if (typeof progName === "function") { var n = progName(); if (n) return n; }
+return (localStorage.getItem("FELLOW_V12") || "").trim();
+} catch (e) { return ""; }
+}
+/* D1 内容繁体转换（tw 模式下实时转） */
+function socialTw(s) {
+try {
+if (typeof curLang === "function" && curLang() === "tw" && typeof toTW === "function") return toTW(s);
+} catch (e) {}
+return s;
+}
+function socialEsc(s) {
+return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+async function socialGet(path) {
+const r = await fetch(path, { credentials: "same-origin" });
+if (!r.ok) { const e = new Error("http " + r.status); e.status = r.status; throw e; }
+return r.json();
+}
+async function socialPost(path, body) {
+const r = await fetch(path, { method: "POST", credentials: "same-origin",
+headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+if (!r.ok) { const e = new Error("http " + r.status); e.status = r.status; throw e; }
+return r.json();
+}
+function socialT(k) { try { return (typeof tr === "function") ? tr(k) : k; } catch (e) { return k; } }
+function socialTf(k, obj) { try { return (typeof tf === "function") ? tf(k, obj || {}) : k; } catch (e) { return k; } }
+
+/* ---------- 班级页 ---------- */
+function socialClassCard(c, mine, username, isAdmin) {
+var joined = mine.indexOf(c.id) >= 0;
+var h = '<div class="bg-white rounded-xl shadow p-4 mb-3">';
+h += '<div class="flex justify-between items-start">';
+h += '<div><div class="font-bold text-lg">' + socialEsc(socialTw(c.name)) + '</div>';
+h += '<div class="text-sm text-gray-500 mt-1">' + socialEsc(socialTw(c.descr) || socialT("cls_noDesc")) + '</div>';
+h += '<div class="text-xs text-gray-400 mt-2">' + socialT("cls_leader") + '：' + socialEsc(socialTw(c.leader) || socialT("cls_noLeader"))
++ ' · ' + socialTf("cls_count", { n: c.member_count || 0 }) + '</div></div>';
+if (joined) {
+h += '<span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">' + socialT("cls_joined") + '</span>';
+} else {
+h += '<button class="text-sm px-3 py-1 rounded-full bg-blue-600 text-white" data-cid="' + c.id + '" onclick="socialJoin(this.dataset.cid)">'
++ socialT("cls_join") + '</button>';
+}
+h += '</div>';
+if (joined) {
+h += '<div class="mt-3 flex gap-2">';
+h += '<button class="text-xs px-2 py-1 rounded border" data-cid="' + c.id + '" onclick="socialToggleMembers(this.dataset.cid)">'
++ socialT("cls_viewMembers") + '</button>';
+h += '<button class="text-xs px-2 py-1 rounded border text-red-600" data-cid="' + c.id + '" onclick="socialLeave(this.dataset.cid)">'
++ socialT("cls_leave") + '</button>';
+if (isAdmin) {
+h += '<button class="text-xs px-2 py-1 rounded border" data-cid="' + c.id + '" onclick="socialEditClass(this.dataset.cid)">'
++ socialT("cls_edit") + '</button>';
+h += '<button class="text-xs px-2 py-1 rounded border text-red-600" data-cid="' + c.id + '" onclick="socialDelClass(this.dataset.cid)">'
++ socialT("cls_delete") + '</button>';
+}
+h += '</div><div id="social-mem-' + c.id + '" class="mt-2 text-sm text-gray-600"></div>';
+} else if (isAdmin) {
+h += '<div class="mt-2 flex gap-2">';
+h += '<button class="text-xs px-2 py-1 rounded border" data-cid="' + c.id + '" onclick="socialEditClass(this.dataset.cid)">'
++ socialT("cls_edit") + '</button>';
+h += '<button class="text-xs px-2 py-1 rounded border text-red-600" data-cid="' + c.id + '" onclick="socialDelClass(this.dataset.cid)">'
++ socialT("cls_delete") + '</button>';
+h += '</div>';
+}
+h += '</div>';
+return h;
+}
+
+async function renderClassesPage(opts) {
+opts = opts || {};
+var isAdmin = !!opts.admin;
+var username = socialUser();
+var h = '<div class="max-w-3xl mx-auto px-4 py-4">';
+h += '<h2 class="text-xl font-bold mb-4">👥 ' + socialT("cls_title") + '</h2>';
+if (!username) {
+h += '<div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm">' + socialT("cls_needLogin") + '</div></div>';
+showSocialPage(h); return;
+}
+var classes = [];
+try { classes = await socialGet("/api/classes"); } catch (e) { classes = []; }
+/* 为判断"我的班级"，查各班成员（班级数通常不多；非管理员非组长会 403，视为未加入） */
+var memberOf = {};
+for (var i = 0; i < classes.length; i++) {
+try {
+var ms = await socialGet("/api/class/members?class_id=" + encodeURIComponent(classes[i].id) + "&username=" + encodeURIComponent(username));
+for (var j = 0; j < ms.length; j++) if (ms[j].username === username) { memberOf[classes[i].id] = 1; break; }
+} catch (e) { /* 非管理员非组长 403：视为未加入 */ }
+}
+var myIds = Object.keys(memberOf);
+if (isAdmin) {
+h += '<div class="bg-white rounded-xl shadow p-4 mb-4"><div class="font-bold mb-2">' + socialT("cls_adminTitle") + '</div>';
+h += '<button class="text-sm px-3 py-1 rounded-full bg-blue-600 text-white" data-x="" onclick="socialEditClass(this.dataset.x)">'
++ socialT("cls_new") + '</button>';
+h += '<div id="social-form"></div></div>';
+}
+if (myIds.length) {
+h += '<h3 class="font-bold mt-2 mb-2">' + socialT("cls_my") + '</h3>';
+for (var a = 0; a < classes.length; a++) {
+if (memberOf[classes[a].id]) h += socialClassCard(classes[a], myIds, username, isAdmin);
+}
+}
+h += '<h3 class="font-bold mt-4 mb-2">' + socialT("cls_all") + '</h3>';
+if (!classes.length) {
+h += '<div class="text-gray-400 text-sm">' + socialT("cls_empty") + '</div>';
+} else {
+for (var b = 0; b < classes.length; b++) h += socialClassCard(classes[b], myIds, username, isAdmin);
+}
+h += '</div>';
+showSocialPage(h); return;
+}
+
+async function socialJoin(classId) {
+var username = socialUser();
+if (!username) { alert(socialT("cls_needLogin")); return; }
+try {
+await socialPost("/api/class/join", { class_id: classId, username: username });
+alert(socialT("cls_joinOk"));
+if (typeof refreshSocialPage === "function") refreshSocialPage();
+else location.reload();
+} catch (e) { alert(socialT("cls_opFail")); }
+}
+
+async function socialLeave(classId) {
+var username = socialUser();
+if (!username) return;
+if (!confirm(socialT("cls_confirmLeave"))) return;
+try {
+await socialPost("/api/class/leave", { class_id: classId, username: username });
+alert(socialT("cls_leaveOk"));
+if (typeof refreshSocialPage === "function") refreshSocialPage();
+else location.reload();
+} catch (e) {}
+}
+
+async function socialToggleMembers(classId) {
+var box = document.getElementById("social-mem-" + classId);
+if (!box) return;
+if (box.getAttribute("data-open") === "1") { box.innerHTML = ""; box.setAttribute("data-open", "0"); return; }
+var username = socialUser();
+try {
+var ms = await socialGet("/api/class/members?class_id=" + encodeURIComponent(classId) + "&username=" + encodeURIComponent(username));
+var h = '<div class="text-xs font-bold mb-1">' + socialT("cls_members") + ' (' + ms.length + ')</div><div class="flex flex-wrap gap-1">';
+for (var i = 0; i < ms.length; i++) h += '<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100">' + socialEsc(ms[i].username) + '</span>';
+h += '</div>';
+box.innerHTML = h;
+box.setAttribute("data-open", "1");
+} catch (e) { box.innerHTML = ""; }
+}
+
+async function socialEditClass(classId) {
+var adminBox = document.getElementById("adminClassForm");
+var box = (adminBox ? adminBox : document.getElementById("social-form"));
+if (!box) return;
+var name = "", descr = "", leader = "";
+if (classId) {
+try {
+var cs = await socialGet("/api/classes");
+for (var i = 0; i < cs.length; i++) if (cs[i].id === classId) {
+name = cs[i].name || ""; descr = cs[i].descr || ""; leader = cs[i].leader || ""; break;
+}
+} catch (e) {}
+}
+var h = '<div class="mt-3 border-t pt-3">'
++ '<input id="social-f-name" class="w-full border rounded px-2 py-1 mb-2 text-sm" placeholder="' + socialEsc(socialT("cls_name")) + '" value="' + socialEsc(name) + '">'
++ '<input id="social-f-descr" class="w-full border rounded px-2 py-1 mb-2 text-sm" placeholder="' + socialEsc(socialT("cls_descr")) + '" value="' + socialEsc(descr) + '">'
++ '<input id="social-f-leader" class="w-full border rounded px-2 py-1 mb-2 text-sm" placeholder="' + socialEsc(socialT("cls_leaderPh")) + '" value="' + socialEsc(leader) + '">'
++ '<button class="text-sm px-3 py-1 rounded bg-blue-600 text-white" data-cid="' + (classId || "") + '" onclick="socialSaveClass(this.dataset.cid)">'
++ socialT("cls_save") + '</button></div>';
+box.innerHTML = h;
+box.setAttribute("data-editing", classId || "");
+}
+
+async function socialSaveClass(classId) {
+var name = (document.getElementById("social-f-name") || {}).value || "";
+var descr = (document.getElementById("social-f-descr") || {}).value || "";
+var leader = (document.getElementById("social-f-leader") || {}).value || "";
+if (!name.trim()) { alert(socialT("cls_name")); return; }
+try {
+await socialPost("/api/class/save", { id: classId || undefined, name: name.trim(), descr: descr.trim(), leader: leader.trim() });
+var ab = document.getElementById("adminClassForm");
+if (ab) { ab.innerHTML = ""; if (typeof renderAdminClassesSection === "function") renderAdminClassesSection(); return; }
+if (typeof refreshSocialPage === "function") refreshSocialPage();
+else location.reload();
+} catch (e) { alert(socialT("cls_opFail")); }
+}
+
+async function socialDelClass(classId) {
+if (!confirm(socialT("cls_confirmDel"))) return;
+try {
+await socialPost("/api/class/delete", { class_id: classId });
+if (document.getElementById("adminClassesBox") && typeof renderAdminClassesSection === "function") { renderAdminClassesSection(); return; }
+if (typeof refreshSocialPage === "function") refreshSocialPage();
+else location.reload();
+} catch (e) { alert(socialT("cls_opFail")); }
+}
+
+/* ---------- 徽章页 ---------- */
+async function renderBadgesPage(username) {
+username = (username || socialUser() || "").trim();
+var h = '<div class="max-w-3xl mx-auto px-4 py-4">';
+h += '<h2 class="text-xl font-bold mb-4">🏅 ' + socialT("bdg_title") + '</h2>';
+if (!username) {
+h += '<div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm">' + socialT("cls_needLogin") + '</div></div>';
+showSocialPage(h); return;
+}
+var list = [];
+try { list = await socialGet("/api/badges?username=" + encodeURIComponent(username)); } catch (e) { list = []; }
+var got = 0, i;
+for (i = 0; i < list.length; i++) if (list[i].earned) got++;
+h += '<div class="text-sm text-gray-500 mb-3">' + socialEsc(username) + ' · ' + socialTf("bdg_count", { a: got, b: list.length }) + '</div>';
+h += '<div class="grid grid-cols-2 md:grid-cols-3 gap-3">';
+for (i = 0; i < list.length; i++) {
+var b = list[i];
+var key = b.key || ("bdg_" + b.id);
+var nm = socialT(key), ds = socialT(key + "_desc");
+if (nm === key) nm = b.name || b.id;
+if (ds === key + "_desc") ds = b.desc || "";
+if (b.earned) {
+h += '<div class="bg-gradient-to-br from-amber-50 to-yellow-100 border-2 border-amber-300 rounded-xl p-4 text-center">'
++ '<div class="text-4xl mb-2">' + b.icon + '</div>'
++ '<div class="font-bold text-sm">' + socialEsc(nm) + '</div>'
++ '<div class="text-xs text-gray-500 mt-1">' + socialEsc(ds) + '</div>'
++ '<div class="text-xs mt-2 inline-block px-2 py-0.5 rounded-full bg-amber-500 text-white">' + socialT("bdg_earned") + '</div>'
++ '</div>';
+} else {
+h += '<div class="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center opacity-70">'
++ '<div class="text-4xl mb-2 grayscale">' + b.icon + '</div>'
++ '<div class="font-bold text-sm text-gray-500">' + socialEsc(nm) + '</div>'
++ '<div class="text-xs text-gray-400 mt-1">' + socialEsc(ds) + '</div>'
++ '<div class="text-xs mt-2 inline-block px-2 py-0.5 rounded-full bg-gray-300 text-gray-600">' + socialT("bdg_locked") + '</div>'
++ '</div>';
+}
+}
+h += '</div></div>';
+showSocialPage(h); return;
+}
+
+/* ---------- 管理端统计看板 ---------- */
+function socialStatCard(icon, label, value) {
+return '<div class="bg-white rounded-xl shadow p-4 text-center">'
++ '<div class="text-2xl mb-1">' + icon + '</div>'
++ '<div class="text-2xl font-bold">' + socialEsc(String(value)) + '</div>'
++ '<div class="text-xs text-gray-500 mt-1">' + socialEsc(label) + '</div></div>';
+}
+
+async function renderStatsPage() {
+var h = '<div class="max-w-4xl mx-auto px-4 py-4">';
+h += '<h2 class="text-xl font-bold mb-4">📊 ' + socialT("stat_title") + '</h2>';
+var s = null;
+try { s = await socialGet("/api/stats"); }
+catch (e) {
+var msg = (e && e.status === 403) ? socialT("stat_needAdmin") : socialT("stat_noData");
+h += '<div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm">' + socialEsc(msg) + '</div></div>';
+showSocialPage(h); return;
+}
+h += '<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">';
+h += socialStatCard("👥", socialT("stat_students"), s.students);
+h += socialStatCard("📚", socialT("stat_courses"), s.courses);
+h += socialStatCard("✅", socialT("stat_completions"), s.completions);
+h += socialStatCard("📈", socialT("stat_avgScore"), s.avgScore);
+h += socialStatCard("🔥", socialT("stat_active7"), s.active7);
+h += '</div>';
+h += '<div class="grid md:grid-cols-2 gap-3">';
+h += '<div class="bg-white rounded-xl shadow p-4"><div class="font-bold mb-2">🏆 ' + socialT("stat_topCourses") + '</div>';
+if (s.topCourses && s.topCourses.length) {
+h += '<ol class="text-sm space-y-1">';
+for (var i = 0; i < s.topCourses.length; i++) {
+var t = s.topCourses[i];
+h += '<li class="flex justify-between"><span class="truncate mr-2">' + (i + 1) + '. ' + socialEsc(socialTw(t.title)) + '</span>'
++ '<span class="text-gray-500 whitespace-nowrap">' + socialTf("stat_times", { n: t.count }) + '</span></li>';
+}
+h += '</ol>';
+} else h += '<div class="text-sm text-gray-400">' + socialT("stat_noData") + '</div>';
+h += '</div>';
+h += '<div class="bg-white rounded-xl shadow p-4"><div class="font-bold mb-2">📝 ' + socialT("stat_wrongsByType") + '</div>';
+var keys = s.wrongsByType ? Object.keys(s.wrongsByType) : [];
+if (keys.length) {
+var total = 0, k;
+for (k = 0; k < keys.length; k++) total += s.wrongsByType[keys[k]];
+h += '<div class="text-sm space-y-2">';
+for (k = 0; k < keys.length; k++) {
+var n = s.wrongsByType[keys[k]];
+var pct = total ? Math.round(n / total * 100) : 0;
+h += '<div><div class="flex justify-between text-xs mb-0.5"><span>' + socialEsc(keys[k]) + '</span><span>' + n + ' (' + pct + '%)</span></div>'
++ '<div class="h-2 bg-gray-100 rounded"><div class="h-2 bg-red-400 rounded" style="width:' + pct + '%"></div></div></div>';
+}
+h += '</div>';
+} else h += '<div class="text-sm text-gray-400">' + socialT("stat_noData") + '</div>';
+h += '</div></div></div>';
+showSocialPage(h); return;
+}
+
+/* 挂载全局动作函数（供 onclick 调用；宿主可提供 refreshSocialPage() 实现局部刷新） */
+try {
+window.socialJoin = socialJoin;
+window.socialLeave = socialLeave;
+window.socialToggleMembers = socialToggleMembers;
+window.socialEditClass = socialEditClass;
+window.socialSaveClass = socialSaveClass;
+window.socialDelClass = socialDelClass;
+window.renderClassesPage = renderClassesPage;
+window.renderBadgesPage = renderBadgesPage;
+window.renderStatsPage = renderStatsPage;
+} catch (e) {}
+
+/* ================= 管理端区块：数据看板 / 班级管理 ================= */
+async function renderAdminStatsSection() {
+var box = document.getElementById("adminStatsBox");
+if (!box) return;
+box.innerHTML = '<div class="text-sm text-slate-400">加载中…</div>';
+try {
+var s = await socialGet("/api/stats");
+var h = '<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">';
+h += socialStatCard("👥", socialT("stat_students"), s.students);
+h += socialStatCard("📚", socialT("stat_courses"), s.courses);
+h += socialStatCard("✅", socialT("stat_completions"), s.completions);
+h += socialStatCard("📈", socialT("stat_avgScore"), s.avgScore);
+h += socialStatCard("🔥", socialT("stat_active7"), s.active7);
+h += '</div><div class="grid md:grid-cols-2 gap-3">';
+h += '<div class="border border-slate-100 rounded-2xl p-4"><div class="font-bold text-sm mb-2">🏆 ' + socialT("stat_topCourses") + '</div>';
+if (s.topCourses && s.topCourses.length) {
+h += '<ol class="text-sm space-y-1">';
+for (var i = 0; i < s.topCourses.length; i++) {
+var t = s.topCourses[i];
+h += '<li class="flex justify-between"><span class="truncate mr-2">' + (i + 1) + '. ' + socialEsc(socialTw(t.title)) + '</span>'
++ '<span class="text-gray-500 whitespace-nowrap">' + socialTf("stat_times", { n: t.count }) + '</span></li>';
+}
+h += '</ol>';
+} else h += '<div class="text-sm text-gray-400">' + socialT("stat_noData") + '</div>';
+h += '</div>';
+h += '<div class="border border-slate-100 rounded-2xl p-4"><div class="font-bold text-sm mb-2">📝 ' + socialT("stat_wrongsByType") + '</div>';
+var keys = s.wrongsByType ? Object.keys(s.wrongsByType) : [];
+if (keys.length) {
+var total = 0, k;
+for (k = 0; k < keys.length; k++) total += s.wrongsByType[keys[k]];
+h += '<div class="text-sm space-y-2">';
+for (k = 0; k < keys.length; k++) {
+var n = s.wrongsByType[keys[k]];
+var pct = total ? Math.round(n / total * 100) : 0;
+h += '<div><div class="flex justify-between text-xs mb-0.5"><span>' + socialEsc(keys[k]) + '</span><span>' + n + ' (' + pct + '%)</span></div>'
++ '<div class="h-2 bg-gray-100 rounded"><div class="h-2 bg-red-400 rounded" style="width:' + pct + '%"></div></div></div>';
+}
+h += '</div>';
+} else h += '<div class="text-sm text-gray-400">' + socialT("stat_noData") + '</div>';
+h += '</div></div>';
+box.innerHTML = h;
+try { if (typeof applyI18n === "function") applyI18n(); } catch (e) {}
+} catch (e) {
+box.innerHTML = '<div class="text-sm text-slate-400">暂无数据</div>';
+}
+}
+
+async function renderAdminClassesSection() {
+var box = document.getElementById("adminClassesBox");
+if (!box) return;
+box.innerHTML = '<div class="text-sm text-slate-400">加载中…</div>';
+try {
+var classes = await socialGet("/api/classes");
+if (!classes.length) {
+box.innerHTML = '<div class="text-sm text-slate-400">暂无班级，点击右上角新建</div>';
+return;
+}
+box.innerHTML = classes.map(function (c) { return socialClassCard(c, [], "", true); }).join("");
+try { if (typeof applyI18n === "function") applyI18n(); } catch (e) {}
+} catch (e) {
+box.innerHTML = '<div class="text-sm text-red-400">加载失败，请重试</div>';
+}
+}
+
+function adminNewClass() {
+try { socialEditClass(""); } catch (e) {}
+var box = document.getElementById("adminClassForm");
+if (box) { try { box.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e2) {} }
+}
 /* PWA：注册 Service Worker（满足 Android WebAPK 可安装性；iOS 用添加到主屏幕） */
+/* 注意：本文件不开 script 标签——build.py 已在 ui 之后重开脚本块，此处直接续写 JS，嵌套开标签会致整块语法错误（2026-10-10 真实故障） */
 if ('serviceWorker' in navigator) { window.addEventListener('load', function() { navigator.serviceWorker.register('/sw.js').catch(function(){}); }); }
 </script>
 </body>
