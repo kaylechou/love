@@ -1,3 +1,8 @@
+# 2026-10-11 第 138 次部署：全站速度优化（worker.js 共 7359 行）
+- 路径数据内嵌到 BOOT，首页省掉 /api/paths 请求
+- CDN preconnect（Tailwind/jsDelivr），省 DNS+握手时间
+- marked.js 改 defer，不再阻塞首页渲染
+
 # 2026-10-10 第 137 次部署：路径分享按钮位置优化（worker.js 共 7327 行）
 - 路径卡片分享按钮从底部移至卡片右上角（标题旁），底部只留进度文字
 
