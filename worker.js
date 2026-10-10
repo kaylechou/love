@@ -6198,12 +6198,13 @@ var pct = total > 0 ? Math.round(done / total * 100) : 0;
 var finished = total > 0 && done >= total;
 var btnLabel = done > 0 ? tr("path_continue") : tr("path_start");
 return '<div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4">'
++ '<div class="flex items-center justify-between gap-2">'
 + '<div class="text-lg font-bold text-slate-900">' + pathIcon(p) + ' ' + escP(pathTitleL(p)) + '</div>'
++ '<button data-pid="' + escP(p.id) + '" onclick="copyPathLink(this.dataset.pid)" title="' + escP(tr("copyLinkT")) + '" class="text-slate-300 hover:text-violet-600 transition text-base shrink-0">🔗</button></div>'
 + (pathDescrL(p) ? '<div class="text-sm text-slate-500 mt-1 leading-relaxed">' + escP(pathDescrL(p)) + '</div>' : '')
 + '<div class="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-2 rounded-full transition-all ' + (finished ? 'bg-amber-500' : 'bg-emerald-500') + '" style="width:' + pct + '%"></div></div>'
 + '<div class="flex items-center justify-between mt-2 gap-2">'
-+ '<span class="flex items-center gap-2"><span class="text-xs text-slate-500">' + escP(tf("path_doneOf", { a: done, b: total })) + '</span>'
-+ '<button data-pid="' + escP(p.id) + '" onclick="copyPathLink(this.dataset.pid)" title="' + escP(tr("copyLinkT")) + '" class="text-slate-300 hover:text-violet-600 transition text-sm">🔗</button></span>'
++ '<span class="text-xs text-slate-500">' + escP(tf("path_doneOf", { a: done, b: total })) + '</span>'
 + (finished
 ? '<button onclick="renderCertificatesPage()" class="text-xs font-bold text-amber-600 hover:text-amber-700">🏆 ' + escP(tr("path_viewCert")) + '</button>'
 : '<button data-pid="' + escP(p.id) + '" onclick="renderPathDetail(this.dataset.pid)" class="px-4 py-1.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition">' + escP(btnLabel) + '</button>')
