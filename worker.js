@@ -1296,6 +1296,33 @@ function renderHTML(results, categories, opts) {
 <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+/* Tailwind CDN 偶发加载失败自动重试：网络抖动导致页面裸奔时自动重载样式 */
+(function(){
+  var tries=0;
+  function probe(){
+    var el=document.createElement('div');
+    el.className='fixed top-0';
+    el.setAttribute('style','position:absolute;visibility:hidden;pointer-events:none;');
+    document.body.appendChild(el);
+    var ok=getComputedStyle(el).position==='fixed';
+    el.parentNode.removeChild(el);
+    return ok;
+  }
+  function check(){
+    if(probe())return;
+    if(++tries>2)return;
+    var s=document.createElement('script');
+    s.src='https://cdn.tailwindcss.com';
+    s.onload=function(){setTimeout(check,1500);};
+    s.onerror=function(){setTimeout(check,3000);};
+    document.head.appendChild(s);
+  }
+  function start(){setTimeout(check,2000);}
+  if(document.readyState==='complete')start();
+  else window.addEventListener('load',start);
+})();
+</script>
     <script defer src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <style>
         body.preview-mode .admin-only { display: none !important; }
@@ -1826,7 +1853,7 @@ loginD: '请输入姓名与密码，成绩与错题本将记在此名下。', lo
 namePh: '学员姓名', pwPh: '密码（至少4位）', pw2Ph: '确认密码', doLogin: '登 录', doReg: '注 册',
 goReg: '首次使用？点此注册', goLogin: '已有账号？点此登录', forgotPw: '忘记密码？请联系老师重置',
 errName: '请输入姓名', errPw: '密码至少4位', errPw2: '两次输入的密码不一致',
-doing: '处理中…', opFail: '操作失败，请重试', netErr: '网络错误，请重试',
+doing: '处理中…', opFail: '操作失败，请重试', netErr: '网络错误，请重试', retry: '🔄 重试',
 logoutAsk: '退出当前学员（{name}）？\\n该姓名下的错题本与本地学习记录会保留，下次登记同一姓名可继续查看。',
 welcome: '欢迎 {name} 开启学习之旅！',
 wbT: '📝 错题本', wbMyT: '📝 我的错题本',
@@ -1940,7 +1967,7 @@ errPw: 'Password must be at least 4 characters',
 errPw2: 'The two passwords do not match',
 doing: 'Processing…',
 opFail: 'Operation failed. Please retry.',
-netErr: 'Network error. Please retry.',
+netErr: 'Network error. Please retry.', retry: '🔄 Retry',
 logoutAsk: 'Log out student ({name})?\\nWrong answers and local progress under this name will be kept.',
 welcome: 'Welcome, {name}! Begin your learning journey!',
 wbT: '📝 Wrong Answers',
@@ -2091,7 +2118,7 @@ errPw: 'パスワードは4文字以上',
 errPw2: 'パスワードが一致しません',
 doing: '処理中…',
 opFail: '操作に失敗しました。再試行してください。',
-netErr: 'ネットワークエラー。再試行してください。',
+netErr: 'ネットワークエラー。再試行してください。', retry: '🔄 再試行',
 logoutAsk: '学習者（{name}）からログアウトしますか？\\nこの名前の間違いノートと学習記録は保持されます。',
 welcome: 'ようこそ、{name}さん！学びの旅を始めましょう！',
 wbT: '📝 間違いノート',
@@ -2242,7 +2269,7 @@ errPw: '비밀번호는 4자 이상이어야 합니다',
 errPw2: '비밀번호가 일치하지 않습니다',
 doing: '처리 중…',
 opFail: '작업에 실패했습니다. 다시 시도해 주세요.',
-netErr: '네트워크 오류. 다시 시도해 주세요.',
+netErr: '네트워크 오류. 다시 시도해 주세요.', retry: '🔄 다시 시도',
 logoutAsk: '학습자({name})에서 로그아웃하시겠습니까?\\n이 이름의 오답 노트와 학습 기록은 유지됩니다.',
 welcome: '환영합니다, {name}님! 학습 여정을 시작하세요!',
 wbT: '📝 오답 노트',
@@ -3994,6 +4021,7 @@ function i18nCourse(c) {
                 for (var k = 0; k < allData.length; k++) { if (allData[k].id === id) { allData[k] = full; break; } }
             }).catch(function () {}).finally(function () { delete _prefetching[id]; });
         }
+        function retryLesson(btn) { startLesson(btn.dataset.rid); }
         async function startLesson(id) {
             /* 即时反馈：先弹骨架屏，数据就绪后再填充 */
             var _bodyEl0 = document.getElementById('lessonBody');
@@ -4021,7 +4049,12 @@ function i18nCourse(c) {
                     } catch (e) {}
                 }
             }
-            if (!item || item.quizzes_json === undefined) return;
+            if (!item || item.quizzes_json === undefined) {
+                /* 课件按需拉取失败：给出明确错误提示 + 重试（原先静默 return，骨架屏"加载中"永远不消失） */
+                var _bodyElE = document.getElementById('lessonBody');
+                if (_bodyElE) _bodyElE.innerHTML = '<div class="flex flex-col items-center justify-center py-24 text-slate-400"><div class="text-4xl mb-4">⚠️</div><div class="text-sm mb-6">' + tr("netErr") + '</div><button data-rid="' + id + '" onclick="retryLesson(this)" class="px-6 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold hover:opacity-95 active:scale-[.98] transition">' + tr("retry") + '</button></div>';
+                return;
+            }
             if (curLang() === 'tw') item = twCourse(item);
             item = i18nCourse(item);
             activeLessonId = id;
