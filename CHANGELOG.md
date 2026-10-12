@@ -1,3 +1,8 @@
+# 2026-10-12 第 144 次部署：Tailwind 预编译替代 CDN（worker.js 共 7383 行）
+- 构建时预编译 Tailwind CSS（35KB 内联），替代 407KB Play CDN JS + 运行时 DOM 扫描
+- 消除渲染阻塞，移动端体感提速明显；删除 CDN 重试脚本和预连接
+- 注意：新增 Tailwind 类名后需重新跑 npx tailwindcss 编译（见 AGENTS.md）
+
 # 2026-10-12 第 143 次部署：D1 查询并行化提速（worker.js 共 7410 行）
 - 首页：公告+课程+路径三组查询合成单轮 Promise.all，省一次 D1 往返；首页总时间从 4.7s 降至 1.1s
 - /api/notice：4 个串行 getSetting 改并行
