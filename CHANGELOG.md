@@ -1,3 +1,7 @@
+# 2026-10-12 第 153 次部署：分类简介双重数据源（worker.js 共 7504 行）
+- catDescL/subDescL 加备用路径：catInfo 拿不到时直接从 BOOT.categories 查
+- 移除标题的 v152 测试标记
+
 # 2026-10-12 第 152 次部署：重建部署修复内联缺失（worker.js 共 7475 行）
 - 发现 150/151 次部署的 worker.js 未正确包含模板变更，删除重建后重新部署
 - 确认线上 HTML 已含 BOOT.categories 内联数据
