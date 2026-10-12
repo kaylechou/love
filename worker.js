@@ -1439,6 +1439,9 @@ function renderHTML(results, categories, opts) {
         #fontFabBtn { opacity: .55; transition: opacity .25s; }
         #fontFab.open #fontFabBtn, #fontFabBtn:hover { opacity: 1; }
         #viewModeFab { position: fixed; left: 0.5rem; bottom: 5rem; z-index: 100; }
+        #pwaInstallFab { position: fixed; left: 0.5rem; bottom: 8.75rem; z-index: 100; }
+        #pwaInstallBtn { height: 2.6rem; padding: 0 1rem; border-radius: 9999px; background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff; font-weight: 900; font-size: .85rem; box-shadow: 0 6px 20px rgba(139,92,246,.45); border: 2px solid #fff; cursor: pointer; }
+        #pwaInstallBtn:active { transform: scale(.94); }
         #viewModeBtn { height: 3rem; min-width: 3rem; padding: 0 .9rem; border-radius: 9999px; background: linear-gradient(135deg,#0ea5e9,#6366f1); color: #fff; font-weight: 900; font-size: 1rem; box-shadow: 0 6px 20px rgba(14,165,233,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; opacity: .55; transition: opacity .25s; }
         #viewModeBtn:hover { opacity: 1; }
         html.view-desktop .course-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -2032,7 +2035,7 @@ scoreSummary: '共 {n} 条记录', scoreAvg: '，平均 {a} 分',
 expWrongT: '📥 导出错题本', wbExpSub: '{name} · 共{n}题', wbScopeOne: '（本课件）', wbScopeAll: '（全部课件）',
 adminEntry: '教师管理入口 →', teacherExit: '✓ 退出教师版', tchExpired: '登录已过期，请重新登录', tchPwPrompt: '请输入管理密码进入教师版：',
 tchPwWrong: '密码错误', tchAnsFail: '获取答案失败', tchAnsT: '📖 教师版答案：', tchOpenAns: '开放性答案',
-wbEmptyAlert: '错题本是空的', popupBlocked: '浏览器阻止了新窗口，请允许弹窗后重试', adminPwEmpty: '请输入管理密码', initPwT: '初始密码（仅显示一次）', initPwD: '请登录后立即修改管理密码', pwMustChangeT: '请先修改初始密码', pwChangeT: '修改管理密码', pwChanged: '密码修改成功', loginLocked: '尝试次数过多，请10分钟后再试'
+wbEmptyAlert: '错题本是空的', popupBlocked: '浏览器阻止了新窗口，请允许弹窗后重试', adminPwEmpty: '请输入管理密码', initPwT: '初始密码（仅显示一次）', initPwD: '请登录后立即修改管理密码', pwMustChangeT: '请先修改初始密码', pwChangeT: '修改管理密码', pwChanged: '密码修改成功', loginLocked: '尝试次数过多，请10分钟后再试', installApp: '📲 安装应用'
 },
 en: {
 /* P0/P1/P2 学习路径+证书 */
@@ -2183,7 +2186,7 @@ scoreSummary: '{n} records', scoreAvg: ', avg {a}',
 expWrongT: '📥 Export Mistakes', wbExpSub: '{name} · {n} questions', wbScopeOne: ' (this lesson)', wbScopeAll: ' (all lessons)',
 adminEntry: 'Teacher Admin →', teacherExit: '✓ Exit Teacher View', tchExpired: 'Session expired, please log in again', tchPwPrompt: 'Enter admin password for teacher view:',
 tchPwWrong: 'Wrong password', tchAnsFail: 'Failed to load answers', tchAnsT: '📖 Teacher answer: ', tchOpenAns: 'Open-ended',
-wbEmptyAlert: 'The mistake book is empty', popupBlocked: 'Popup blocked. Please allow popups and retry.', adminPwEmpty: 'Please enter the admin password', initPwT: 'Initial password (shown once)', initPwD: 'Please change the admin password right after login', pwMustChangeT: 'Please change the initial password first', pwChangeT: 'Change admin password', pwChanged: 'Password changed', loginLocked: 'Too many attempts. Please try again in 10 minutes.'
+wbEmptyAlert: 'The mistake book is empty', popupBlocked: 'Popup blocked. Please allow popups and retry.', adminPwEmpty: 'Please enter the admin password', initPwT: 'Initial password (shown once)', initPwD: 'Please change the admin password right after login', pwMustChangeT: 'Please change the initial password first', pwChangeT: 'Change admin password', pwChanged: 'Password changed', loginLocked: 'Too many attempts. Please try again in 10 minutes.', installApp: '📲 Install App'
 },
 ja: {
 /* P0/P1/P2 学习路径+证书 */
@@ -2334,7 +2337,7 @@ scoreSummary: '{n}件の記録', scoreAvg: '、平均 {a} 点',
 expWrongT: '📥 間違いノートをエクスポート', wbExpSub: '{name} · {n}問', wbScopeOne: '（このレッスン）', wbScopeAll: '（全レッスン）',
 adminEntry: '教師管理入口 →', teacherExit: '✓ 教師モード終了', tchExpired: 'ログインの有効期限が切れました。再ログインしてください。', tchPwPrompt: '教師表示には管理パスワードを入力してください：',
 tchPwWrong: 'パスワードが正しくありません', tchAnsFail: '解答の取得に失敗しました', tchAnsT: '📖 教師用解答：', tchOpenAns: '記述式',
-wbEmptyAlert: '間違いノートは空です', popupBlocked: 'ポップアップがブロックされました。許可して再試行してください。', adminPwEmpty: '管理パスワードを入力してください', initPwT: '初期パスワード（1回のみ表示）', initPwD: 'ログイン後すぐに管理パスワードを変更してください', pwMustChangeT: '初期パスワードを先に変更してください', pwChangeT: '管理パスワードの変更', pwChanged: 'パスワードを変更しました', loginLocked: '試行回数が多すぎます。10分後にもう一度お試しください。'
+wbEmptyAlert: '間違いノートは空です', popupBlocked: 'ポップアップがブロックされました。許可して再試行してください。', adminPwEmpty: '管理パスワードを入力してください', initPwT: '初期パスワード（1回のみ表示）', initPwD: 'ログイン後すぐに管理パスワードを変更してください', pwMustChangeT: '初期パスワードを先に変更してください', pwChangeT: '管理パスワードの変更', pwChanged: 'パスワードを変更しました', loginLocked: '試行回数が多すぎます。10分後にもう一度お試しください。', installApp: '📲 アプリをインストール'
 },
 ko: {
 /* P0/P1/P2 学习路径+证书 */
@@ -2485,7 +2488,7 @@ scoreSummary: '{n}개의 기록', scoreAvg: ', 평균 {a}점',
 expWrongT: '📥 오답노트 내보내기', wbExpSub: '{name} · {n}문제', wbScopeOne: ' (이 레슨)', wbScopeAll: ' (전체 레슨)',
 adminEntry: '교사 관리 →', teacherExit: '✓ 교사 모드 종료', tchExpired: '로그인이 만료되었습니다. 다시 로그인해 주세요.', tchPwPrompt: '교사 보기를 위해 관리 비밀번호를 입력하세요:',
 tchPwWrong: '비밀번호가 틀렸습니다', tchAnsFail: '정답을 불러오지 못했습니다', tchAnsT: '📖 교사용 정답: ', tchOpenAns: '서술형',
-wbEmptyAlert: '오답노트가 비어 있습니다', popupBlocked: '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도해 주세요.', adminPwEmpty: '관리자 비밀번호를 입력하세요', initPwT: '초기 비밀번호 (1회만 표시)', initPwD: '로그인 후 즉시 관리자 비밀번호를 변경하세요', pwMustChangeT: '초기 비밀번호를 먼저 변경하세요', pwChangeT: '관리자 비밀번호 변경', pwChanged: '비밀번호가 변경되었습니다', loginLocked: '시도 횟수가 너무 많습니다. 10분 후에 다시 시도하세요.'
+wbEmptyAlert: '오답노트가 비어 있습니다', popupBlocked: '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도해 주세요.', adminPwEmpty: '관리자 비밀번호를 입력하세요', initPwT: '초기 비밀번호 (1회만 표시)', initPwD: '로그인 후 즉시 관리자 비밀번호를 변경하세요', pwMustChangeT: '초기 비밀번호를 먼저 변경하세요', pwChangeT: '관리자 비밀번호 변경', pwChanged: '비밀번호가 변경되었습니다', loginLocked: '시도 횟수가 너무 많습니다. 10분 후에 다시 시도하세요.', installApp: '📲 앱 설치'
 }
 };
 function tr(k) {
@@ -6245,6 +6248,26 @@ function i18nCourse(c) {
         applyViewMode();
         document.addEventListener("DOMContentLoaded", applyFontScale);
         window.addEventListener("resize", function() { try { if (localStorage.getItem(VIEW_MODE_KEY) === "desktop") applyViewMode(); } catch (e) {} }); /* 浮钮HTML在script之后，等DOM就绪再刷标签 */
+        /* PWA 安装按钮：浏览器判定可安装时触发 beforeinstallprompt，显示安装入口 */
+        var _pwaDeferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            try { e.preventDefault(); } catch (err) {}
+            _pwaDeferredPrompt = e;
+            var b = document.getElementById('pwaInstallFab');
+            if (b) b.classList.remove('hidden');
+        });
+        window.addEventListener('appinstalled', function() {
+            _pwaDeferredPrompt = null;
+            var b = document.getElementById('pwaInstallFab');
+            if (b) b.classList.add('hidden');
+        });
+        async function pwaInstall() {
+            if (!_pwaDeferredPrompt) return;
+            try { _pwaDeferredPrompt.prompt(); await _pwaDeferredPrompt.userChoice; } catch (e) {}
+            _pwaDeferredPrompt = null;
+            var b = document.getElementById('pwaInstallFab');
+            if (b) b.classList.add('hidden');
+        }
         var sn = progName();
         syncNameBtn();
         syncVideoBtn();
@@ -6306,6 +6329,9 @@ function i18nCourse(c) {
     </div>
     <div id="viewModeFab">
         <button id="viewModeBtn" onclick="toggleViewMode()" data-i18n-title="toDesk" title="切换到桌面版">🖥️</button>
+    </div>
+    <div id="pwaInstallFab" class="hidden">
+        <button id="pwaInstallBtn" onclick="pwaInstall()" data-i18n="installApp">📲 安装应用</button>
     </div>
 <script>
 /* ============================================================================
