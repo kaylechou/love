@@ -1,3 +1,8 @@
+# 2026-10-12 第 151 次部署：首页 HTML 改 no-store（worker.js 共 7475 行）
+- 首页 Cache-Control 改为 no-store，且绕过 Worker Cache API（_putCache）
+- 彻底杜绝任何层级的 HTML 缓存，每次请求都拿最新代码和数据
+- 分享页保持缓存（不常变）
+
 # 2026-10-12 第 150 次部署：分类 i18n 内联进 HTML（worker.js 共 7475 行）
 - 服务端首页并行查询加分类表，分类 i18n 直接内联进 window.__BOOT__.categories
 - 客户端优先用内联数据，不再依赖 /api/categories 接口，彻底绕过中间节点缓存/干扰
