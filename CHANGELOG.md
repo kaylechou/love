@@ -1,3 +1,8 @@
+# 2026-10-12 第 145 次部署：Worker Cache API 边缘缓存（worker.js 共 7402 行）
+- 首页/分享页用 caches.default 做边缘缓存（Worker 默认不走边缘缓存，需显式调用）
+- 首页 Cache-Control: public, s-maxage=60, max-age=30；分享页 s-maxage=300；管理端保持 no-store
+- 配 Cloudflare 后台 Early Hints + Speed Brain（用户已手动确认开启）
+
 # 2026-10-12 第 144 次部署：Tailwind 预编译替代 CDN（worker.js 共 7383 行）
 - 构建时预编译 Tailwind CSS（35KB 内联），替代 407KB Play CDN JS + 运行时 DOM 扫描
 - 消除渲染阻塞，移动端体感提速明显；删除 CDN 重试脚本和预连接
