@@ -1814,8 +1814,22 @@ function renderHTML(results, categories, opts) {
         }
         function catDescL(cat) {
             var L = curLang();
-            if ((L === 'en' || L === 'ja' || L === 'ko') && catInfo[cat] && catInfo[cat].i18n && catInfo[cat].i18n[L]) {
-                return catInfo[cat].i18n[L].description || catInfo[cat].description;
+            if (L === 'en' || L === 'ja' || L === 'ko') {
+                // 主路径：catInfo
+                if (catInfo[cat] && catInfo[cat].i18n && catInfo[cat].i18n[L] && catInfo[cat].i18n[L].description) {
+                    return catInfo[cat].i18n[L].description;
+                }
+                // 备用：直接从 BOOT.categories 查（绕过 catInfo 构建可能的问题）
+                try {
+                    var bcs = (typeof BOOT !== 'undefined' && BOOT.categories) ? BOOT.categories : [];
+                    for (var i = 0; i < bcs.length; i++) {
+                        if (bcs[i].name === cat && bcs[i].i18n && bcs[i].i18n[L] && bcs[i].i18n[L].description) {
+                            return bcs[i].i18n[L].description;
+                        }
+                    }
+                } catch (e) {}
+                // 回退中文
+                if (catInfo[cat]) return catInfo[cat].description;
             }
             return catInfo[cat] ? catInfo[cat].description : "";
         }
@@ -1828,8 +1842,23 @@ function renderHTML(results, categories, opts) {
         }
         function subDescL(cat, sub) {
             var L = curLang();
-            if ((L === 'en' || L === 'ja' || L === 'ko') && catInfo[cat] && catInfo[cat].subI18n && catInfo[cat].subI18n[sub] && catInfo[cat].subI18n[sub][L]) {
-                return catInfo[cat].subI18n[sub][L].description || "";
+            if (L === 'en' || L === 'ja' || L === 'ko') {
+                if (catInfo[cat] && catInfo[cat].subI18n && catInfo[cat].subI18n[sub] && catInfo[cat].subI18n[sub][L] && catInfo[cat].subI18n[sub][L].description) {
+                    return catInfo[cat].subI18n[sub][L].description;
+                }
+                try {
+                    var bcs = (typeof BOOT !== 'undefined' && BOOT.categories) ? BOOT.categories : [];
+                    for (var i = 0; i < bcs.length; i++) {
+                        if (bcs[i].name === cat && bcs[i].subs) {
+                            for (var j = 0; j < bcs[i].subs.length; j++) {
+                                var s = bcs[i].subs[j];
+                                if (s.name === sub && s.i18n && s.i18n[L] && s.i18n[L].description) {
+                                    return s.i18n[L].description;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {}
             }
             return (catInfo[cat] && catInfo[cat].subDesc) ? (catInfo[cat].subDesc[sub] || "") : "";
         }
