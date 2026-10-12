@@ -819,11 +819,38 @@ return _putCache(new Response(renderHTML(stripAnswers(srows), scats, { shareMode
 const _pr = await Promise.all([
 getSetting(env, "notice"), getSetting(env, "notice_en"), getSetting(env, "notice_ja"), getSetting(env, "notice_ko"),
 briefCourses(env),
-env.DB.prepare("SELECT * FROM paths ORDER BY sort_order, id").all().then(function(r){ return (r && r.results) || []; }).catch(function(){ return []; })
+env.DB.prepare("SELECT * FROM paths ORDER BY sort_order, id").all().then(function(r){ return (r && r.results) || []; }).catch(function(){ return []; }),
+env.DB.prepare("SELECT parent, name, description, i18n_json FROM categories ORDER BY parent ASC, name ASC").all().then(function(r){ return (r && r.results) || []; }).catch(function(){ return []; })
 ]);
 const notice = _pr[0] || "", notice_en = _pr[1] || "", notice_ja = _pr[2] || "", notice_ko = _pr[3] || "";
 const results = _pr[4];
 var bootPaths = _pr[5];
+var bootCategoriesRaw = _pr[6];
+/* 把分类原始行转成 /api/categories 的格式（供客户端 catInfo 用，内联绕过接口缓存） */
+var bootCategories = (function() {
+    var seriesMap = {};
+    function getSeries(nm) {
+        if (!seriesMap[nm]) seriesMap[nm] = { name: nm, description: "", subs: [], _subIdx: {}, i18n: null };
+        return seriesMap[nm];
+    }
+    (bootCategoriesRaw || []).forEach(function(r) {
+        var parent = r.parent || "";
+        if (!parent) {
+            var s = getSeries(r.name);
+            if (r.description) s.description = r.description;
+            try { if (r.i18n_json) s.i18n = JSON.parse(r.i18n_json); } catch (e) {}
+        } else {
+            var s2 = getSeries(parent);
+            if (!s2._subIdx[r.name]) { s2._subIdx[r.name] = { name: r.name, description: r.description || "", i18n: null }; s2.subs.push(s2._subIdx[r.name]); }
+            else if (r.description) s2._subIdx[r.name].description = r.description;
+            try { if (r.i18n_json) s2._subIdx[r.name].i18n = JSON.parse(r.i18n_json); } catch (e) {}
+        }
+    });
+    return Object.keys(seriesMap).sort().map(function(k) {
+        var s = seriesMap[k];
+        return { name: s.name, description: s.description, subs: s.subs, i18n: s.i18n || null };
+    });
+})();
 const categories = [...new Set(results.map(item => item.category))];
 let displayData = results;
 let isShareMode = false;
@@ -831,7 +858,7 @@ if (shareId) {
 displayData = results.filter(item => item.id === shareId);
 isShareMode = true;
 }
-return _putCache(new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": isShareMode? "public, s-maxage=300, max-age=60": "public, s-maxage=60, max-age=30" }}));
+return _putCache(new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths, bootCategories: bootCategories }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": isShareMode? "public, s-maxage=300, max-age=60": "public, s-maxage=60, max-age=30" }}));
 
 } catch (e) {
 return new Response("服务器错误: " + e.message, { status: 500});
@@ -1293,12 +1320,14 @@ return null;
 function renderHTML(results, categories, opts) {
     var isShareMode = opts.shareMode, isAdmin = opts.isAdmin, adminAuthed = !!opts.adminAuthed, notice = opts.notice || "";
     var bootPaths = opts.bootPaths || [];
+    var bootCategories = opts.bootCategories || [];
     var notice_en = opts.notice_en || "", notice_ja = opts.notice_ja || "", notice_ko = opts.notice_ko || "";
   // 把服务端已过滤好的展示数据直接灌给前端（分享模式只含被分享的那一课），顺带防 </script> 注入
   // 学员端主页只注入精简字段（提速约一半），点开课件时再按需拉完整内容；管理端/分享页保持完整
   const bootList = (!isShareMode && !isAdmin) ? (results || []).map(briefCourse) : (results || []);
   const bootJson = JSON.stringify(bootList).replace(/</g, function(){ return String.fromCharCode(92) + 'u003c'; });
   const bootPathsJson = JSON.stringify(bootPaths).replace(/</g, function(){ return String.fromCharCode(92) + 'u003c'; });
+  const bootCategoriesJson = JSON.stringify(bootCategories).replace(/</g, function(){ return String.fromCharCode(92) + 'u003c'; });
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -1380,7 +1409,7 @@ function renderHTML(results, categories, opts) {
     </style>
 </head>
 <body class="bg-[#f6f7fb] min-h-screen text-slate-900 pb-20">
-    <script>window.__BOOT__ = { shareMode: ${isShareMode}, isAdmin: ${isAdmin}, adminAuthed: ${adminAuthed}, list: ${bootJson}, paths: ${bootPathsJson} };</script>
+    <script>window.__BOOT__ = { shareMode: ${isShareMode}, isAdmin: ${isAdmin}, adminAuthed: ${adminAuthed}, list: ${bootJson}, paths: ${bootPathsJson}, categories: ${bootCategoriesJson} };</script>
 
     <!-- 顶栏 -->
     <header class="bg-white/90 backdrop-blur sticky top-0 z-50 border-b border-slate-100">
@@ -3063,7 +3092,10 @@ function i18nCourse(c) {
             /* 首屏数据服务端已注入 BOOT.list（学员端为精简版），无需再请求 /api/data；分类并行拉取 */
             var needFetch = BOOT.isAdmin || !(BOOT.list && BOOT.list.length);
             var dataP = needFetch ? fetch(BOOT.isAdmin ? '/api/data' : '/api/data?brief=1').then(function(r) { return r.json(); }).catch(function() { return []; }) : null;
-            var catP = fetch('/api/categories').then(function(r) { return r.json(); }).catch(function() { return []; });
+            /* 分类数据优先用服务端内联的 BOOT.categories（绕过接口缓存问题），无内联时才调接口 */
+            var catP = (BOOT.categories && BOOT.categories.length)
+                ? Promise.resolve(BOOT.categories)
+                : fetch('/api/categories').then(function(r) { return r.json(); }).catch(function() { return []; });
             allData = dataP ? await dataP : BOOT.list;
             /* 繁体模式（学员端）：课程内容转繁体展示，不改数据库 */
             if (curLang() === 'tw' && !BOOT.isAdmin) {
