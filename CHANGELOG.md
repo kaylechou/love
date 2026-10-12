@@ -1,3 +1,7 @@
+# 2026-10-12 第 149 次部署：/api/categories 改 no-store（worker.js 共 7443 行）
+- 分类接口 Cache-Control 从 public,max-age=60 改为 no-store，杜绝中间节点缓存旧数据
+- 配合 148 次的客户端终极防御，英日韩简介必显示正确语言
+
 # 2026-10-12 第 148 次部署：分类简介语言跟随终极防御（worker.js 共 7443 行）
 - refreshCatDescs 加终极防御：英日韩模式下若简介仍含中文字符，自动带 cache-buster 重拉 /api/categories 刷新（最多一次，防递归）
 - 覆盖 catInfo 的 i18n 缺失或陈旧导致的顽固 case
