@@ -111,8 +111,49 @@ await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?,?)"
 }
 async function getPwHash(env) {
 let h = await getSetting(env, "admin_pw_hash");
-if (!h) { h = await sha256hex("777777"); await setSetting(env, "admin_pw_hash", h);}
+if (!h) {
+/* 首次运行：生成随机初始密码（代码中无任何默认密码字面量）。
+   哈希入库；明文暂存 admin_pw_init 仅供登录页一次性展示，首次改密后删除 */
+const pw = randomPw(12);
+h = await sha256hex(pw);
+await setSetting(env, "admin_pw_hash", h);
+await setSetting(env, "admin_pw_init", pw);
+await setSetting(env, "pw_is_default", "1");
+}
 return h;
+}
+/* 随机密码：去掉易混淆字符 */
+function randomPw(n) {
+const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+const buf = new Uint8Array(n || 12);
+crypto.getRandomValues(buf);
+let s = "";
+for (let i = 0; i < buf.length; i++) s += chars[buf[i] % chars.length];
+return s;
+}
+/* 登录防爆破：同一 IP 10 分钟内失败 10 次则锁定 */
+async function loginLocked(env, ip) {
+if (!ip) return false;
+try {
+const r = await env.DB.prepare("SELECT fails, last_ts FROM login_attempts WHERE ip = ?").bind(ip).first();
+if (!r) return false;
+const now = Date.now();
+if (now - r.last_ts >= 10 * 60 * 1000) {
+await env.DB.prepare("DELETE FROM login_attempts WHERE ip = ?").bind(ip).run();
+return false;
+}
+return r.fails >= 10;
+} catch (e) { return false; }
+}
+async function noteLoginFail(env, ip) {
+if (!ip) return;
+try {
+await env.DB.prepare("INSERT INTO login_attempts (ip, fails, last_ts) VALUES (?, 1, ?) ON CONFLICT(ip) DO UPDATE SET fails = fails + 1, last_ts = excluded.last_ts").bind(ip, Date.now()).run();
+} catch (e) {}
+}
+async function clearLoginFail(env, ip) {
+if (!ip) return;
+try { await env.DB.prepare("DELETE FROM login_attempts WHERE ip = ?").bind(ip).run(); } catch (e) {}
 }
 async function adminToken(env) {
 return await sha256hex("tq-admin:" + await getPwHash(env));
@@ -185,7 +226,8 @@ if (!v) {
 try { await db.prepare("UPDATE courses SET sort_order = rowid WHERE sort_order IS NULL OR sort_order = 0").run();} catch (e) {}
 await setSetting(env, "schema_v2", "1");
 }
-await getPwHash(env); // 首次运行时写入默认密码哈希（请尽快在管理端修改）
+await db.prepare("CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT PRIMARY KEY, fails INTEGER DEFAULT 0, last_ts INTEGER DEFAULT 0)").run();
+await getPwHash(env); // 首次运行时生成随机初始密码（登录页一次性展示，首次改密后失效）
 }
 
 
@@ -696,13 +738,25 @@ for (let i = 0; i < qs.length; i++) { if (tq[i].a) qs[i] = Object.assign({}, qs[
 return json({ quizzes: qs});
 }
 
-// API: 管理登录（校验密码，写入 HttpOnly 会话 Cookie）
+// API: 初始密码一次性提示（仅全新数据库默认模式；改密后永久关闭）
+if (pathname === "/api/admin/init-hint" && request.method === "GET") {
+await getPwHash(env);
+const isDef = (await getSetting(env, "pw_is_default")) === "1";
+if (!isDef) return json({ isDefault: false });
+return json({ isDefault: true, initPw: await getSetting(env, "admin_pw_init") });
+}
+
+// API: 管理登录（校验密码，写入 HttpOnly 会话 Cookie；带 IP 级防爆破）
 if (pathname === "/api/verify" && request.method === "POST") {
 if (authed) return json({ ok: true});
+const ip = request.headers.get("CF-Connecting-IP") || "";
+if (await loginLocked(env, ip)) return json({ ok: false, error: "locked" }, 429);
 const b = await request.json().catch(() => ({}));
 const ok = (await sha256hex(String(b.password || "").trim())) === await getPwHash(env);
-if (!ok) return json({ ok: false});
-const resp = json({ ok: true});
+if (!ok) { await noteLoginFail(env, ip); return json({ ok: false}); }
+await clearLoginFail(env, ip);
+const mustChange = (await getSetting(env, "pw_is_default")) === "1";
+const resp = json({ ok: true, mustChange: mustChange });
 resp.headers.set("Set-Cookie", adminCookie(await adminToken(env)));
 return resp;
 }
@@ -722,6 +776,8 @@ if (!oldOk) return json({ ok: false, error: "原密码错误"}, 400);
 const np = String(b.newPassword || "").trim();
 if (np.length < 6) return json({ ok: false, error: "新密码至少 6 位"}, 400);
 await setSetting(env, "admin_pw_hash", await sha256hex(np));
+await env.DB.prepare("DELETE FROM settings WHERE key = 'admin_pw_init'").run();
+await env.DB.prepare("DELETE FROM settings WHERE key = 'pw_is_default'").run();
 const resp = json({ ok: true});
 resp.headers.set("Set-Cookie", adminCookie(await adminToken(env)));
 return resp;
@@ -746,6 +802,8 @@ const saved = await getSetting(env, "admin_recovery_hash");
 if (!saved || !code || (await sha256hex("tq-recovery:" + code)) !== saved) return json({ ok: false, error: "恢复码错误"}, 401);
 if (np.length < 6) return json({ ok: false, error: "新密码至少 6 位"}, 400);
 await setSetting(env, "admin_pw_hash", await sha256hex(np));
+await env.DB.prepare("DELETE FROM settings WHERE key = 'admin_pw_init'").run();
+await env.DB.prepare("DELETE FROM settings WHERE key = 'pw_is_default'").run();
 const resp = json({ ok: true});
 resp.headers.set("Set-Cookie", adminCookie(await adminToken(env)));
 return resp;
@@ -1750,12 +1808,12 @@ function renderHTML(results, categories, opts) {
     <!-- 修改密码弹窗 -->
     <div id="pwModal" class="hidden fixed inset-0 bg-slate-900/95 z-[75] flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl">
-            <h2 class="font-black text-lg mb-5">🔑 修改管理密码</h2>
+            <h2 id="pwModalTitle" class="font-black text-lg mb-5">🔑 修改管理密码</h2>
             <input id="pw_old" type="password" placeholder="原密码" class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-3">
             <input id="pw_new" type="password" placeholder="新密码（至少 6 位）" class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-5">
             <div class="flex gap-3">
                 <button onclick="doChangePassword()" class="flex-1 bg-indigo-900 text-white py-3 rounded-2xl font-bold">确认修改</button>
-                <button onclick="toggleModal('pwModal')" class="bg-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold">取消</button>
+                <button id="pwCancelBtn" onclick="toggleModal('pwModal')" class="bg-slate-200 text-slate-600 px-6 py-3 rounded-2xl font-bold">取消</button>
             </div>
             <div class="mt-5 pt-5 border-t border-slate-100 text-left">
                 <h3 class="font-bold text-sm text-slate-700 mb-1">🆘 密码恢复码</h3>
@@ -1779,6 +1837,7 @@ function renderHTML(results, categories, opts) {
             <input id="adminPwd" type="password" placeholder="管理密码" onkeydown="if(event.key==='Enter')adminLogin()" oninput="hideAdminErr()"
                 class="w-full border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-indigo-400 mb-2 text-center">
             <p id="adminErr" class="hidden text-red-500 text-xs mb-2"></p>
+            <p id="adminInitHint" class="hidden text-amber-600 text-xs mb-2">⚠️ <span data-i18n="initPwT">初始密码（仅显示一次）</span>：<b id="adminInitPw" class="select-all"></b><br><span class="text-slate-400" data-i18n="initPwD">请登录后立即修改管理密码</span></p>
             <button onclick="adminLogin()" class="w-full bg-indigo-900 text-white py-3.5 rounded-2xl font-bold">进入管理端</button>
             <a href="javascript:void(0)" onclick="openRecoverModal()" class="block mt-3 text-indigo-400 text-xs hover:underline">忘记密码？</a>
             <a href="/" class="block mt-4 text-slate-400 text-sm hover:underline">返回学员端</a>
@@ -1973,7 +2032,7 @@ scoreSummary: '共 {n} 条记录', scoreAvg: '，平均 {a} 分',
 expWrongT: '📥 导出错题本', wbExpSub: '{name} · 共{n}题', wbScopeOne: '（本课件）', wbScopeAll: '（全部课件）',
 adminEntry: '教师管理入口 →', teacherExit: '✓ 退出教师版', tchExpired: '登录已过期，请重新登录', tchPwPrompt: '请输入管理密码进入教师版：',
 tchPwWrong: '密码错误', tchAnsFail: '获取答案失败', tchAnsT: '📖 教师版答案：', tchOpenAns: '开放性答案',
-wbEmptyAlert: '错题本是空的', popupBlocked: '浏览器阻止了新窗口，请允许弹窗后重试'
+wbEmptyAlert: '错题本是空的', popupBlocked: '浏览器阻止了新窗口，请允许弹窗后重试', adminPwEmpty: '请输入管理密码', initPwT: '初始密码（仅显示一次）', initPwD: '请登录后立即修改管理密码', pwMustChangeT: '请先修改初始密码', pwChangeT: '修改管理密码', pwChanged: '密码修改成功', loginLocked: '尝试次数过多，请10分钟后再试'
 },
 en: {
 /* P0/P1/P2 学习路径+证书 */
@@ -2124,7 +2183,7 @@ scoreSummary: '{n} records', scoreAvg: ', avg {a}',
 expWrongT: '📥 Export Mistakes', wbExpSub: '{name} · {n} questions', wbScopeOne: ' (this lesson)', wbScopeAll: ' (all lessons)',
 adminEntry: 'Teacher Admin →', teacherExit: '✓ Exit Teacher View', tchExpired: 'Session expired, please log in again', tchPwPrompt: 'Enter admin password for teacher view:',
 tchPwWrong: 'Wrong password', tchAnsFail: 'Failed to load answers', tchAnsT: '📖 Teacher answer: ', tchOpenAns: 'Open-ended',
-wbEmptyAlert: 'The mistake book is empty', popupBlocked: 'Popup blocked. Please allow popups and retry.'
+wbEmptyAlert: 'The mistake book is empty', popupBlocked: 'Popup blocked. Please allow popups and retry.', adminPwEmpty: 'Please enter the admin password', initPwT: 'Initial password (shown once)', initPwD: 'Please change the admin password right after login', pwMustChangeT: 'Please change the initial password first', pwChangeT: 'Change admin password', pwChanged: 'Password changed', loginLocked: 'Too many attempts. Please try again in 10 minutes.'
 },
 ja: {
 /* P0/P1/P2 学习路径+证书 */
@@ -2275,7 +2334,7 @@ scoreSummary: '{n}件の記録', scoreAvg: '、平均 {a} 点',
 expWrongT: '📥 間違いノートをエクスポート', wbExpSub: '{name} · {n}問', wbScopeOne: '（このレッスン）', wbScopeAll: '（全レッスン）',
 adminEntry: '教師管理入口 →', teacherExit: '✓ 教師モード終了', tchExpired: 'ログインの有効期限が切れました。再ログインしてください。', tchPwPrompt: '教師表示には管理パスワードを入力してください：',
 tchPwWrong: 'パスワードが正しくありません', tchAnsFail: '解答の取得に失敗しました', tchAnsT: '📖 教師用解答：', tchOpenAns: '記述式',
-wbEmptyAlert: '間違いノートは空です', popupBlocked: 'ポップアップがブロックされました。許可して再試行してください。'
+wbEmptyAlert: '間違いノートは空です', popupBlocked: 'ポップアップがブロックされました。許可して再試行してください。', adminPwEmpty: '管理パスワードを入力してください', initPwT: '初期パスワード（1回のみ表示）', initPwD: 'ログイン後すぐに管理パスワードを変更してください', pwMustChangeT: '初期パスワードを先に変更してください', pwChangeT: '管理パスワードの変更', pwChanged: 'パスワードを変更しました', loginLocked: '試行回数が多すぎます。10分後にもう一度お試しください。'
 },
 ko: {
 /* P0/P1/P2 学习路径+证书 */
@@ -2426,7 +2485,7 @@ scoreSummary: '{n}개의 기록', scoreAvg: ', 평균 {a}점',
 expWrongT: '📥 오답노트 내보내기', wbExpSub: '{name} · {n}문제', wbScopeOne: ' (이 레슨)', wbScopeAll: ' (전체 레슨)',
 adminEntry: '교사 관리 →', teacherExit: '✓ 교사 모드 종료', tchExpired: '로그인이 만료되었습니다. 다시 로그인해 주세요.', tchPwPrompt: '교사 보기를 위해 관리 비밀번호를 입력하세요:',
 tchPwWrong: '비밀번호가 틀렸습니다', tchAnsFail: '정답을 불러오지 못했습니다', tchAnsT: '📖 교사용 정답: ', tchOpenAns: '서술형',
-wbEmptyAlert: '오답노트가 비어 있습니다', popupBlocked: '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도해 주세요.'
+wbEmptyAlert: '오답노트가 비어 있습니다', popupBlocked: '팝업이 차단되었습니다. 팝업을 허용하고 다시 시도해 주세요.', adminPwEmpty: '관리자 비밀번호를 입력하세요', initPwT: '초기 비밀번호 (1회만 표시)', initPwD: '로그인 후 즉시 관리자 비밀번호를 변경하세요', pwMustChangeT: '초기 비밀번호를 먼저 변경하세요', pwChangeT: '관리자 비밀번호 변경', pwChanged: '비밀번호가 변경되었습니다', loginLocked: '시도 횟수가 너무 많습니다. 10분 후에 다시 시도하세요.'
 }
 };
 function tr(k) {
@@ -3161,6 +3220,8 @@ function i18nCourse(c) {
             } else {
                 var gate = document.getElementById('adminGate');
                 if (gate && (BOOT.adminAuthed || sessionStorage.getItem('TQ_ADMIN_OK') === '1')) gate.style.display = 'none';
+                try { if (typeof checkInitHint === 'function') checkInitHint(); } catch (e) {}
+                try { if (typeof enforcePwChange === 'function') enforcePwChange(); } catch (e) {}
                 var nrt = await fetch('/api/notice').then(function(x){ return x.json(); }).catch(function(){ return {}; });
                 var nt = document.getElementById('noticeText');
                 if (nt && nrt.notice) nt.value = nrt.notice;
@@ -5631,11 +5692,46 @@ function i18nCourse(c) {
         async function adminLogin() {
             var p = document.getElementById('adminPwd').value;
             hideAdminErr();
-            if (!p) { showAdminErr('请输入管理密码'); return; }
+            if (!p) { showAdminErr(tr('adminPwEmpty')); return; }
             var r = await fetch('/api/verify', { method: 'POST', body: JSON.stringify({ password: p }) });
-            var j = await r.json();
-            if (j.ok) { sessionStorage.setItem('TQ_ADMIN_OK', '1'); location.reload(); }
-            else showAdminErr('密码错误，请重试');
+            var j = await r.json().catch(function(){ return {}; });
+            if (j.ok) {
+                try {
+                    sessionStorage.setItem('TQ_ADMIN_OK', '1');
+                    if (j.mustChange) sessionStorage.setItem('TQ_MUST_CHANGE_PW', '1');
+                    else sessionStorage.removeItem('TQ_MUST_CHANGE_PW');
+                } catch (e) {}
+                location.reload();
+            }
+            else if (r.status === 429) showAdminErr(tr('loginLocked'));
+            else showAdminErr(tr('tchPwWrong'));
+        }
+        /* 全新数据库：登录页一次性展示随机初始密码 */
+        async function checkInitHint() {
+            try {
+                var r = await fetch('/api/admin/init-hint');
+                var j = await r.json();
+                var e = document.getElementById('adminInitHint');
+                if (!e) return;
+                if (j && j.isDefault && j.initPw) {
+                    e.classList.remove('hidden');
+                    document.getElementById('adminInitPw').textContent = j.initPw;
+                } else e.classList.add('hidden');
+            } catch (e) {}
+        }
+        /* 初始密码强制修改：不改不让用后台 */
+        function enforcePwChange() {
+            try {
+                if (sessionStorage.getItem('TQ_MUST_CHANGE_PW') !== '1') return;
+                if (!document.getElementById('pwModal')) return;
+                document.getElementById('pw_old').value = "";
+                document.getElementById('pw_new').value = "";
+                var cb = document.getElementById('pwCancelBtn');
+                if (cb) cb.style.display = 'none';
+                var t = document.getElementById('pwModalTitle');
+                if (t) t.textContent = tr('pwMustChangeT');
+                document.getElementById('pwModal').classList.remove('hidden');
+            } catch (e) {}
         }
 
         /* 教师版：查看本课全部正确答案（需管理会话） */
@@ -6098,13 +6194,13 @@ function i18nCourse(c) {
             if (r.status === 403) { alert("请先登录管理端"); return; }
             if (r.ok) alert("公告已保存");
         }
-        function openPwModal() { document.getElementById('pw_old').value = ""; document.getElementById('pw_new').value = ""; toggleModal('pwModal'); }
+        function openPwModal() { document.getElementById('pw_old').value = ""; document.getElementById('pw_new').value = ""; var cb = document.getElementById('pwCancelBtn'); if (cb) cb.style.display = ""; var t = document.getElementById('pwModalTitle'); if (t) t.textContent = tr('pwChangeT'); toggleModal('pwModal'); }
         async function adminLogout() { if (!confirm("确定退出管理端登录？")) return; await fetch('/api/admin/logout', { method: 'POST' }); location.reload(); }
         async function doChangePassword() {
             var o = document.getElementById('pw_old').value, n = document.getElementById('pw_new').value;
             var r = await fetch('/api/change-password', { method: 'POST', body: JSON.stringify({ oldPassword: o, newPassword: n }) });
             var j = await r.json().catch(function(){ return {}; });
-            if (j.ok) { alert("密码修改成功"); toggleModal('pwModal'); }
+            if (j.ok) { try { sessionStorage.removeItem('TQ_MUST_CHANGE_PW'); } catch (e) {} alert(tr("pwChanged")); toggleModal('pwModal'); }
             else alert("修改失败：" + (j.error || "未知错误"));
         }
         /* 管理密码恢复码 */
