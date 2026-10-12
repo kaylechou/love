@@ -1,3 +1,8 @@
+# 2026-10-12 第 146 次部署：分类简介语言跟随修复（worker.js 共 7417 行）
+- 修复韩文/英文/日文模式下系列简介和子栏目简介偶发显示中文的问题
+- 简介 `<p>` 加 data-catdesc/data-subdesc 标记，applyI18n() 里强制按当前语言重刷简介
+- 防御冷加载时序问题：即使首次渲染用了默认语言，语言应用后简介必被纠正
+
 # 2026-10-12 第 145 次部署：Worker Cache API 边缘缓存（worker.js 共 7402 行）
 - 首页/分享页用 caches.default 做边缘缓存（Worker 默认不走边缘缓存，需显式调用）
 - 首页 Cache-Control: public, s-maxage=60, max-age=30；分享页 s-maxage=300；管理端保持 no-store
