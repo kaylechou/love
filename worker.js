@@ -386,7 +386,7 @@ s.subs.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 const total = s.count + s.subs.reduce((t, x) => t + x.count, 0);
 return { name: s.name, description: s.description, count: s.count, totalCount: total, subs: s.subs, i18n: s.i18n || null };
 });
-return json(out, 200, { "Cache-Control": "public, max-age=60" });
+return json(out, 200, { "Cache-Control": "no-store" });
 }
 
 // API: 保存系列/子栏目（管理员）
