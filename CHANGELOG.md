@@ -1,3 +1,8 @@
+# 2026-10-13 第 157 次部署：页面内 PWA 安装按钮（worker.js 共 7626 行）
+- 用户卸载 Web app 后 Chrome/Edge 不再弹出安装提示：新增页面内"📲 安装应用"悬浮按钮（左下角，视图切换按钮上方），捕获 beforeinstallprompt 事件后自动显示，点击调起系统安装确认
+- 安装完成后（appinstalled）或无安装条件时按钮保持隐藏；中英日韩四语文案；管理端同样可用
+- love deployment 71d1de1e，love-jesus deployment 1dd7a00f
+
 # 2026-10-12 第 156 次部署：首页恢复 60 秒边缘缓存（worker.js 共 7600 行）
 - 用户要求重复打开更快：匿名首页 Cache-Control 从 no-store 改回 public, s-maxage=60, max-age=60，并恢复 Worker Cache API 缓存
 - 管理端 /admin 保持 no-store；部署后最多 60 秒内边缘节点可能吐旧页面，之后自动刷新
