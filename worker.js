@@ -749,11 +749,12 @@ return json({ ok: true});
 
 // API: 首页公告（含英日韩翻译）
 if (pathname === "/api/notice" && request.method === "GET") {
+const _nt = await Promise.all([getSetting(env, "notice"), getSetting(env, "notice_en"), getSetting(env, "notice_ja"), getSetting(env, "notice_ko")]);
 return json({
-  notice: (await getSetting(env, "notice")) || "",
-  notice_en: (await getSetting(env, "notice_en")) || "",
-  notice_ja: (await getSetting(env, "notice_ja")) || "",
-  notice_ko: (await getSetting(env, "notice_ko")) || ""
+  notice: _nt[0] || "",
+  notice_en: _nt[1] || "",
+  notice_ja: _nt[2] || "",
+  notice_ko: _nt[3] || ""
 });
 }
 if (pathname === "/api/notice" && request.method === "POST") {
@@ -774,10 +775,6 @@ if (pathname === "/icon-192.png") return pwaIconResponse(PWA_ICON_192);
 if (pathname === "/icon-512.png") return pwaIconResponse(PWA_ICON_512);
 if (pathname === "/icon-180.png") return pwaIconResponse(PWA_ICON_180);
 
-const _ns = await Promise.all([getSetting(env, "notice"), getSetting(env, "notice_en"), getSetting(env, "notice_ja"), getSetting(env, "notice_ko")]);
-const notice = _ns[0] || "", notice_en = _ns[1] || "", notice_ja = _ns[2] || "", notice_ko = _ns[3] || "";
-
-// 教师管理端页面
 if (pathname === "/admin" || pathname.indexOf("/admin/") === 0) {
 const list = await orderedCourses(env);
 const acats = [...new Set(list.map(item => item.category))];
@@ -788,20 +785,26 @@ return new Response(renderHTML(data, acats, { shareMode: false, isAdmin: true, a
 // 课程分享短链：/ID-xxxx
 const shortId = /^\/ID-[A-Za-z0-9_-]+$/.test(pathname)? pathname.slice(1): null;
 if (shortId) {
-const sr = await env.DB.prepare("SELECT * FROM courses WHERE id =?").bind(shortId).all();
-const srows = (sr && sr.results) || [];
+const _sh = await Promise.all([
+env.DB.prepare("SELECT * FROM courses WHERE id =?").bind(shortId).all(),
+getSetting(env, "notice"), getSetting(env, "notice_en"), getSetting(env, "notice_ja"), getSetting(env, "notice_ko")
+]);
+const srows = (((_sh[0] || {}).results) || []);
 if (!srows.length) return new Response("课程不存在或已删除", { status: 404});
 const scats = [...new Set(srows.map(item => item.category))];
-return new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
+const _snt = [_sh[1] || "", _sh[2] || "", _sh[3] || "", _sh[4] || ""];
+return new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: _snt[0], notice_en: _snt[1], notice_ja: _snt[2], notice_ko: _snt[3]}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 }
 
-// 页面渲染（学员端）
+// 页面渲染（学员端）：单轮并行拉取公告+课程+路径
 const _pr = await Promise.all([
+getSetting(env, "notice"), getSetting(env, "notice_en"), getSetting(env, "notice_ja"), getSetting(env, "notice_ko"),
 briefCourses(env),
 env.DB.prepare("SELECT * FROM paths ORDER BY sort_order, id").all().then(function(r){ return (r && r.results) || []; }).catch(function(){ return []; })
 ]);
-const results = _pr[0];
-var bootPaths = _pr[1];
+const notice = _pr[0] || "", notice_en = _pr[1] || "", notice_ja = _pr[2] || "", notice_ko = _pr[3] || "";
+const results = _pr[4];
+var bootPaths = _pr[5];
 const categories = [...new Set(results.map(item => item.category))];
 let displayData = results;
 let isShareMode = false;
