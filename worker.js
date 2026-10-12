@@ -214,9 +214,28 @@ icons: [
 }
 
 export default {
-async fetch(request, env) {
+async fetch(request, env, ctx) {
 const { pathname, searchParams} = new URL(request.url);
 const shareId = searchParams.get('id');
+
+// 边缘缓存：匿名首页和分享页用 Cache API（Worker 默认不走边缘缓存）
+const _cacheable = request.method === "GET" && (pathname === "/" || /^\/ID-[A-Za-z0-9_-]+$/.test(pathname));
+let _cache = null, _cacheKey = null;
+if (_cacheable) {
+try {
+_cache = caches.default;
+_cacheKey = new Request(request.url, { method: "GET" });
+const _hit = await _cache.match(_cacheKey);
+if (_hit) return _hit;
+} catch (e) {}
+}
+// 缓存写入 helper（只缓存成功的 HTML）
+function _putCache(resp) {
+if (_cache && _cacheKey && ctx && resp && resp.status === 200) {
+try { ctx.waitUntil(_cache.put(_cacheKey, resp.clone())); } catch (e) {}
+}
+return resp;
+}
 
 try {
 if (!env.DB) return new Response("数据库未绑定", { status: 500});
@@ -793,7 +812,7 @@ const srows = (((_sh[0] || {}).results) || []);
 if (!srows.length) return new Response("课程不存在或已删除", { status: 404});
 const scats = [...new Set(srows.map(item => item.category))];
 const _snt = [_sh[1] || "", _sh[2] || "", _sh[3] || "", _sh[4] || ""];
-return new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: _snt[0], notice_en: _snt[1], notice_ja: _snt[2], notice_ko: _snt[3]}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
+return _putCache(new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: _snt[0], notice_en: _snt[1], notice_ja: _snt[2], notice_ko: _snt[3]}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "public, s-maxage=300, max-age=60" }}));
 }
 
 // 页面渲染（学员端）：单轮并行拉取公告+课程+路径
@@ -812,7 +831,7 @@ if (shareId) {
 displayData = results.filter(item => item.id === shareId);
 isShareMode = true;
 }
-return new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
+return _putCache(new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": isShareMode? "public, s-maxage=300, max-age=60": "public, s-maxage=60, max-age=30" }}));
 
 } catch (e) {
 return new Response("服务器错误: " + e.message, { status: 500});
