@@ -1,3 +1,7 @@
+# 2026-10-12 第 148 次部署：分类简介语言跟随终极防御（worker.js 共 7443 行）
+- refreshCatDescs 加终极防御：英日韩模式下若简介仍含中文字符，自动带 cache-buster 重拉 /api/categories 刷新（最多一次，防递归）
+- 覆盖 catInfo 的 i18n 缺失或陈旧导致的顽固 case
+
 # 2026-10-12 第 147 次部署：分类简介语言跟随修复补完（worker.js 共 7421 行）
 - 修正第 146 次的作用域 bug：catDescL 在内层作用域，applyI18n 在外层调不到
 - 改为内层暴露 window.refreshCatDescs 全局函数，applyI18n 里调用它重刷简介
