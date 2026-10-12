@@ -1,3 +1,7 @@
+# 2026-10-13 第 158 次部署：安装按钮移至左下角底部（worker.js 共 7626 行）
+- 用户要求安装按钮放在下面、不影响其它内容：#pwaInstallFab 从 bottom:8.75rem（视图切换按钮上方）改为 bottom:1.25rem（左下角最底部）
+- love deployment 09020326，love-jesus deployment ba2c5765
+
 # 2026-10-13 第 157 次部署：页面内 PWA 安装按钮（worker.js 共 7626 行）
 - 用户卸载 Web app 后 Chrome/Edge 不再弹出安装提示：新增页面内"📲 安装应用"悬浮按钮（左下角，视图切换按钮上方），捕获 beforeinstallprompt 事件后自动显示，点击调起系统安装确认
 - 安装完成后（appinstalled）或无安装条件时按钮保持隐藏；中英日韩四语文案；管理端同样可用
