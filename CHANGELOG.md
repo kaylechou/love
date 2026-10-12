@@ -1,3 +1,9 @@
+# 2026-10-12 第 154 次部署：学习路径详情简介多语言修复（worker.js 共 7504 行）
+- 根因：renderPathDetail() 直接取 info.description / info.subDesc[sk] 中文原文，标题却用 catNameL/subNameL，导致英日韩模式下"标题已翻译、简介仍中文"
+- 路径详情系列简介改走 catDescL(cat)，子栏目简介改走 subDescL(cat, sk)，中英日韩一致
+- 移除第 154 次临时调试版的黄色 DBG 标记（该临时版仅部署 love 单站、未归档，本次正式版覆盖）
+- love deployment 3eb68a99，love-jesus deployment 0172abca
+
 # 2026-10-12 第 153 次部署：分类简介双重数据源（worker.js 共 7504 行）
 - catDescL/subDescL 加备用路径：catInfo 拿不到时直接从 BOOT.categories 查
 - 移除标题的 v152 测试标记
