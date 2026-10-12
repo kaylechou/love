@@ -1439,7 +1439,7 @@ function renderHTML(results, categories, opts) {
         #fontFabBtn { opacity: .55; transition: opacity .25s; }
         #fontFab.open #fontFabBtn, #fontFabBtn:hover { opacity: 1; }
         #viewModeFab { position: fixed; left: 0.5rem; bottom: 5rem; z-index: 100; }
-        #pwaInstallFab { position: fixed; left: 0.5rem; bottom: 8.75rem; z-index: 100; }
+        #pwaInstallFab { position: fixed; left: 0.5rem; bottom: 1.25rem; z-index: 100; }
         #pwaInstallBtn { height: 2.6rem; padding: 0 1rem; border-radius: 9999px; background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff; font-weight: 900; font-size: .85rem; box-shadow: 0 6px 20px rgba(139,92,246,.45); border: 2px solid #fff; cursor: pointer; }
         #pwaInstallBtn:active { transform: scale(.94); }
         #viewModeBtn { height: 3rem; min-width: 3rem; padding: 0 .9rem; border-radius: 9999px; background: linear-gradient(135deg,#0ea5e9,#6366f1); color: #fff; font-weight: 900; font-size: 1rem; box-shadow: 0 6px 20px rgba(14,165,233,.45); border: 2px solid #fff; cursor: pointer; line-height: 1; opacity: .55; transition: opacity .25s; }
