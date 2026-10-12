@@ -1804,6 +1804,23 @@ function renderHTML(results, categories, opts) {
             }
             return (catInfo[cat] && catInfo[cat].subDesc) ? (catInfo[cat].subDesc[sub] || "") : "";
         }
+        /* 全局暴露：供外层 applyI18n() 调用，重刷分类简介语言（防御冷加载时序问题） */
+        window.refreshCatDescs = function() {
+            try {
+                document.querySelectorAll('[data-catdesc]').forEach(function(el) {
+                    var c = el.getAttribute('data-catdesc');
+                    var t = catDescL(c);
+                    el.innerHTML = hlVerse(esc(stripMd(t)));
+                    el.style.display = t ? '' : 'none';
+                });
+                document.querySelectorAll('[data-subdesc]').forEach(function(el) {
+                    var c = el.getAttribute('data-catdesc2'), s = el.getAttribute('data-subdesc');
+                    var t = subDescL(c, s);
+                    el.innerHTML = hlVerse(esc(stripMd(t)));
+                    el.style.display = t ? '' : 'none';
+                });
+            } catch (e) {}
+        };
         var activeQuizzes = [];
         var activeLessonId = null;
         var activeCourseTitle = "";
@@ -2364,20 +2381,7 @@ function applyI18n() {
         var lb = document.getElementById('langBtn');
         if (lb) lb.innerHTML = '🌐 ' + langShort(curLang());
         /* 分类简介跟随语言重刷（防御：冷加载时序问题可能导致简介停留在默认语言） */
-        try {
-            document.querySelectorAll('[data-catdesc]').forEach(function(el) {
-                var c = el.getAttribute('data-catdesc');
-                var t = catDescL(c);
-                el.innerHTML = hlVerse(esc(stripMd(t)));
-                el.style.display = t ? '' : 'none';
-            });
-            document.querySelectorAll('[data-subdesc]').forEach(function(el) {
-                var c = el.getAttribute('data-catdesc2'), s = el.getAttribute('data-subdesc');
-                var t = subDescL(c, s);
-                el.innerHTML = hlVerse(esc(stripMd(t)));
-                el.style.display = t ? '' : 'none';
-            });
-        } catch (e) {}
+        try { if (typeof window.refreshCatDescs === 'function') window.refreshCatDescs(); } catch (e) {}
     } catch (e) {}
 }
 /* 英文圣经版本设置：NIV / KJV（localStorage 记住，默认 NIV） */
