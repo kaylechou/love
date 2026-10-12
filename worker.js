@@ -219,7 +219,7 @@ const { pathname, searchParams} = new URL(request.url);
 const shareId = searchParams.get('id');
 
 // 边缘缓存：匿名首页和分享页用 Cache API（Worker 默认不走边缘缓存）
-const _cacheable = request.method === "GET" && (pathname === "/" || /^\/ID-[A-Za-z0-9_-]+$/.test(pathname));
+const _cacheable = request.method === "GET" && (/^\/ID-[A-Za-z0-9_-]+$/.test(pathname));
 let _cache = null, _cacheKey = null;
 if (_cacheable) {
 try {
@@ -858,7 +858,7 @@ if (shareId) {
 displayData = results.filter(item => item.id === shareId);
 isShareMode = true;
 }
-return _putCache(new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths, bootCategories: bootCategories }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": isShareMode? "public, s-maxage=300, max-age=60": "public, s-maxage=60, max-age=30" }}));
+return new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths, bootCategories: bootCategories }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store" }});
 
 } catch (e) {
 return new Response("服务器错误: " + e.message, { status: 500});
