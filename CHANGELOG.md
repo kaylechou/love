@@ -1,3 +1,12 @@
+# 2026-10-12 第 155 次部署：默认管理密码安全加固（worker.js 共 7600 行）
+- 删除源码中写死的默认管理密码（原 777777，公开仓库可查）；首次运行时生成 12 位随机初始密码，只存哈希
+- 随机初始密码仅在管理登录页一次性展示，登录成功后强制修改，不改不让进后台；改密后明文与默认标记永久删除
+- 新增 /api/admin/init-hint（仅默认模式返回初始密码，改密后永久关闭）
+- /api/verify 加 IP 级防爆破：10 分钟内失败 10 次锁定；新增 login_attempts 表
+- 新增 7 组中英日韩文案（adminPwEmpty/initPwT/initPwD/pwMustChangeT/pwChangeT/pwChanged/loginLocked）
+- 现有两站已改过密码，行为不受影响；D1 备份为白名单制，新敏感 key 默认不备份
+- love deployment 1888f960，love-jesus deployment 8fa0e9d2
+
 # 2026-10-12 第 154 次部署：学习路径详情简介多语言修复（worker.js 共 7504 行）
 - 根因：renderPathDetail() 直接取 info.description / info.subDesc[sk] 中文原文，标题却用 catNameL/subNameL，导致英日韩模式下"标题已翻译、简介仍中文"
 - 路径详情系列简介改走 catDescL(cat)，子栏目简介改走 subDescL(cat, sk)，中英日韩一致
