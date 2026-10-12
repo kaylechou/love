@@ -1,3 +1,7 @@
+# 2026-10-12 第 152 次部署：重建部署修复内联缺失（worker.js 共 7475 行）
+- 发现 150/151 次部署的 worker.js 未正确包含模板变更，删除重建后重新部署
+- 确认线上 HTML 已含 BOOT.categories 内联数据
+
 # 2026-10-12 第 151 次部署：首页 HTML 改 no-store（worker.js 共 7475 行）
 - 首页 Cache-Control 改为 no-store，且绕过 Worker Cache API（_putCache）
 - 彻底杜绝任何层级的 HTML 缓存，每次请求都拿最新代码和数据
