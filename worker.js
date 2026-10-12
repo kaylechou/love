@@ -1805,8 +1805,10 @@ function renderHTML(results, categories, opts) {
             return (catInfo[cat] && catInfo[cat].subDesc) ? (catInfo[cat].subDesc[sub] || "") : "";
         }
         /* 全局暴露：供外层 applyI18n() 调用，重刷分类简介语言（防御冷加载时序问题） */
-        window.refreshCatDescs = function() {
+        window.refreshCatDescs = function(force) {
             try {
+                var L = curLang();
+                var needEn = (L === 'en' || L === 'ja' || L === 'ko');
                 document.querySelectorAll('[data-catdesc]').forEach(function(el) {
                     var c = el.getAttribute('data-catdesc');
                     var t = catDescL(c);
@@ -1819,6 +1821,26 @@ function renderHTML(results, categories, opts) {
                     el.innerHTML = hlVerse(esc(stripMd(t)));
                     el.style.display = t ? '' : 'none';
                 });
+                /* 终极防御：如果当前是英日韩但简介仍含中文，说明 catInfo 的 i18n 缺失，直接重拉接口（最多一次） */
+                if (needEn && !force) {
+                    var hasChinese = false;
+                    document.querySelectorAll('[data-catdesc],[data-subdesc]').forEach(function(el) {
+                        if (/[\u4e00-\u9fff]/.test(el.textContent)) hasChinese = true;
+                    });
+                    if (hasChinese) {
+                        fetch('/api/categories?_=' + Date.now()).then(function(r) { return r.json(); }).then(function(cj) {
+                            if (!Array.isArray(cj)) return;
+                            var newInfo = {};
+                            cj.forEach(function(s) {
+                                var sd = {}, sdI18n = {};
+                                (s.subs || []).forEach(function(x) { sd[x.name] = x.description || ""; if (x.i18n) sdI18n[x.name] = x.i18n; });
+                                newInfo[s.name] = { description: s.description || "", subDesc: sd, i18n: s.i18n || null, subI18n: sdI18n };
+                            });
+                            catInfo = newInfo;
+                            window.refreshCatDescs(true);
+                        }).catch(function() {});
+                    }
+                }
             } catch (e) {}
         };
         var activeQuizzes = [];
