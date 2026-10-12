@@ -2363,6 +2363,21 @@ function applyI18n() {
         }
         var lb = document.getElementById('langBtn');
         if (lb) lb.innerHTML = '🌐 ' + langShort(curLang());
+        /* 分类简介跟随语言重刷（防御：冷加载时序问题可能导致简介停留在默认语言） */
+        try {
+            document.querySelectorAll('[data-catdesc]').forEach(function(el) {
+                var c = el.getAttribute('data-catdesc');
+                var t = catDescL(c);
+                el.innerHTML = hlVerse(esc(stripMd(t)));
+                el.style.display = t ? '' : 'none';
+            });
+            document.querySelectorAll('[data-subdesc]').forEach(function(el) {
+                var c = el.getAttribute('data-catdesc2'), s = el.getAttribute('data-subdesc');
+                var t = subDescL(c, s);
+                el.innerHTML = hlVerse(esc(stripMd(t)));
+                el.style.display = t ? '' : 'none';
+            });
+        } catch (e) {}
     } catch (e) {}
 }
 /* 英文圣经版本设置：NIV / KJV（localStorage 记住，默认 NIV） */
@@ -3190,7 +3205,7 @@ function i18nCourse(c) {
                             + '<button data-cat="' + esc(cat) + '" data-sub="' + esc(sk) + '" onclick="copySubLink(this.dataset.cat,this.dataset.sub)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition text-[13px]">🔗</button>'
                             + (BOOT.isAdmin ? '<button data-cat="' + esc(cat) + '" data-sub="' + esc(sk) + '" onclick="exportSub(this.dataset.cat,this.dataset.sub)" title="导出本子栏目全部课件" class="text-slate-300 hover:text-emerald-600 transition text-[13px]">📥</button>' : '')
                             + '</span></div>'
-                            + (subDescL(cat, sk) ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed">' + hlVerse(esc(stripMd(subDescL(cat, sk)))) + '</p>' : '')
+                            + (subDescL(cat, sk) ? '<p class="text-xs text-slate-500 mb-3 ml-6 leading-relaxed" data-catdesc2="' + esc(cat) + '" data-subdesc="' + esc(sk) + '">' + hlVerse(esc(stripMd(subDescL(cat, sk)))) + '</p>' : '')
                             + '<div id="' + kBody + '" class="' + (kCollapsed ? "hidden" : "") + '">' + gridHtml + '</div></div>';
                     } else {
                         bodyHtml += gridHtml;
@@ -3207,7 +3222,7 @@ function i18nCourse(c) {
                     + '<button data-cat="' + esc(cat) + '" onclick="copySeriesLink(this.dataset.cat)" title="' + tr("copyLinkT") + '" class="text-slate-300 hover:text-violet-600 transition text-[15px]">🔗</button>'
                     + (BOOT.isAdmin ? '<button data-cat="' + esc(cat) + '" onclick="exportSeries(this.dataset.cat)" title="导出本系列全部课件" class="text-slate-300 hover:text-emerald-600 transition text-[15px]">📥</button>' : '')
                     + '</span></div>'
-                    + (catDescL(cat) ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed">' + hlVerse(esc(stripMd(catDescL(cat)))) + '</p>' : '')
+                    + (catDescL(cat) ? '<p class="text-sm text-slate-500 mt-2 ml-[52px] leading-relaxed" data-catdesc="' + esc(cat) + '">' + hlVerse(esc(stripMd(catDescL(cat)))) + '</p>' : '')
                     + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + ' mt-2">' + bodyHtml + '</div></div>';
             });
             wrap.innerHTML = html;
