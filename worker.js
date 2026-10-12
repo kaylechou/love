@@ -6446,7 +6446,7 @@ var gridHtml = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5
 if (!sk) return gridHtml;
 var kKey = "path:" + p.id + ":sub:" + cat + "::" + sk, kBody = sBody + "K" + ki, kChev = sChev + "K" + ki;
 var kCollapsed = !!st[kKey];
-var sd = info.subDesc[sk] || "";
+var sd = (typeof subDescL === "function") ? subDescL(cat, sk) : (info.subDesc[sk] || "");
 return '<div class="ml-1 md:ml-5 mt-7">'
 + '<div class="flex items-center gap-1 mb-3">'
 + '<button data-tkey="' + escP(kKey) + '" data-tbody="' + kBody + '" data-tchev="' + kChev + '" onclick="toggleTree(this)" class="flex items-center gap-1 group min-w-0">'
@@ -6467,7 +6467,7 @@ return '<div class="mb-6">'
 + '<span class="text-sm text-slate-400 shrink-0">' + escP(tf("nLessons", { n: groups[cat].length })) + "</span></button>"
 + '<button data-cat="' + escP(cat) + '" onclick="copySeriesLink(this.dataset.cat)" title="' + escP(tr("copyLinkT")) + '" class="text-slate-300 hover:text-violet-600 transition text-[15px] ml-1">🔗</button>'
 + "</div>"
-+ (info.description ? '<p class="text-sm text-slate-500 mt-2 mb-1 ml-8 leading-relaxed">' + escP(String(info.description).split("**").join("").split(String.fromCharCode(10)).join(" ").trim()) + "</p>" : "")
++ (function(){ var _sd2 = (typeof catDescL === "function") ? catDescL(cat) : info.description; return _sd2 ? '<p class="text-sm text-slate-500 mt-2 mb-1 ml-8 leading-relaxed">' + escP(String(_sd2).split("**").join("").split(String.fromCharCode(10)).join(" ").trim()) + "</p>" : ""; })()
 + '<div id="' + sBody + '" class="' + (sCollapsed ? "hidden" : "") + '">' + bodyHtml + "</div></div>";
 }).join("");
 })();
