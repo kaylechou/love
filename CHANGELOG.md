@@ -1,3 +1,8 @@
+# 2026-10-12 第 150 次部署：分类 i18n 内联进 HTML（worker.js 共 7475 行）
+- 服务端首页并行查询加分类表，分类 i18n 直接内联进 window.__BOOT__.categories
+- 客户端优先用内联数据，不再依赖 /api/categories 接口，彻底绕过中间节点缓存/干扰
+- 修复国内用户英日韩模式下简介显示中文的顽固问题
+
 # 2026-10-12 第 149 次部署：/api/categories 改 no-store（worker.js 共 7443 行）
 - 分类接口 Cache-Control 从 public,max-age=60 改为 no-store，杜绝中间节点缓存旧数据
 - 配合 148 次的客户端终极防御，英日韩简介必显示正确语言
