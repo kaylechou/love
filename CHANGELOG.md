@@ -1,3 +1,10 @@
+# 2026-10-13 第 159 次部署：选择题选项翻译修复（worker.js 共 7628 行）
+- 用户反馈日文模式下单选/多选题选项仍是中文：根因是选项存在 o 字段（与经文出处复用），翻译脚本和前端都按"出处不翻译"跳过了 o
+- 前端 i18nCourse：single/multiple 题型的 o 用翻译后的选项；经文题的 o 保持中文出处（查经文库用）
+- 翻译脚本（batch_translate.py / translate_course.py）：single/multiple 的 o 按选项翻译，保留 A. 标签；失败不写回退
+- 回填：23 门课 115 道选择题，345 条选项英日韩翻译全部入库（只新增 o 字段，第 1-4 课人工审校数据未动）
+- love deployment ee7a2fda，love-jesus deployment 29c83e08
+
 # 2026-10-13 第 158 次部署：安装按钮移至左下角底部（worker.js 共 7626 行）
 - 用户要求安装按钮放在下面、不影响其它内容：#pwaInstallFab 从 bottom:8.75rem（视图切换按钮上方）改为 bottom:1.25rem（左下角最底部）
 - love deployment 09020326，love-jesus deployment ba2c5765
