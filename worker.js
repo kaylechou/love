@@ -2675,11 +2675,13 @@ function i18nCourse(c) {
         try {
             var qs = JSON.parse(nc.quizzes_json || "[]");
             if (Array.isArray(d.quizzes) && d.quizzes.length === qs.length) {
-                // 替换 q/s/a，保留 id 等；o（经文出处）不翻译，保持原文用于 bible_verses 查询
+                // 替换 q/s/a，保留 id 等；o 字段：经文出处不翻译（保持原文用于 bible_verses 查询），
+                // 但 single/multiple 的 o 是选项，需要用翻译
                 for (var i = 0; i < qs.length; i++) {
                     if (d.quizzes[i].q) qs[i].q = d.quizzes[i].q;
                     if (d.quizzes[i].s) qs[i].s = d.quizzes[i].s;
                     if (d.quizzes[i].a) qs[i].a = d.quizzes[i].a;
+                    if (d.quizzes[i].o && (qs[i].type === 'single' || qs[i].type === 'multiple')) qs[i].o = d.quizzes[i].o;
                 }
                 nc.quizzes_json = JSON.stringify(qs);
             }
