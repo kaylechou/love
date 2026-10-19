@@ -4,7 +4,7 @@
 
 - 管理后台：`/admin`
 - 更新记录：[CHANGELOG.md](./CHANGELOG.md)（按时间倒序）
-- 代码规模：`worker.js`（7628 行，每次部署后更新）
+- 代码规模：`worker.js`（7679 行，每次部署后更新）
 
 ---
 
