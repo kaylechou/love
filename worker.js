@@ -856,7 +856,7 @@ if (pathname === "/admin" || pathname.indexOf("/admin/") === 0) {
 const list = await orderedCourses(env);
 const acats = [...new Set(list.map(item => item.category))];
 const data = authed? list: stripAnswers(list);
-return new Response(renderHTML(data, acats, { shareMode: false, isAdmin: true, adminAuthed: authed, notice: "", notice_en: "", notice_ja: "", notice_ko: ""}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
+return new Response(renderHTML(data, acats, { pageUrl: request.url, shareMode: false, isAdmin: true, adminAuthed: authed, notice: "", notice_en: "", notice_ja: "", notice_ko: ""}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "no-store, no-cache, must-revalidate" }});
 }
 
 // 课程分享短链：/ID-xxxx
@@ -870,7 +870,7 @@ const srows = (((_sh[0] || {}).results) || []);
 if (!srows.length) return new Response("课程不存在或已删除", { status: 404});
 const scats = [...new Set(srows.map(item => item.category))];
 const _snt = [_sh[1] || "", _sh[2] || "", _sh[3] || "", _sh[4] || ""];
-return _putCache(new Response(renderHTML(stripAnswers(srows), scats, { shareMode: true, isAdmin: false, adminAuthed: false, notice: _snt[0], notice_en: _snt[1], notice_ja: _snt[2], notice_ko: _snt[3]}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "public, s-maxage=300, max-age=60" }}));
+return _putCache(new Response(renderHTML(stripAnswers(srows), scats, { pageUrl: request.url, shareMode: true, isAdmin: false, adminAuthed: false, notice: _snt[0], notice_en: _snt[1], notice_ja: _snt[2], notice_ko: _snt[3]}), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "public, s-maxage=300, max-age=60" }}));
 }
 
 // 页面渲染（学员端）：单轮并行拉取公告+课程+路径
@@ -916,7 +916,7 @@ if (shareId) {
 displayData = results.filter(item => item.id === shareId);
 isShareMode = true;
 }
-return _putCache(new Response(renderHTML(stripAnswers(displayData), categories, { shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths, bootCategories: bootCategories }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "public, s-maxage=60, max-age=60" }}));
+return _putCache(new Response(renderHTML(stripAnswers(displayData), categories, { pageUrl: request.url, shareMode: isShareMode, isAdmin: false, adminAuthed: false, notice: notice, notice_en: notice_en, notice_ja: notice_ja, notice_ko: notice_ko, bootPaths: bootPaths, bootCategories: bootCategories }), { headers: { "Content-Type": "text/html;charset=UTF-8", "Cache-Control": "public, s-maxage=60, max-age=60" }}));
 
 } catch (e) {
 return new Response("服务器错误: " + e.message, { status: 500});
@@ -1387,6 +1387,43 @@ function renderHTML(results, categories, opts) {
   const bootPathsJson = JSON.stringify(bootPaths).replace(/</g, function(){ return String.fromCharCode(92) + 'u003c'; });
   const bootCategoriesJson = JSON.stringify(bootCategories).replace(/</g, function(){ return String.fromCharCode(92) + 'u003c'; });
 
+  // 分享卡片 OG 标签：微信爬虫不跑 JS，标签必须服务端直出
+  var WX_TIP = "此链接需要复制粘贴到设备（手机或电脑）浏览器才能打开！";
+  function escAttr(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function ogPlainText(s) {
+    var t = String(s == null ? "" : s), out = "", inTag = false;
+    for (var i = 0; i < t.length; i++) {
+      var ch = t[i];
+      if (ch === "<") { inTag = true; continue; }
+      if (ch === ">") { inTag = false; out += " "; continue; }
+      if (!inTag) out += ch;
+    }
+    var cleaned = out.split(String.fromCharCode(10)).join(" ").split(String.fromCharCode(13)).join(" ").split(String.fromCharCode(9)).join(" ");
+    cleaned = cleaned.split("#").join("").split("*").join("").split("_").join("").split("`").join("");
+    var parts = cleaned.split(" "), keep = [];
+    for (var k = 0; k < parts.length; k++) { if (parts[k]) keep.push(parts[k]); }
+    return keep.join(" ");
+  }
+  var pageOrigin = "";
+  try { pageOrigin = new URL(opts.pageUrl || "").origin; } catch (e) {}
+  var ogTitle = "团契智学系统", ogDesc = WX_TIP + " 团契智学 - 系统学习，稳步成长", ogUrl = opts.pageUrl || "", ogImage = pageOrigin ? pageOrigin + "/icon-512.png" : "";
+  if (opts.shareMode && results && results[0]) {
+    var sc = results[0];
+    ogTitle = (sc.title || "课程") + " - 团契智学";
+    var excerpt = Array.from(ogPlainText(sc.content || "")).slice(0, 100).join("");
+    ogDesc = WX_TIP + (excerpt ? " " + excerpt : "");
+  }
+  var ogTags = "";
+  if (!isAdmin) {
+    ogTags = '<meta property="og:type" content="website">'
+      + '<meta property="og:site_name" content="团契智学">'
+      + '<meta property="og:title" content="' + escAttr(ogTitle) + '">'
+      + '<meta property="og:description" content="' + escAttr(ogDesc) + '">'
+      + (ogUrl ? '<meta property="og:url" content="' + escAttr(ogUrl) + '">' : '')
+      + (ogImage ? '<meta property="og:image" content="' + escAttr(ogImage) + '">' : '')
+      + '<meta name="twitter:card" content="summary">';
+  }
+
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -1400,6 +1437,7 @@ function renderHTML(results, categories, opts) {
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
     <link rel="apple-touch-icon" href="/icon-180.png">
     <title>团契智学${isAdmin ? ' · 教师管理' : '系统'}</title>
+    ${ogTags}
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <style>/* Tailwind 预编译（构建时生成，替代 CDN 运行时） */
@@ -1471,6 +1509,19 @@ function renderHTML(results, categories, opts) {
 </head>
 <body class="bg-[#f6f7fb] min-h-screen text-slate-900 pb-20">
     <script>window.__BOOT__ = { shareMode: ${isShareMode}, isAdmin: ${isAdmin}, adminAuthed: ${adminAuthed}, list: ${bootJson}, paths: ${bootPathsJson}, categories: ${bootCategoriesJson} };</script>
+
+    <!-- 微信内打开提示条（仅 MicroMessenger UA 显示） -->
+    <div id="wxTipBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:300;background:#fef3c7;border-bottom:2px solid #f59e0b;padding:.6rem .8rem;align-items:center;gap:.5rem;">
+        <span style="font-size:.85rem;color:#92400e;font-weight:700;">此链接需要复制粘贴到设备（手机或电脑）浏览器才能打开！</span>
+        <button id="wxCopyBtn" onclick="copyWxTipLink()" style="flex-shrink:0;background:#d97706;color:#fff;font-weight:700;font-size:.8rem;padding:.35rem .8rem;border-radius:.5rem;border:none;cursor:pointer;">复制链接</button>
+        <button onclick="document.getElementById('wxTipBar').style.display='none'" style="flex-shrink:0;background:transparent;color:#92400e;font-weight:700;font-size:1rem;padding:.2rem .5rem;border:none;cursor:pointer;">✕</button>
+    </div>
+    <script>
+    function wxCopyDone(){ var t = document.getElementById('wxCopyBtn'); if (t) { t.textContent = '已复制'; setTimeout(function(){ t.textContent = '复制链接'; }, 2000); } }
+    function wxCopyFallback(u){ var ta = document.createElement('textarea'); ta.value = u; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); wxCopyDone(); } catch (e) {} document.body.removeChild(ta); }
+    function copyWxTipLink(){ var u = location.href; if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).then(wxCopyDone).catch(function(){ wxCopyFallback(u); }); } else { wxCopyFallback(u); } }
+    (function(){ try { if (/MicroMessenger/i.test(navigator.userAgent)) { var b = document.getElementById('wxTipBar'); if (b) b.style.display = 'flex'; } } catch (e) {} })();
+    </script>
 
     <!-- 顶栏 -->
     <header class="bg-white/90 backdrop-blur sticky top-0 z-50 border-b border-slate-100">
