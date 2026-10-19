@@ -1,3 +1,8 @@
+# 2026-10-19 第 162 次部署：微信分享卡片 OG 标签 + 微信内打开提示条（worker.js 共 7679 行）
+- 分享卡片：服务端直出 OG 标签（微信爬虫不跑 JS，必须服务端渲染）：课程分享链接标题用课名，简介开头为提示词“此链接需要复制粘贴到设备（手机或电脑）浏览器才能打开！”，后跟课程简介（markdown/HTML 已剥除）；首页用通用版；管理端不带 OG
+- 微信内打开提示：检测到 MicroMessenger UA 时页面顶部显示黄色提示条，含同样提示词 + 复制链接按钮（copyWxTipLink，与现有 copyShareLink 分名避免冲突）+ 关闭按钮；og:image 用本站 /icon-512.png，og:url 用请求完整地址
+- love deployment f836aaee，love-jesus deployment 0a513feb
+
 # 2026-10-15 第 161 次部署：PWA 应用图标换成加强版 v6 设计（worker.js 共 7628 行）
 - 双站 PWA 图标（/icon-192.png、/icon-512.png、/icon-180.png）换成 v6 设计：淡色背景，心形十字 + 两根对称橄榄枝 + 科技风渐变字体，图案加强加亮
 - 图标源图为 6000×6000 版本下采样；manifest 指向不变
