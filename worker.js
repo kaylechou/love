@@ -2040,7 +2040,7 @@ startLearning: '开始学习', loading: '加载中...', videoBadge: '🎬 视频
 stDone: '已完成', stDoing: '进行中', stNot: '未开始',
 backList: '← 返回课程列表', backHome: '← 返回智学课程系统', studentIs: '学员：', changeBtn: '更换', loginReg: '登录 / 注册',
 tabGuide: '📚 课程导读', tabReport: '📊 成绩报告',
-tyVerse: '经文诵读', tyFill: '填空题', tySingle: '单项选择题', tyMulti: '多项选择题', tyJudge: '判断题', tyEssay: '问答与思辨',
+tyVerse: '经文诵读', tyFill: '填空题', tySingle: '单项选择题', tyMulti: '多项选择题', tyJudge: '判断题', tyEssay: '问答与思辨', tyPractice: '课后练习',
 nQuestions: '{n}题', teacherBtn: '🔑 教师版查看答案', allAnswers: '📖 查看全套参考答案',
 watchVideo: '观看课程视频', videoMulti: '{n}个视频源，点击选择',
 modeChapters: '专题课件 · 分章互动版', modeQuiz: '互动答题 · 即时核对版',
@@ -2121,7 +2121,7 @@ tyFill: 'Fill in the Blanks',
 tySingle: 'Single Choice',
 tyMulti: 'Multiple Choice',
 tyJudge: 'True / False',
-tyEssay: 'Q & A',
+tyEssay: 'Q & A', tyPractice: 'Practice',
 nQuestions: '{n} questions',
 teacherBtn: '🔑 Teacher Answer View',
 allAnswers: '📖 View Full Answer Key',
@@ -2272,7 +2272,7 @@ tyFill: '空欄補充',
 tySingle: '単一選択',
 tyMulti: '複数選択',
 tyJudge: '正誤判定',
-tyEssay: '記述・思考',
+tyEssay: '記述・思考', tyPractice: '課後練習',
 nQuestions: '{n}問',
 teacherBtn: '🔑 教師用解答表示',
 allAnswers: '📖 全解答を見る',
@@ -2423,7 +2423,7 @@ tyFill: '빈칸 채우기',
 tySingle: '단일 선택',
 tyMulti: '다중 선택',
 tyJudge: '참 / 거짓',
-tyEssay: '서술형',
+tyEssay: '서술형', tyPractice: '연습 과제',
 nQuestions: '{n}문제',
 teacherBtn: '🔑 교사용 정답 보기',
 allAnswers: '📖 전체 정답 보기',
@@ -3846,6 +3846,9 @@ function i18nCourse(c) {
                 return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + hlVerse(esc(q.q)) + '</p>'
                     + '<textarea id="u-' + i + '" class="quiz-input w-full p-4 border rounded-2xl bg-slate-50 h-28 mt-3" placeholder="' + tr("essayPh") + '"></textarea>' + verdict + '</div>';
             }
+            if (q.type === 'practice') {
+                return '<div id="qcard-' + i + '" data-qnum="' + num + '"><label class="flex gap-3 items-start cursor-pointer"><input type="checkbox" name="u-' + i + '" class="mt-1 w-5 h-5 shrink-0 accent-emerald-600"><span class="text-slate-800 leading-relaxed">' + num + '. ' + hlVerse(esc(q.q)) + '</span></label>' + verdict + '</div>';
+            }
             return '<div id="qcard-' + i + '" data-qnum="' + num + '"><p>' + num + '. ' + studyPara(q, i) + '</p>' + verdict + '</div>';
         }
         /* 进度统计：填空按空格数，选择/问答按题数 */
@@ -3854,7 +3857,10 @@ function i18nCourse(c) {
             for (var v = 0; v < activeQuizzes.length; v++) {
                 var qv = activeQuizzes[v];
                 if (!renderedQTypes[qv.type]) continue;
-                if (qv.type === 'single' || qv.type === 'judge' || qv.type === 'multiple') {
+                if (qv.type === 'practice') {
+                    total++;
+                    if (document.querySelector('input[name="u-' + v + '"]:checked')) filled++;
+                } else if (qv.type === 'single' || qv.type === 'judge' || qv.type === 'multiple') {
                     total++;
                     if (document.querySelector('input[name="u-' + v + '"]:checked')) filled++;
                 } else {
@@ -3914,6 +3920,7 @@ function i18nCourse(c) {
             var answers = [], ok = true;
             for (var v = 0; v < activeQuizzes.length; v++) {
                 var qv = activeQuizzes[v], u = '';
+                if (qv.type === 'practice') { answers.push({ i: v, u: '' }); continue; }
                 if (qv.type === 'multiple') {
                     var sels = document.querySelectorAll('input[name="u-' + v + '"]:checked');
                     if (!sels.length) { ok = false; break; }
@@ -4322,7 +4329,8 @@ function i18nCourse(c) {
                 { t: 'single', label: tr('tySingle'), icon: '🔘' },
                 { t: 'multiple', label: tr('tyMulti'), icon: '☑️' },
                 { t: 'judge', label: tr('tyJudge'), icon: '⚖️' },
-                { t: 'essay', label: tr('tyEssay'), icon: '💬' }
+                { t: 'essay', label: tr('tyEssay'), icon: '💬' },
+                { t: 'practice', label: tr('tyPractice'), icon: '🎵' }
             ].filter(function (mt) { return activeQuizzes.some(function (q) { return q.type === mt.t; }); });
             var CN_NUM = (curLang() === 'zh' || curLang() === 'tw') ? ['一', '二', '三', '四', '五', '六'] : ['1', '2', '3', '4', '5', '6'];
             typeTabs.forEach(function (mt, ti) {
@@ -4745,7 +4753,7 @@ function i18nCourse(c) {
                 }).join('') + '</section>';
             }
             if (c.instructions) body += '<section class="card"><h2>📝 答题说明</h2><div class="md">' + expMd(c.instructions) + '</div></section>';
-            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay'], groups = {};
+            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay', 'practice'], groups = {};
             qs.forEach(function(q) { var t = q.type || 'fill'; (groups[t] = groups[t] || []).push(q); });
             var hasQ = false;
             order.forEach(function(t) {
@@ -4848,7 +4856,7 @@ function i18nCourse(c) {
             openExportMenu(ids);
         }
         /* ===== Office 导出：Word / Excel / PPTX / 打印存PDF ===== */
-        var EXP_TYPE_PLAIN = { fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨', verse: '经文诵读' };
+        var EXP_TYPE_PLAIN = { fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨', verse: '经文诵读', practice: '课后练习' };
         var exportIds = [];
         var exportLabel = '';
         function openExportMenu(ids, label) {
@@ -4943,7 +4951,7 @@ function i18nCourse(c) {
             var qs = [];
             try { qs = JSON.parse(c.quizzes_json || '[]'); } catch (e) {}
             if (!qs.length) return '';
-            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay'];
+            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay', 'practice'];
             var groups = {};
             qs.forEach(function(q) { var t = q.type || 'fill'; (groups[t] = groups[t] || []).push(q); });
             var html = '<div class="card answer-key"><h2>📋 参考答案</h2>';
@@ -5007,7 +5015,7 @@ function i18nCourse(c) {
             setTimeout(function() { w.print(); }, 600);
         }
         /* ---- 错题本导出：与课件导出相同的全部格式（HTML / Word / Excel / PPT单页 / PPT两页 / 打印） ---- */
-        var WRONG_TYPE_LABEL = { fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨', verse: '经文诵读' };
+        var WRONG_TYPE_LABEL = { fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨', verse: '经文诵读', practice: '课后练习' };
         function wrongTypeNum(x) {
             var parts = [];
             var tl = WRONG_TYPE_LABEL[x.type] || x.type || '';
@@ -5409,9 +5417,9 @@ function i18nCourse(c) {
                 });
             }
             // 题目
-            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay'], groups = {};
+            var order = ['verse', 'fill', 'single', 'multiple', 'judge', 'essay', 'practice'], groups = {};
             qs.forEach(function(q) { var t = q.type || 'fill'; (groups[t] = groups[t] || []).push(q); });
-            var TYPE_LABEL = {verse: '经文诵读', fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨'};
+            var TYPE_LABEL = {verse: '经文诵读', fill: '填空题', single: '单项选择题', multiple: '多项选择题', judge: '判断题', essay: '问答与思辨', practice: '课后练习'};
             order.forEach(function(t) {
                 var list = groups[t] || [];
                 if (!list.length) return;
@@ -5600,7 +5608,7 @@ function i18nCourse(c) {
                 rows.push('<row r="' + (rn++) + '"></row>');
             }
             // 题库表头
-            var TYPE_PLAIN = {verse: '经文诵读', fill: '填空题', single: '单选题', multiple: '多选题', judge: '判断题', essay: '问答题'};
+            var TYPE_PLAIN = {verse: '经文诵读', fill: '填空题', single: '单选题', multiple: '多选题', judge: '判断题', essay: '问答题', practice: '课后练习'};
             rows.push('<row r="' + rn + '">' + xlsxCell(xlsxCol(1)+rn, '题库', 1) + '</row>'); rn++;
             rows.push('<row r="' + rn + '">'
                 + xlsxCell(xlsxCol(1)+rn, '序号', 3) + xlsxCell(xlsxCol(2)+rn, '题型', 3)
@@ -5869,6 +5877,7 @@ function i18nCourse(c) {
                 + '<option value="fill"' + (d.type === 'fill' ? ' selected' : '') + '>填空</option>'
                 + '<option value="judge"' + (d.type === 'judge' ? ' selected' : '') + '>判断</option>'
                 + '<option value="essay"' + (d.type === 'essay' ? ' selected' : '') + '>问答</option>'
+                + '<option value="practice"' + (d.type === 'practice' ? ' selected' : '') + '>课后练习</option>'
                 + '<option value="verse"' + (d.type === 'verse' ? ' selected' : '') + '>经文框</option></select>'
                 + '<input class="q-s w-full border-b bg-transparent text-[10px] p-1 mb-2" value="' + esc(d.s) + '" placeholder="章节名（有章节自动分组，可空）">'
                 + '<input class="q-q w-full border-b bg-transparent text-xs p-1 mb-2" value="' + esc(d.q) + '" placeholder="题目内容（填空用 ____ 占位，下划线越多空格越宽）">'
